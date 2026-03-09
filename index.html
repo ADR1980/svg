@@ -1420,10 +1420,7 @@ async function handleNewsletterSubmit(e) {
         : 'This email address is already subscribed to the newsletter.';
       errorEl.classList.add('show');
     } else {
-      errorEl.textContent = currentLang === 'de'
-        ? 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
-        : 'Please enter a valid email address.';
-      errorEl.classList.add('show');
+      throw new Error('API error');
     }
   } catch {
     errorEl.textContent = currentLang === 'de'

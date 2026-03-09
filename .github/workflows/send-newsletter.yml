@@ -1,0 +1,32 @@
+name: Send Daily Risk Report Newsletter
+
+on:
+  # Täglich um 07:00 Uhr CET (06:00 UTC)
+  schedule:
+    - cron: '0 6 * * *'
+  # Manueller Trigger
+  workflow_dispatch:
+
+jobs:
+  send-newsletter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Send newsletter via SendGrid
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_NAME: ${{ secrets.SENDER_NAME }}
+          BASE_URL: ${{ vars.BASE_URL || 'https://adr1980.github.io/svg' }}
+        run: node send-newsletter.js
