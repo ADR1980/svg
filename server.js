@@ -95,6 +95,63 @@ app.post('/api/newsletter/send-daily', async (req, res) => {
   }
 });
 
+// ─── API: Contact Form ───
+app.post('/api/contact', async (req, res) => {
+  const { organization, name, email, subject, message } = req.body;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'invalid_email' });
+  }
+  if (!message) {
+    return res.status(400).json({ error: 'missing_message' });
+  }
+
+  const subjectLine = `Kontaktanfrage: ${subject || 'Allgemein'} — ${organization || 'Unbekannt'}`;
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0a0e14;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0e14;padding:40px 20px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#1a2332;border:1px solid #2a3444;border-radius:12px;overflow:hidden;">
+  <tr><td style="background:linear-gradient(135deg,#c8a84e,#a08030);padding:24px 40px;">
+    <h1 style="margin:0;color:#0a0e14;font-size:22px;font-weight:700;">Neue Kontaktanfrage</h1>
+  </td></tr>
+  <tr><td style="padding:32px 40px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:13px;width:140px;">Organisation:</td><td style="padding:8px 0;color:#e8e8e8;font-size:15px;">${organization || '—'}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:13px;">Ansprechpartner:</td><td style="padding:8px 0;color:#e8e8e8;font-size:15px;">${name || '—'}</td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:13px;">E-Mail:</td><td style="padding:8px 0;color:#c8a84e;font-size:15px;"><a href="mailto:${email}" style="color:#c8a84e;">${email}</a></td></tr>
+      <tr><td style="padding:8px 0;color:#9ca3af;font-size:13px;">Betreff:</td><td style="padding:8px 0;color:#e8e8e8;font-size:15px;">${subject || '—'}</td></tr>
+    </table>
+    <div style="margin-top:24px;padding:20px;background:#111827;border-radius:8px;border-left:3px solid #c8a84e;">
+      <p style="color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px;">Nachricht</p>
+      <p style="color:#e8e8e8;font-size:15px;line-height:1.7;margin:0;white-space:pre-wrap;">${message}</p>
+    </div>
+  </td></tr>
+  <tr><td style="padding:20px 40px;background:#111827;border-top:1px solid #2a3444;text-align:center;">
+    <p style="color:#6b7280;font-size:12px;margin:0;">Gesendet über das SVG Kontaktformular — ${new Date().toLocaleString('de-DE')}</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  try {
+    await sgMail.send({
+      to: 'info@svg.global',
+      from: { email: SENDER_EMAIL, name: SENDER_NAME },
+      replyTo: email,
+      subject: subjectLine,
+      html,
+    });
+    console.log(`Contact form email sent (from: ${email}, subject: ${subject})`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Contact form email failed:', err.message);
+    res.status(500).json({ error: 'send_failed' });
+  }
+});
+
 // ─── Welcome Email ───
 async function sendWelcomeEmail(email) {
   const msg = {
