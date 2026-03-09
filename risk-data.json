@@ -1,0 +1,274 @@
+{
+  "generated_at": "2026-03-09T14:30:00Z",
+  "generated_by": "SVG Supply Risk Updater",
+  "global_risk_index": 72,
+  "global_risk_change": 2,
+  "regions": [
+    {
+      "key": "eastern_europe",
+      "name_de": "Osteuropa / Ukraine",
+      "name_en": "Eastern Europe / Ukraine",
+      "flag": "🇺🇦",
+      "lat": 48.3,
+      "lng": 31.2,
+      "score": 82,
+      "change": -1,
+      "summary_de": "Der anhaltende Krieg hat kritische Logistikrouten unterbrochen, insbesondere für Halbleitervorläufer. Ukraine liefert etwa 50% der globalen Neonproduktion, wobei beide Hersteller ihre Operationen eingestellt haben.",
+      "summary_en": "Ongoing war disrupts critical logistics routes, particularly for semiconductor precursors. Ukraine supplies ~50% of global neon production, with both major manufacturers shutting operations.",
+      "dimensions": {
+        "conflict": 19,
+        "trade_disruption": 18,
+        "supply_chain_stress": 17,
+        "political_instability": 15,
+        "escalation_potential": 13
+      }
+    },
+    {
+      "key": "middle_east",
+      "name_de": "Naher Osten",
+      "name_en": "Middle East",
+      "flag": "🌍",
+      "lat": 29.5,
+      "lng": 44.0,
+      "score": 78,
+      "change": 3,
+      "summary_de": "Nach US-israelischen Luftangriffen und dem Tod von Ajatollah Chamenei am 28. Februar 2026 herrscht eine fragile 'bewaffnete Ruhe'. Erdölpreise könnten bei Angriffen auf iranische Terminals auf 80-100 USD/Barrel steigen.",
+      "summary_en": "Fragile 'armed peace' follows Feb 28 US-Israeli airstrikes and death of Ayatollah Khamenei. Oil prices could spike to $80-100/bbl if Iranian export terminals targeted; 400M barrels of sanctioned oil floating on global waters.",
+      "dimensions": {
+        "conflict": 17,
+        "trade_disruption": 16,
+        "supply_chain_stress": 16,
+        "political_instability": 18,
+        "escalation_potential": 11
+      }
+    },
+    {
+      "key": "taiwan_strait",
+      "name_de": "Taiwan-Straße",
+      "name_en": "Taiwan Strait",
+      "flag": "🇹🇼",
+      "lat": 23.5,
+      "lng": 120.5,
+      "score": 79,
+      "change": 2,
+      "summary_de": "PLA-Luftincursionen sind von 380 (2020) auf 5.709 (2025) gestiegen. Taiwan produziert den Großteil der weltweiten fortgeschrittenen Halbleiter; ein Konflikt könnte die Weltwirtschaft um 10,6 Billionen USD kosten.",
+      "summary_en": "PLA air incursions surged from 380 (2020) to 5,709 (2025). Taiwan produces most global advanced semiconductors; conflict could cost global economy $10.6 trillion in year one.",
+      "dimensions": {
+        "conflict": 16,
+        "trade_disruption": 17,
+        "supply_chain_stress": 19,
+        "political_instability": 16,
+        "escalation_potential": 11
+      }
+    },
+    {
+      "key": "red_sea",
+      "name_de": "Rotes Meer / Suez",
+      "name_en": "Red Sea / Suez",
+      "flag": "🚢",
+      "lat": 15.5,
+      "lng": 42.0,
+      "score": 72,
+      "change": 4,
+      "summary_de": "Houthis kündigten nach US-israelischen Angriffen auf den Iran am 28. Februar an, Drohnen- und Raketenoperationen gegen Schiffe zu erneuern. Maersk hat bereits Red-Sea-Transits umgeleitet.",
+      "summary_en": "Houthis announced resumption of drone/missile operations against shipping in response to Feb 28 US-Israel Iran strikes. Maersk already rerouting services around Cape of Good Hope.",
+      "dimensions": {
+        "conflict": 14,
+        "trade_disruption": 17,
+        "supply_chain_stress": 15,
+        "political_instability": 13,
+        "escalation_potential": 13
+      }
+    },
+    {
+      "key": "sahel",
+      "name_de": "Sahel-Region",
+      "name_en": "Sahel Region",
+      "flag": "🌍",
+      "lat": 14.5,
+      "lng": 2.0,
+      "score": 76,
+      "change": 1,
+      "summary_de": "Januar 2026: 23. Putschversuch gegen Burkina Faso-Präsident Traoré vereitelt. Mali, Burkina Faso und Niger bilden eine Militärallianz; JNIM-Gruppe kontrolliert zunehmend Territorium.",
+      "summary_en": "January 2026: 23rd coup attempt against Burkina Faso's Traoré thwarted. Mali, Burkina Faso, Niger form military alliance. JNIM group transitioning from insurgency to territorial administration.",
+      "dimensions": {
+        "conflict": 17,
+        "trade_disruption": 13,
+        "supply_chain_stress": 14,
+        "political_instability": 19,
+        "escalation_potential": 13
+      }
+    },
+    {
+      "key": "south_china_sea",
+      "name_de": "Südchinesisches Meer",
+      "name_en": "South China Sea",
+      "flag": "🌊",
+      "lat": 12.0,
+      "lng": 114.0,
+      "score": 71,
+      "change": 1,
+      "summary_de": "3,36 Billionen USD Handel passieren jährlich diesen Bereich. Philippinen überwachen 48 chinesische Schiffe in umstrittenen Gebieten. 2026 Verhandlungen zu ASEAN-China-Verhaltenskodex schwierig.",
+      "summary_en": "$3.36 trillion in global trade transits annually. Philippines monitoring 48 Chinese vessels around disputed reefs. Code of Conduct negotiations difficult as Philippines holds 2026 ASEAN chair.",
+      "dimensions": {
+        "conflict": 12,
+        "trade_disruption": 15,
+        "supply_chain_stress": 15,
+        "political_instability": 14,
+        "escalation_potential": 15
+      }
+    },
+    {
+      "key": "central_asia",
+      "name_de": "Zentralasien",
+      "name_en": "Central Asia",
+      "flag": "🌍",
+      "lat": 41.0,
+      "lng": 65.0,
+      "score": 62,
+      "change": -1,
+      "summary_de": "Middle Corridor wächst: 36.000 TEU 2025, erwartete 11 Millionen Tonnen bis 2030. Kasachstan und Usbekistan kontrollieren 50% der globalen Uranexporte. Sanktionen zwingen Umleitung über alternative Routen.",
+      "summary_en": "Middle Corridor expanding: 36,000 TEU in 2025, projected 11M tons by 2030. Kazakhstan & Uzbekistan control 50% global uranium exports. Sanctions forcing rerouting via alternative routes.",
+      "dimensions": {
+        "conflict": 8,
+        "trade_disruption": 12,
+        "supply_chain_stress": 13,
+        "political_instability": 14,
+        "escalation_potential": 15
+      }
+    },
+    {
+      "key": "north_africa",
+      "name_de": "Nordafrika",
+      "name_en": "North Africa",
+      "flag": "🌍",
+      "lat": 32.0,
+      "lng": 10.0,
+      "score": 58,
+      "change": -2,
+      "summary_de": "Algerien und Niger erneuern Zusammenarbeit bei Energiepipeline. Marokko erweitert Solarenergie. Politische Entspannung zwischen Algerien und Marokko; Energieeinnahmen sinken jedoch.",
+      "summary_en": "Algeria-Niger restore cooperation on trans-Saharan pipeline. Morocco expanding renewable solar/wind capacity. Political détente emerging between Algeria-Morocco; energy revenues declining.",
+      "dimensions": {
+        "conflict": 9,
+        "trade_disruption": 10,
+        "supply_chain_stress": 11,
+        "political_instability": 16,
+        "escalation_potential": 12
+      }
+    }
+  ],
+  "news": [
+    {
+      "title_de": "Ukraine bleibt kritischer Halbleiter-Vorläufer mit Neon-Engpass",
+      "title_en": "Ukraine Critical Semiconductor Precursor as Neon Production Halted",
+      "source": "GMK Center / Frontiers",
+      "risk_level": "high",
+      "region": "eastern_europe",
+      "url": "https://gmk.center/en/posts/how-the-russia-ukraine-war-has-impacted-on-logistics-routes-and-supply-chains/"
+    },
+    {
+      "title_de": "US-Israel Luftangriffe und Tod von Chamenei eskalieren Spannungen",
+      "title_en": "US-Israel Airstrikes, Khamenei Death Escalate Middle East Tensions",
+      "source": "Dallas Federal Reserve / MEForum",
+      "risk_level": "high",
+      "region": "middle_east",
+      "url": "https://www.meforum.org/mef-observer/why-2026-will-be-a-tough-year-for-middle-eastern-oil-producers"
+    },
+    {
+      "title_de": "Chinesische Militär-Flugzeugeinsätze um Taiwan auf 5.709 im Jahr 2025 gestiegen",
+      "title_en": "Chinese PLA Air Incursions Surge to 5,709 in 2025, 15x Increase Since 2020",
+      "source": "AEI / Bloomberg",
+      "risk_level": "high",
+      "region": "taiwan_strait",
+      "url": "https://www.aei.org/articles/china-taiwan-update-january-9-2026/"
+    },
+    {
+      "title_de": "Houthis kündigen Wiederaufnahme von Drohnenanschlägen nach Iran-Luftanschlägen an",
+      "title_en": "Houthis Announce Resumption of Drone/Missile Attacks Following Iran Strikes",
+      "source": "Eurasia Review / WTOP",
+      "risk_level": "high",
+      "region": "red_sea",
+      "url": "https://wtop.com/world/2026/02/yemens-iranian-backed-houthi-rebels-to-resume-attacks-on-shipping-in-the-red-sea-corridor-2-rebel-officials-tell-ap-"
+    },
+    {
+      "title_de": "Burkina Faso Putschversuch: 23. Komplott gegen Traoré vereitelt",
+      "title_en": "Burkina Faso Thwarts 23rd Coup Attempt Against President Traoré",
+      "source": "Medium / ICG",
+      "risk_level": "high",
+      "region": "sahel",
+      "url": "https://medium.com/coinmonks/the-failed-coup-d%C3%A9tat-in-burkina-faso-a-night-of-defiance-and-stability-66837fb8f51b"
+    },
+    {
+      "title_de": "Südchinesisches Meer: Philippinen überwachen 48 chinesische Schiffe bei Inselstreitigkeiten",
+      "title_en": "South China Sea: Philippines Monitors 48 Chinese Vessels Over Disputed Reefs",
+      "source": "South China Morning Post / CFR",
+      "risk_level": "medium",
+      "region": "south_china_sea",
+      "url": "https://www.scmp.com/news/china/diplomacy/article/3344626/can-china-and-philippines-replace-disputes-with-cooperation-after-years-of-tension"
+    },
+    {
+      "title_de": "Middle Corridor (Zentralasien): Containerverkehr um 15% gewachsen, erwarteter Anstieg auf 11M Tonnen",
+      "title_en": "Central Asia Middle Corridor Grows 15%: 36,000 TEU in 2025, Projected 11M Tons by 2030",
+      "source": "Xeneta / Maersk",
+      "risk_level": "low",
+      "region": "central_asia",
+      "url": "https://www.xeneta.com/blog/south-china-sea-dispute"
+    },
+    {
+      "title_de": "Algerien und Niger erneuern Zusammenarbeit bei grenzüberschreitender Energiepipeline",
+      "title_en": "Algeria-Niger Restore Cooperation on Trans-Saharan Energy Pipeline",
+      "source": "Stimson Center / Atlantic Council",
+      "risk_level": "low",
+      "region": "north_africa",
+      "url": "https://www.stimson.org/2026/north-africa-regional-outlook-february-25-2026/"
+    },
+    {
+      "title_de": "Taiwan-Konflikt könnte Weltwirtschaft 10,6 Billionen USD kosten",
+      "title_en": "Taiwan Conflict Could Cost Global Economy $10.6 Trillion in First Year",
+      "source": "Bloomberg / Insurance Journal",
+      "risk_level": "high",
+      "region": "taiwan_strait",
+      "url": "https://www.insurancejournal.com/news/international/2026/02/12/857770.htm"
+    },
+    {
+      "title_de": "Erdölpreise könnten auf 80-100 USD/Barrel springen bei Angriffen auf iranische Terminals",
+      "title_en": "Oil Prices Could Spike to $80-100/bbl if Iranian Export Terminals Targeted",
+      "source": "Columbia University / Wood Mackenzie",
+      "risk_level": "high",
+      "region": "middle_east",
+      "url": "https://www.energypolicy.columbia.edu/how-a-conflict-in-iran-could-affect-oil-markets-in-the-gulf-arab-states/"
+    }
+  ],
+  "trend_30d": [
+    68,
+    68,
+    69,
+    69,
+    70,
+    70,
+    70,
+    71,
+    71,
+    71,
+    71,
+    72,
+    72,
+    72,
+    72,
+    73,
+    73,
+    73,
+    74,
+    74,
+    74,
+    75,
+    75,
+    75,
+    76,
+    72,
+    72,
+    71,
+    71,
+    72
+  ]
+}
