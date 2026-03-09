@@ -1,0 +1,48 @@
+name: Daily Risk Assessment Update
+
+on:
+  schedule:
+    # Täglich um 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-risk-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Supply Risk Updater via Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            Du bist der SVG Supply Risk Updater. Führe jetzt das tägliche Lieferrisiko-Update durch.
+            Befolge exakt die Anweisungen in supply-risk-updater/SKILL.md:
+            1. Recherchiere aktuelle geopolitische Risiken für alle 8 Regionen per Websuche
+            2. Bewerte jede Region nach den 5 Dimensionen (0-20 Punkte)
+            3. Berechne den gewichteten globalen Risikoindex
+            4. Stelle 8-10 aktuelle Nachrichtenmeldungen zusammen
+            5. Aktualisiere den trend_30d Array mit dem vorherigen risk-data.json
+            6. Schreibe die neue risk-data.json ins Repository-Root
+          allowed_tools: "WebSearch,WebFetch,Read,Write,Glob,Grep,Bash"
+          model: claude-sonnet-4-6
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Commit and push updated risk data
+        run: |
+          git config user.name "SVG Supply Risk Updater"
+          git config user.email "risk-updater@svg-bot.github.io"
+          if git diff --quiet risk-data.json 2>/dev/null; then
+            echo "No changes to risk-data.json"
+          else
+            git add risk-data.json
+            git commit -m "chore: daily risk assessment update $(date -u +%Y-%m-%d)"
+            git push
+          fi
