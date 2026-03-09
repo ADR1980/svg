@@ -4,7 +4,7 @@ const path = require('path');
 
 // ─── Config ───
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'risikoreport@svg-global.com';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'info@svg.global';
 const SENDER_NAME = process.env.SENDER_NAME || 'SVG Risikoreport';
 const BASE_URL = process.env.BASE_URL || 'https://adr1980.github.io/svg';
 const SUBSCRIBERS_FILE = path.join(__dirname, 'subscribers.json');

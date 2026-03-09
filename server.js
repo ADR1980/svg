@@ -10,7 +10,7 @@ const SUBSCRIBERS_FILE = path.join(__dirname, 'subscribers.json');
 
 // ─── Config ───
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'risikoreport@svg-global.com';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'info@svg.global';
 const SENDER_NAME = process.env.SENDER_NAME || 'SVG Risikoreport';
 
 app.use(cors());
