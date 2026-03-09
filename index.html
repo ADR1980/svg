@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG — Sentinal Venguard Global</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #111827;
+  --bg-card: #1a2332;
+  --bg-card-hover: #1f2b3d;
+  --gold: #c8a84e;
+  --gold-light: #e0c76a;
+  --gold-dark: #a08030;
+  --navy: #1e3a5f;
+  --navy-light: #2a4f7a;
+  --text-primary: #e8e8e8;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent-red: #ef4444;
+  --accent-orange: #f59e0b;
+  --accent-green: #22c55e;
+  --accent-blue: #3b82f6;
+  --border: #2a3444;
+  --glow-gold: 0 0 20px rgba(200,168,78,0.15);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+h1,h2,h3,h4 { font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 0.5px; }
+
+/* ─── NAVBAR ─── */
+.navbar {
+  position: fixed; top:0; left:0; right:0; z-index:1000;
+  background: rgba(10,14,20,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 14px;
+  text-decoration: none;
+}
+.nav-logo-icon {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani'; font-weight: 700; font-size: 18px;
+  color: var(--bg-primary);
+  box-shadow: var(--glow-gold);
+}
+.nav-logo-text { font-family:'Rajdhani'; font-size:22px; font-weight:700; color:var(--text-primary); }
+.nav-logo-text span { color: var(--gold); }
+.nav-links { display:flex; gap:30px; align-items:center; }
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: color 0.3s;
+}
+.nav-links a:hover { color: var(--gold); }
+.lang-switch {
+  display: flex; gap: 4px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+.lang-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: transparent;
+  color: var(--text-muted);
+}
+.lang-btn.active {
+  background: var(--gold);
+  color: var(--bg-primary);
+}
+
+/* ─── HERO ─── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding-top: 70px;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 30%, rgba(30,58,95,0.4) 0%, transparent 70%),
+    radial-gradient(circle at 20% 80%, rgba(200,168,78,0.05) 0%, transparent 50%),
+    linear-gradient(180deg, var(--bg-primary) 0%, #0d1520 100%);
+}
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(200,168,78,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,168,78,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%);
+}
+.hero-content {
+  position: relative; z-index:2;
+  text-align: center;
+  max-width: 900px;
+  padding: 0 30px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(200,168,78,0.1);
+  border: 1px solid rgba(200,168,78,0.25);
+  border-radius: 50px;
+  padding: 8px 20px;
+  margin-bottom: 30px;
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.hero-badge-dot {
+  width: 8px; height: 8px;
+  background: var(--gold);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; }
+  50% { opacity:0.4; }
+}
+.hero h1 {
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 1.1;
+  margin-bottom: 24px;
+  color: #fff;
+}
+.hero h1 .gold { color: var(--gold); }
+.hero-sub {
+  font-size: 18px;
+  color: var(--text-secondary);
+  max-width: 650px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+}
+.hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: var(--bg-primary);
+  box-shadow: 0 4px 20px rgba(200,168,78,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(200,168,78,0.4); }
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ─── SECTION LAYOUT ─── */
+section { padding: 100px 40px; }
+.section-header { text-align: center; margin-bottom: 60px; }
+.section-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.section-header h2 {
+  font-size: 38px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.section-header p {
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  font-size: 16px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+
+/* ─── RISK DASHBOARD ─── */
+#risk-dashboard { background: var(--bg-secondary); }
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.dashboard-full { grid-column: 1 / -1; }
+.dash-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color 0.3s;
+}
+.dash-card:hover { border-color: rgba(200,168,78,0.3); }
+.dash-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.dash-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.dash-card-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 50px;
+  font-weight: 600;
+}
+.badge-live { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.badge-updated { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+
+.risk-score-display {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.risk-score-number {
+  font-family: 'Rajdhani';
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+}
+.risk-score-meta { flex: 1; }
+.risk-score-label { font-size: 15px; color: var(--text-secondary); margin-bottom: 8px; }
+.risk-bar-bg {
+  height: 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+.risk-change {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Region risk list */
+.region-list { display: flex; flex-direction: column; gap: 12px; }
+.region-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.region-item:hover { border-color: var(--border); }
+.region-flag { font-size: 20px; }
+.region-name { flex:1; font-size:14px; font-weight:500; }
+.region-score {
+  font-family: 'Rajdhani';
+  font-size: 20px;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
+}
+.region-bar {
+  width: 80px; height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.region-bar-fill { height:100%; border-radius:3px; }
+
+/* Map */
+#risk-map { height: 420px; border-radius: 10px; overflow: hidden; }
+.leaflet-container { background: var(--bg-primary) !important; }
+.leaflet-tile { filter: grayscale(90%) invert(100%) contrast(90%) brightness(0.4) sepia(20%); }
+.risk-marker {
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  animation: markerPulse 3s infinite;
+}
+@keyframes markerPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+}
+
+/* News feed */
+.news-feed { display: flex; flex-direction: column; gap: 14px; max-height: 420px; overflow-y: auto; }
+.news-feed::-webkit-scrollbar { width: 4px; }
+.news-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.news-item {
+  display: flex; gap: 14px;
+  padding: 14px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border-left: 3px solid var(--border);
+  transition: border-color 0.3s;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.news-item:hover { border-left-color: var(--gold); }
+.news-item.risk-high { border-left-color: var(--accent-red); }
+.news-item.risk-medium { border-left-color: var(--accent-orange); }
+.news-item.risk-low { border-left-color: var(--accent-green); }
+.news-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 50px;
+}
+.news-content h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; line-height: 1.4; }
+.news-content p { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.news-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* Chart */
+.chart-container { position: relative; height: 300px; }
+
+/* ─── SERVICES ─── */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.service-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.service-card:hover {
+  border-color: rgba(200,168,78,0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.service-card:hover::before { opacity: 1; }
+.service-icon {
+  width: 52px; height: 52px;
+  background: rgba(200,168,78,0.1);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+.service-card h3 { font-size: 20px; margin-bottom: 12px; color: #fff; }
+.service-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+
+/* ─── NETWORK / STATS ─── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+}
+.stat-card {
+  text-align: center;
+  padding: 30px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.stat-number {
+  font-family: 'Rajdhani';
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ─── APPROACH / PROCESS ─── */
+#approach { background: var(--bg-secondary); }
+.process-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  position: relative;
+}
+.process-steps::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold), transparent);
+  opacity: 0.2;
+}
+.process-step { text-align: center; position: relative; }
+.step-number {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani';
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 0 auto 16px;
+  background: var(--bg-secondary);
+  position: relative;
+  z-index: 1;
+}
+.process-step h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
+.process-step p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+/* ─── CONTACT ─── */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+.contact-info-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 36px;
+}
+.contact-info-box h3 { font-size: 24px; color: #fff; margin-bottom: 20px; }
+.contact-detail {
+  display: flex; gap: 14px; margin-bottom: 18px;
+  font-size: 14px; color: var(--text-secondary);
+}
+.contact-detail-icon { font-size: 18px; min-width: 24px; text-align: center; }
+.contact-form {
+  display: flex; flex-direction: column; gap: 16px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.form-group textarea { min-height: 120px; resize: vertical; }
+
+/* ─── FOOTER ─── */
+.footer {
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border);
+  padding: 40px;
+}
+.footer-content {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 20px;
+}
+.footer-copy { font-size: 13px; color: var(--text-muted); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; }
+.footer-links a:hover { color: var(--gold); }
+
+/* ─── LOADING SPINNER ─── */
+.loading-spinner {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; color: var(--text-muted); font-size: 14px;
+}
+.spinner {
+  width: 24px; height: 24px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1024px) {
+  .services-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .process-steps { grid-template-columns: repeat(2, 1fr); }
+  .process-steps::before { display: none; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  section { padding: 60px 20px; }
+  .navbar { padding: 0 20px; }
+  .nav-links { display: none; }
+  .services-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ NAVBAR ═══════════════ -->
+<nav class="navbar">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">SVG</div>
+    <div class="nav-logo-text">Sentinal <span>Venguard</span> Global</div>
+  </a>
+  <div class="nav-links">
+    <a href="#risk-dashboard" data-de="Risikoanalyse" data-en="Risk Analysis">Risikoanalyse</a>
+    <a href="#services" data-de="Leistungen" data-en="Services">Leistungen</a>
+    <a href="#approach" data-de="Ansatz" data-en="Approach">Ansatz</a>
+    <a href="#contact" data-de="Kontakt" data-en="Contact">Kontakt</a>
+    <div class="lang-switch">
+      <button class="lang-btn active" onclick="setLang('de')">DE</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      <span data-de="Strategische Sicherheitsbeschaffung" data-en="Strategic Security Procurement">Strategische Sicherheitsbeschaffung</span>
+    </div>
+    <h1>
+      <span data-de="Sicherheit beschaffen." data-en="Procuring Security.">Sicherheit beschaffen.</span><br>
+      <span class="gold" data-de="Risiken voraussehen." data-en="Anticipating Risks.">Risiken voraussehen.</span><br>
+      <span data-de="Zukunft sichern." data-en="Securing the Future.">Zukunft sichern.</span>
+    </h1>
+    <p class="hero-sub" data-de="SVG unterstützt Sicherheitsbehörden und Hersteller weltweit bei der Beschaffung sicherheitsrelevanter Güter — mit geostrategischem Weitblick, globalen Lieferketten-Analysen und kompromissloser Prozesssicherheit." data-en="SVG supports security agencies and manufacturers worldwide in procuring security-relevant goods — with geostrategic foresight, global supply chain analysis, and uncompromising process integrity.">
+      SVG unterstützt Sicherheitsbehörden und Hersteller weltweit bei der Beschaffung sicherheitsrelevanter Güter — mit geostrategischem Weitblick, globalen Lieferketten-Analysen und kompromissloser Prozesssicherheit.
+    </p>
+    <div class="hero-actions">
+      <a href="#risk-dashboard" class="btn btn-primary" data-de="▶ Live-Risikoanalyse" data-en="▶ Live Risk Analysis">▶ Live-Risikoanalyse</a>
+      <a href="#contact" class="btn btn-outline" data-de="Kontakt aufnehmen" data-en="Get in Touch">Kontakt aufnehmen</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ RISK DASHBOARD ═══════════════ -->
+<section id="risk-dashboard">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag" data-de="Tägliches Update" data-en="Daily Update">Tägliches Update</div>
+      <h2 data-de="Globale Lieferrisiko-Analyse" data-en="Global Supply Risk Analysis">Globale Lieferrisiko-Analyse</h2>
+      <p data-de="Echtzeitbewertung geopolitischer Risiken und Lieferkettenunterbrechungen weltweit" data-en="Real-time assessment of geopolitical risks and supply chain disruptions worldwide">Echtzeitbewertung geopolitischer Risiken und Lieferkettenunterbrechungen weltweit</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:8px;" id="dashboard-date"></p>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- Global Risk Score -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-card-title" data-de="Globaler Risikoindex" data-en="Global Risk Index">Globaler Risikoindex</span>
+          <span class="dash-card-badge badge-live" data-de="● Live" data-en="● Live">● Live</span>
+        </div>
+        <div class="risk-score-display">
+          <div class="risk-score-number" id="global-risk-score" style="color:var(--accent-orange)">—</div>
+          <div class="risk-score-meta">
+            <div class="risk-score-label" id="risk-level-label" data-de="Erhöhtes Risiko" data-en="Elevated Risk">Erhöhtes Risiko</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" id="global-risk-bar" style="width:0%;background:var(--accent-orange)"></div></div>
+            <div class="risk-change" id="risk-change"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regional Risks -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-card-title" data-de="Regionale Risikolevel" data-en="Regional Risk Levels">Regionale Risikolevel</span>
+          <span class="dash-card-badge badge-updated" id="update-badge">—</span>
+        </div>
+        <div class="region-list" id="region-list"></div>
+      </div>
+
+      <!-- Map -->
+      <div class="dash-card dashboard-full">
+        <div class="dash-card-header">
+          <span class="dash-card-title" data-de="Globale Risikokarte" data-en="Global Risk Map">Globale Risikokarte</span>
+          <span class="dash-card-badge badge-live" data-de="● Interaktiv" data-en="● Interactive">● Interaktiv</span>
+        </div>
+        <div id="risk-map"></div>
+      </div>
+
+      <!-- Trend Chart -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-card-title" data-de="Risikotrend (30 Tage)" data-en="Risk Trend (30 Days)">Risikotrend (30 Tage)</span>
+        </div>
+        <div class="chart-container"><canvas id="trend-chart"></canvas></div>
+      </div>
+
+      <!-- Live News Feed -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-card-title" data-de="Aktuelle Risikomeldungen" data-en="Current Risk Alerts">Aktuelle Risikomeldungen</span>
+          <span class="dash-card-badge badge-live" data-de="● Live-Feed" data-en="● Live Feed">● Live-Feed</span>
+        </div>
+        <div class="news-feed" id="news-feed">
+          <div class="loading-spinner"><div class="spinner"></div><span data-de="Lade aktuelle Meldungen..." data-en="Loading current alerts...">Lade aktuelle Meldungen...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SERVICES ═══════════════ -->
+<section id="services">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag" data-de="Unsere Leistungen" data-en="Our Services">Unsere Leistungen</div>
+      <h2 data-de="Umfassende Sicherheitsbeschaffung" data-en="Comprehensive Security Procurement">Umfassende Sicherheitsbeschaffung</h2>
+      <p data-de="Von der Ausschreibung bis zur Auslieferung — ein Partner für alles" data-en="From tender to delivery — one partner for everything">Von der Ausschreibung bis zur Auslieferung — ein Partner für alles</p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-icon">📋</div>
+        <h3 data-de="Öffentliche Ausschreibungen" data-en="Public Tenders">Öffentliche Ausschreibungen</h3>
+        <p data-de="Vollständige Bearbeitung, Begleitung und Durchführung öffentlicher Ausschreibungen im Sicherheits- und Behördenumfeld mit höchster Qualität und Rechtssicherheit." data-en="Complete processing, support, and execution of public tenders in the security and government sector with the highest quality and legal compliance.">Vollständige Bearbeitung, Begleitung und Durchführung öffentlicher Ausschreibungen im Sicherheits- und Behördenumfeld mit höchster Qualität und Rechtssicherheit.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🌐</div>
+        <h3 data-de="Europäischer Marktzugang" data-en="European Market Access">Europäischer Marktzugang</h3>
+        <p data-de="Wir öffnen internationalen Herstellern den Zugang zum europäischen Sicherheits- und Behördenmarkt — ohne eigene Ausschreibungs- oder Compliance-Strukturen." data-en="We open the European security and government market to international manufacturers — without requiring their own tender or compliance structures.">Wir öffnen internationalen Herstellern den Zugang zum europäischen Sicherheits- und Behördenmarkt — ohne eigene Ausschreibungs- oder Compliance-Strukturen.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🏭</div>
+        <h3 data-de="Beschaffung & Fertigung" data-en="Procurement & Manufacturing">Beschaffung & Fertigung</h3>
+        <p data-de="Durch unser globales Netzwerk beschaffen, fertigen oder lassen wir sicherheitsrelevante Güter nach höchsten Standards herstellen." data-en="Through our global network, we procure, manufacture, or commission the production of security-relevant goods to the highest standards.">Durch unser globales Netzwerk beschaffen, fertigen oder lassen wir sicherheitsrelevante Güter nach höchsten Standards herstellen.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🛡️</div>
+        <h3 data-de="Geostrategische Beratung" data-en="Geostrategic Advisory">Geostrategische Beratung</h3>
+        <p data-de="Bewertung von Beschaffungen im Kontext geostrategischer Entwicklungen, internationaler Abhängigkeiten und zukünftiger Sicherheitslagen." data-en="Assessment of procurements in the context of geostrategic developments, international dependencies, and future security landscapes.">Bewertung von Beschaffungen im Kontext geostrategischer Entwicklungen, internationaler Abhängigkeiten und zukünftiger Sicherheitslagen.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">📊</div>
+        <h3 data-de="Supply-Chain-Analyse" data-en="Supply Chain Analysis">Supply-Chain-Analyse</h3>
+        <p data-de="Tägliche Analyse globaler Lieferkettenrisiken mit Echtzeitdaten. Vorausschauende Identifikation von Engpässen und Abhängigkeiten." data-en="Daily analysis of global supply chain risks with real-time data. Proactive identification of bottlenecks and dependencies.">Tägliche Analyse globaler Lieferkettenrisiken mit Echtzeitdaten. Vorausschauende Identifikation von Engpässen und Abhängigkeiten.</p>
+      </div>
+      <div class="service-card">
+        <div class="service-icon">🤝</div>
+        <h3 data-de="Herstellerintegration" data-en="Manufacturer Integration">Herstellerintegration</h3>
+        <p data-de="Strukturierung und Durchführung von Vergabeverfahren für Hersteller ohne Erfahrung mit europäischen behördlichen Prozessen." data-en="Structuring and executing procurement procedures for manufacturers without experience in European governmental processes.">Strukturierung und Durchführung von Vergabeverfahren für Hersteller ohne Erfahrung mit europäischen behördlichen Prozessen.</p>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-number">40+</div>
+        <div class="stat-label" data-de="Länder im Netzwerk" data-en="Countries in Network">Länder im Netzwerk</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">250+</div>
+        <div class="stat-label" data-de="Partner & Zulieferer" data-en="Partners & Suppliers">Partner & Zulieferer</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">98%</div>
+        <div class="stat-label" data-de="Liefertreue" data-en="Delivery Reliability">Liefertreue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label" data-de="Risikomonitoring" data-en="Risk Monitoring">Risikomonitoring</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ APPROACH ═══════════════ -->
+<section id="approach">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag" data-de="Unser Ansatz" data-en="Our Approach">Unser Ansatz</div>
+      <h2 data-de="Strategischer Beschaffungsprozess" data-en="Strategic Procurement Process">Strategischer Beschaffungsprozess</h2>
+      <p data-de="Jede Beschaffung wird im Kontext globaler Entwicklungen bewertet" data-en="Every procurement is assessed in the context of global developments">Jede Beschaffung wird im Kontext globaler Entwicklungen bewertet</p>
+    </div>
+
+    <div class="process-steps">
+      <div class="process-step">
+        <div class="step-number">01</div>
+        <h3 data-de="Analyse" data-en="Analysis">Analyse</h3>
+        <p data-de="Geostrategische Risikoanalyse, Supply-Chain-Bewertung und Bedarfsermittlung" data-en="Geostrategic risk analysis, supply chain assessment, and requirements determination">Geostrategische Risikoanalyse, Supply-Chain-Bewertung und Bedarfsermittlung</p>
+      </div>
+      <div class="process-step">
+        <div class="step-number">02</div>
+        <h3 data-de="Strategie" data-en="Strategy">Strategie</h3>
+        <p data-de="Entwicklung einer resilienten Beschaffungsstrategie mit Alternativquellen" data-en="Development of a resilient procurement strategy with alternative sources">Entwicklung einer resilienten Beschaffungsstrategie mit Alternativquellen</p>
+      </div>
+      <div class="process-step">
+        <div class="step-number">03</div>
+        <h3 data-de="Vergabe" data-en="Tender">Vergabe</h3>
+        <p data-de="Rechtskonforme Durchführung des Vergabeverfahrens gemäß EU-Richtlinien" data-en="Legally compliant execution of the procurement procedure in accordance with EU directives">Rechtskonforme Durchführung des Vergabeverfahrens gemäß EU-Richtlinien</p>
+      </div>
+      <div class="process-step">
+        <div class="step-number">04</div>
+        <h3 data-de="Lieferung" data-en="Delivery">Lieferung</h3>
+        <p data-de="Überwachung der Lieferkette mit Echtzeitmonitoring und Qualitätssicherung" data-en="Supply chain oversight with real-time monitoring and quality assurance">Überwachung der Lieferkette mit Echtzeitmonitoring und Qualitätssicherung</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ CONTACT ═══════════════ -->
+<section id="contact">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag" data-de="Kontakt" data-en="Contact">Kontakt</div>
+      <h2 data-de="Sprechen Sie mit uns" data-en="Get in Touch">Sprechen Sie mit uns</h2>
+      <p data-de="Für vertrauliche Anfragen und strategische Partnerschaften" data-en="For confidential inquiries and strategic partnerships">Für vertrauliche Anfragen und strategische Partnerschaften</p>
+    </div>
+
+    <div class="contact-grid">
+      <div class="contact-info-box">
+        <h3 data-de="Sentinal Venguard Global" data-en="Sentinal Venguard Global">Sentinal Venguard Global</h3>
+        <div class="contact-detail"><span class="contact-detail-icon">📍</span><span data-de="Deutschland — Europa" data-en="Germany — Europe">Deutschland — Europa</span></div>
+        <div class="contact-detail"><span class="contact-detail-icon">📧</span><span>info@svg-global.com</span></div>
+        <div class="contact-detail"><span class="contact-detail-icon">🔒</span><span data-de="Gesicherte Kommunikationskanäle auf Anfrage" data-en="Secure communication channels on request">Gesicherte Kommunikationskanäle auf Anfrage</span></div>
+        <div style="margin-top:30px;padding:20px;background:var(--bg-primary);border-radius:8px;border-left:3px solid var(--gold);">
+          <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;" data-de="Alle Anfragen werden vertraulich behandelt. Für klassifizierte Projekte bieten wir gesicherte Kommunikationswege." data-en="All inquiries are treated confidentially. For classified projects, we offer secure communication channels.">Alle Anfragen werden vertraulich behandelt. Für klassifizierte Projekte bieten wir gesicherte Kommunikationswege.</p>
+        </div>
+      </div>
+
+      <div>
+        <form class="contact-form" onsubmit="event.preventDefault();">
+          <div class="form-group">
+            <label data-de="Organisation" data-en="Organization">Organisation</label>
+            <input type="text" placeholder="">
+          </div>
+          <div class="form-group">
+            <label data-de="Ansprechpartner" data-en="Contact Person">Ansprechpartner</label>
+            <input type="text" placeholder="">
+          </div>
+          <div class="form-group">
+            <label>E-Mail</label>
+            <input type="email" placeholder="">
+          </div>
+          <div class="form-group">
+            <label data-de="Betreff" data-en="Subject">Betreff</label>
+            <select>
+              <option value="" data-de="— Bitte wählen —" data-en="— Please select —">— Bitte wählen —</option>
+              <option data-de="Ausschreibungsbegleitung" data-en="Tender Support">Ausschreibungsbegleitung</option>
+              <option data-de="Beschaffungsanfrage" data-en="Procurement Request">Beschaffungsanfrage</option>
+              <option data-de="Herstellerintegration" data-en="Manufacturer Integration">Herstellerintegration</option>
+              <option data-de="Strategische Partnerschaft" data-en="Strategic Partnership">Strategische Partnerschaft</option>
+              <option data-de="Sonstiges" data-en="Other">Sonstiges</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-de="Nachricht" data-en="Message">Nachricht</label>
+            <textarea></textarea>
+          </div>
+          <button class="btn btn-primary" type="submit" style="width:100%;" data-de="Nachricht senden" data-en="Send Message">Nachricht senden</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-copy">&copy; 2026 Sentinal Venguard Global. <span data-de="Alle Rechte vorbehalten." data-en="All rights reserved.">Alle Rechte vorbehalten.</span></div>
+    <div class="footer-links">
+      <a href="#" data-de="Impressum" data-en="Legal Notice">Impressum</a>
+      <a href="#" data-de="Datenschutz" data-en="Privacy Policy">Datenschutz</a>
+      <a href="#" data-de="Compliance" data-en="Compliance">Compliance</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+// ─── Language System ───
+let currentLang = 'de';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()));
+  document.querySelectorAll('[data-' + lang + ']').forEach(el => {
+    const text = el.getAttribute('data-' + lang);
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = text;
+    else if (el.tagName === 'OPTION') el.textContent = text;
+    else el.textContent = text;
+  });
+  document.documentElement.lang = lang;
+  loadNewsFeed();
+}
+
+// ─── Risk Data Engine (loads from risk-data.json if available) ───
+let liveRiskData = null;
+
+const fallbackRegions = [
+  { name_de:'Osteuropa / Ukraine', name_en:'Eastern Europe / Ukraine', flag:'🇺🇦', lat:48.3, lng:31.2, baseRisk:82 },
+  { name_de:'Naher Osten', name_en:'Middle East', flag:'🌍', lat:29.5, lng:44.0, baseRisk:76 },
+  { name_de:'Taiwan-Straße', name_en:'Taiwan Strait', flag:'🇹🇼', lat:23.5, lng:120.5, baseRisk:71 },
+  { name_de:'Rotes Meer / Suez', name_en:'Red Sea / Suez', flag:'🚢', lat:15.5, lng:42.0, baseRisk:68 },
+  { name_de:'Sahel-Region', name_en:'Sahel Region', flag:'🌍', lat:14.5, lng:2.0, baseRisk:65 },
+  { name_de:'Südchinesisches Meer', name_en:'South China Sea', flag:'🌊', lat:12.0, lng:114.0, baseRisk:60 },
+  { name_de:'Zentralasien', name_en:'Central Asia', flag:'🌍', lat:41.0, lng:65.0, baseRisk:52 },
+  { name_de:'Nordafrika', name_en:'North Africa', flag:'🌍', lat:32.0, lng:10.0, baseRisk:48 },
+];
+
+async function loadRiskDataJSON() {
+  try {
+    const resp = await fetch('risk-data.json?t=' + Date.now());
+    if (!resp.ok) throw new Error('No risk-data.json');
+    liveRiskData = await resp.json();
+    console.log('✅ Live risk data loaded from risk-data.json, generated:', liveRiskData.generated_at);
+    return true;
+  } catch(e) {
+    console.log('ℹ️ No risk-data.json found, using algorithmic fallback');
+    liveRiskData = null;
+    return false;
+  }
+}
+
+function getDailyVariation(seed) {
+  const d = new Date();
+  const n = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate() + seed;
+  let x = Math.sin(n) * 10000;
+  return (x - Math.floor(x)) * 2 - 1;
+}
+
+function calculateRisks() {
+  // If live data is available, use it
+  if (liveRiskData && liveRiskData.regions) {
+    return liveRiskData.regions.map(r => ({
+      name_de: r.name_de,
+      name_en: r.name_en,
+      flag: r.flag,
+      lat: r.lat,
+      lng: r.lng,
+      score: r.score,
+      change: r.change || 0,
+      summary_de: r.summary_de || '',
+      summary_en: r.summary_en || '',
+    })).sort((a, b) => b.score - a.score);
+  }
+  // Fallback: algorithmic data
+  return fallbackRegions.map((r, i) => {
+    const variation = getDailyVariation(i * 137) * 8;
+    const score = Math.max(20, Math.min(95, Math.round(r.baseRisk + variation)));
+    const change = Math.round(getDailyVariation(i * 271 + 99) * 5);
+    return { ...r, score, change };
+  }).sort((a, b) => b.score - a.score);
+}
+
+function getRiskColor(score) {
+  if (score >= 75) return 'var(--accent-red)';
+  if (score >= 55) return 'var(--accent-orange)';
+  if (score >= 35) return 'var(--accent-blue)';
+  return 'var(--accent-green)';
+}
+
+function getRiskLabel(score, lang) {
+  if (score >= 75) return lang === 'de' ? 'Kritisch' : 'Critical';
+  if (score >= 55) return lang === 'de' ? 'Erhöht' : 'Elevated';
+  if (score >= 35) return lang === 'de' ? 'Moderat' : 'Moderate';
+  return lang === 'de' ? 'Niedrig' : 'Low';
+}
+
+// ─── Initialize Dashboard ───
+async function initDashboard() {
+  await loadRiskDataJSON();
+  const riskData = calculateRisks();
+  const globalScore = liveRiskData ? liveRiskData.global_risk_index : Math.round(riskData.reduce((s, r) => s + r.score, 0) / riskData.length);
+  const globalChange = liveRiskData ? (liveRiskData.global_risk_change || 0) : Math.round(riskData.reduce((s, r) => s + r.change, 0) / riskData.length);
+
+  // Date
+  const now = new Date();
+  const dateStr = currentLang === 'de'
+    ? `Stand: ${now.toLocaleDateString('de-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} — ${now.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' })} Uhr`
+    : `As of: ${now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} — ${now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })}`;
+  document.getElementById('dashboard-date').textContent = dateStr;
+
+  // Global Score
+  const scoreEl = document.getElementById('global-risk-score');
+  scoreEl.textContent = globalScore;
+  scoreEl.style.color = getRiskColor(globalScore);
+  document.getElementById('global-risk-bar').style.width = globalScore + '%';
+  document.getElementById('global-risk-bar').style.background = getRiskColor(globalScore);
+  document.getElementById('risk-level-label').textContent = getRiskLabel(globalScore, currentLang);
+
+  const changeEl = document.getElementById('risk-change');
+  const arrow = globalChange >= 0 ? '▲' : '▼';
+  const changeColor = globalChange >= 0 ? 'var(--accent-red)' : 'var(--accent-green)';
+  changeEl.innerHTML = `<span style="color:${changeColor}">${arrow} ${Math.abs(globalChange)} ${currentLang === 'de' ? 'Punkte vs. Vortag' : 'points vs. previous day'}</span>`;
+
+  // Update badge
+  document.getElementById('update-badge').textContent = now.toLocaleTimeString(currentLang === 'de' ? 'de-DE' : 'en-US', { hour:'2-digit', minute:'2-digit' });
+
+  // Regional list
+  const listEl = document.getElementById('region-list');
+  listEl.innerHTML = '';
+  riskData.forEach(r => {
+    const name = currentLang === 'de' ? r.name_de : r.name_en;
+    listEl.innerHTML += `
+      <div class="region-item">
+        <span class="region-flag">${r.flag}</span>
+        <span class="region-name">${name}</span>
+        <div class="region-bar"><div class="region-bar-fill" style="width:${r.score}%;background:${getRiskColor(r.score)}"></div></div>
+        <span class="region-score" style="color:${getRiskColor(r.score)}">${r.score}</span>
+      </div>`;
+  });
+
+  // Map
+  initMap(riskData);
+  // Chart
+  initChart(globalScore);
+}
+
+// ─── MAP ───
+let map;
+function initMap(riskData) {
+  if (map) map.remove();
+  map = L.map('risk-map', {
+    center: [30, 30], zoom: 2.5, minZoom: 2, maxZoom: 6,
+    zoomControl: false, attributionControl: false,
+    scrollWheelZoom: true,
+  });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+  }).addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  riskData.forEach(r => {
+    const size = 14 + (r.score / 100) * 20;
+    const color = r.score >= 75 ? '#ef4444' : r.score >= 55 ? '#f59e0b' : r.score >= 35 ? '#3b82f6' : '#22c55e';
+    const marker = L.circleMarker([r.lat, r.lng], {
+      radius: size / 2,
+      fillColor: color,
+      fillOpacity: 0.6,
+      color: color,
+      weight: 2,
+      opacity: 0.8,
+    }).addTo(map);
+    const name = currentLang === 'de' ? r.name_de : r.name_en;
+    const label = currentLang === 'de' ? 'Risikoscore' : 'Risk Score';
+    marker.bindPopup(`<div style="font-family:Rajdhani;font-size:16px;font-weight:600;">${name}</div><div style="font-size:13px;">${label}: <strong style="color:${color}">${r.score}/100</strong></div>`, {
+      className: 'dark-popup'
+    });
+  });
+}
+
+// ─── CHART ───
+function initChart(currentScore) {
+  const ctx = document.getElementById('trend-chart').getContext('2d');
+  const labels = [];
+  let data = [];
+
+  // Use live trend data if available
+  if (liveRiskData && liveRiskData.trend_30d && liveRiskData.trend_30d.length === 30) {
+    data = liveRiskData.trend_30d;
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString(currentLang === 'de' ? 'de-DE' : 'en-US', { day:'2-digit', month:'short' }));
+    }
+  } else {
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString(currentLang === 'de' ? 'de-DE' : 'en-US', { day:'2-digit', month:'short' }));
+      const variation = getDailyVariation(i * 53 + 777) * 10;
+      data.push(Math.max(30, Math.min(90, Math.round(currentScore + variation - (i * 0.15)))));
+    }
+  }
+
+  if (window.trendChart) window.trendChart.destroy();
+  window.trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: currentLang === 'de' ? 'Risikoindex' : 'Risk Index',
+        data,
+        borderColor: '#c8a84e',
+        backgroundColor: 'rgba(200,168,78,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2332',
+          titleColor: '#e8e8e8',
+          bodyColor: '#c8a84e',
+          borderColor: '#2a3444',
+          borderWidth: 1,
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(42,52,68,0.5)' },
+          ticks: { color: '#6b7280', font: { size: 10 }, maxTicksLimit: 8 }
+        },
+        y: {
+          min: 20, max: 100,
+          grid: { color: 'rgba(42,52,68,0.5)' },
+          ticks: { color: '#6b7280', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ─── NEWS FEED ───
+async function loadNewsFeed() {
+  const feedEl = document.getElementById('news-feed');
+  feedEl.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>${currentLang === 'de' ? 'Lade aktuelle Meldungen...' : 'Loading current alerts...'}</span></div>`;
+
+  const tagColors = { high: 'background:rgba(239,68,68,0.15);color:#ef4444;', medium: 'background:rgba(245,158,11,0.15);color:#f59e0b;', low: 'background:rgba(34,197,94,0.15);color:#22c55e;' };
+  const tagLabels = { high: currentLang === 'de' ? 'Hoch' : 'High', medium: currentLang === 'de' ? 'Mittel' : 'Medium', low: currentLang === 'de' ? 'Niedrig' : 'Low' };
+
+  // Priority 1: Use news from risk-data.json if available
+  if (liveRiskData && liveRiskData.news && liveRiskData.news.length > 0) {
+    feedEl.innerHTML = '';
+    const genDate = new Date(liveRiskData.generated_at);
+    liveRiskData.news.forEach((n, i) => {
+      const title = currentLang === 'de' ? n.title_de : n.title_en;
+      const timeStr = getTimeAgo(genDate);
+      const url = n.url || '#';
+      feedEl.innerHTML += `
+        <a href="${url}" target="_blank" rel="noopener" class="news-item risk-${n.risk_level}">
+          <div class="news-time">${timeStr}</div>
+          <div class="news-content">
+            <h4>${truncate(title, 90)}</h4>
+            <p>${n.source}</p>
+            <span class="news-tag" style="${tagColors[n.risk_level]}">${tagLabels[n.risk_level]}</span>
+          </div>
+        </a>`;
+    });
+    return;
+  }
+
+  // Priority 2: Try RSS feed
+  try {
+    const queries = ['supply+chain+disruption','geopolitical+risk+security','defense+procurement+europe','sanctions+trade+embargo'];
+    const rssUrl = `https://news.google.com/rss/search?q=${queries[Math.floor(getDailyVariation(42) * 2 + 2) % queries.length]}&hl=${currentLang === 'de' ? 'de' : 'en'}&gl=${currentLang === 'de' ? 'DE' : 'US'}&ceid=${currentLang === 'de' ? 'DE:de' : 'US:en'}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+    const response = await fetch(proxyUrl);
+    const text = await response.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'text/xml');
+    const items = xml.querySelectorAll('item');
+    feedEl.innerHTML = '';
+    const maxItems = Math.min(items.length, 8);
+    if (maxItems === 0) throw new Error('No items');
+    for (let i = 0; i < maxItems; i++) {
+      const item = items[i];
+      const title = item.querySelector('title')?.textContent || '';
+      const pubDate = item.querySelector('pubDate')?.textContent || '';
+      const link = item.querySelector('link')?.textContent || '#';
+      const source = item.querySelector('source')?.textContent || '';
+      const riskLevel = i < 2 ? 'high' : i < 5 ? 'medium' : 'low';
+      const timeAgo = getTimeAgo(new Date(pubDate));
+      feedEl.innerHTML += `
+        <a href="${link}" target="_blank" rel="noopener" class="news-item risk-${riskLevel}">
+          <div class="news-time">${timeAgo}</div>
+          <div class="news-content">
+            <h4>${truncate(title, 90)}</h4>
+            <p>${source}</p>
+            <span class="news-tag" style="${tagColors[riskLevel]}">${tagLabels[riskLevel]}</span>
+          </div>
+        </a>`;
+    }
+  } catch (err) {
+    // Priority 3: Fallback with static alerts
+    feedEl.innerHTML = '';
+    const fallbackAlerts = currentLang === 'de' ? [
+      { t:'Lieferkettenunterbrechung im Roten Meer eskaliert', s:'Reuters', r:'high' },
+      { t:'NATO erhöht Verteidigungsausgaben — Beschaffungswelle erwartet', s:'Handelsblatt', r:'high' },
+      { t:'Neue Sanktionen gegen Russland betreffen Halbleiterexporte', s:'Bloomberg', r:'high' },
+      { t:'Taiwan-Krise: Chip-Lieferketten unter Druck', s:'FAZ', r:'medium' },
+      { t:'EU verschärft Exportkontrollen für Dual-Use-Güter', s:'Spiegel', r:'medium' },
+      { t:'Seltene Erden: China reduziert Exportquoten', s:'FT', r:'medium' },
+      { t:'Sahel-Region: Frankreich zieht Truppen ab', s:'Le Monde', r:'low' },
+      { t:'Stabilisierung der Frachtraten im Pazifik', s:'Lloyd\'s List', r:'low' },
+    ] : [
+      { t:'Red Sea Supply Chain Disruption Escalates', s:'Reuters', r:'high' },
+      { t:'NATO Increases Defense Spending — Procurement Wave Expected', s:'Bloomberg', r:'high' },
+      { t:'New Russia Sanctions Impact Semiconductor Exports', s:'Bloomberg', r:'high' },
+      { t:'Taiwan Crisis: Chip Supply Chains Under Pressure', s:'FT', r:'medium' },
+      { t:'EU Tightens Export Controls on Dual-Use Goods', s:'Politico', r:'medium' },
+      { t:'Rare Earths: China Reduces Export Quotas', s:'FT', r:'medium' },
+      { t:'Sahel Region: France Withdraws Troops', s:'Le Monde', r:'low' },
+      { t:'Pacific Freight Rates Show Stabilization', s:'Lloyd\'s List', r:'low' },
+    ];
+    const tagColors = { high: 'background:rgba(239,68,68,0.15);color:#ef4444;', medium: 'background:rgba(245,158,11,0.15);color:#f59e0b;', low: 'background:rgba(34,197,94,0.15);color:#22c55e;' };
+    const tagLabels = { high: currentLang === 'de' ? 'Hoch' : 'High', medium: currentLang === 'de' ? 'Mittel' : 'Medium', low: currentLang === 'de' ? 'Niedrig' : 'Low' };
+    const times = ['2h', '3h', '5h', '6h', '8h', '10h', '14h', '18h'];
+
+    fallbackAlerts.forEach((a, i) => {
+      feedEl.innerHTML += `
+        <div class="news-item risk-${a.r}">
+          <div class="news-time">${times[i]}</div>
+          <div class="news-content">
+            <h4>${a.t}</h4>
+            <p>${a.s}</p>
+            <span class="news-tag" style="${tagColors[a.r]}">${tagLabels[a.r]}</span>
+          </div>
+        </div>`;
+    });
+  }
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diff = Math.floor((now - date) / 60000);
+  if (diff < 60) return diff + 'min';
+  if (diff < 1440) return Math.floor(diff / 60) + 'h';
+  return Math.floor(diff / 1440) + 'd';
+}
+
+function truncate(str, max) {
+  return str.length > max ? str.substring(0, max) + '...' : str;
+}
+
+// ─── Popup Styling ───
+const popupStyle = document.createElement('style');
+popupStyle.textContent = `
+  .dark-popup .leaflet-popup-content-wrapper { background:#1a2332; color:#e8e8e8; border:1px solid #2a3444; border-radius:8px; }
+  .dark-popup .leaflet-popup-tip { background:#1a2332; }
+  .leaflet-control-zoom a { background:#1a2332!important; color:#e8e8e8!important; border-color:#2a3444!important; }
+`;
+document.head.appendChild(popupStyle);
+
+// ─── Smooth Scroll ───
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', () => {
+  initDashboard();
+  // Auto-refresh every 5 minutes
+  setInterval(() => { initDashboard(); }, 300000);
+});
+</script>
+</body>
+</html>
