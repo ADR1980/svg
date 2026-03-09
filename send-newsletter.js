@@ -1,15 +1,49 @@
-const sgMail = require('@sendgrid/mail');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
 // ─── Config ───
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDER_EMAIL = process.env.SENDER_EMAIL || 'info@svg.global';
 const SENDER_NAME = process.env.SENDER_NAME || 'SVG Risikoreport';
 const BASE_URL = process.env.BASE_URL || 'https://adr1980.github.io/svg';
 const SUBSCRIBERS_FILE = path.join(__dirname, 'subscribers.json');
 
+function sendViaSendGrid(payload) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(payload);
+    const req = https.request({
+      hostname: 'api.sendgrid.com',
+      path: '/v3/mail/send',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data),
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.statusCode);
+        } else {
+          reject(new Error(`SendGrid ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
 async function main() {
+  if (!SENDGRID_API_KEY) {
+    console.error('SENDGRID_API_KEY is not set');
+    process.exit(1);
+  }
+
   // Load subscribers
   let subscribers;
   try {
@@ -43,7 +77,7 @@ async function main() {
 
   for (let i = 0; i < subscribers.length; i += batchSize) {
     const batch = subscribers.slice(i, i + batchSize);
-    const msg = {
+    const payload = {
       personalizations: batch.map(s => ({
         to: [{ email: s.email }],
         substitutions: {
@@ -52,15 +86,15 @@ async function main() {
       })),
       from: { email: SENDER_EMAIL, name: SENDER_NAME },
       subject: `SVG Risikoreport — ${date} — Risikoindex: ${riskData.global_risk_index}/100`,
-      html,
+      content: [{ type: 'text/html', value: html }],
     };
 
     try {
-      await sgMail.send(msg);
+      await sendViaSendGrid(payload);
       sent += batch.length;
       console.log(`Batch sent: ${batch.length} emails`);
     } catch (err) {
-      console.error('Batch send error:', err.response?.body || err.message);
+      console.error('Batch send error:', err.message);
       errors += batch.length;
     }
   }
