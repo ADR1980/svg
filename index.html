@@ -1379,13 +1379,14 @@ popupStyle.textContent = `
 document.head.appendChild(popupStyle);
 
 // ─── Newsletter ───
-function handleNewsletterSubmit(e) {
+async function handleNewsletterSubmit(e) {
   e.preventDefault();
   const emailInput = document.getElementById('newsletter-email');
   const email = emailInput.value.trim();
   const errorEl = document.getElementById('newsletter-error');
   const successEl = document.getElementById('newsletter-success');
   const formEl = document.getElementById('newsletter-form');
+  const submitBtn = formEl.querySelector('button[type="submit"]');
 
   errorEl.classList.remove('show');
   successEl.classList.remove('show');
@@ -1398,23 +1399,41 @@ function handleNewsletterSubmit(e) {
     return;
   }
 
-  // Check if already subscribed
-  const subscribers = JSON.parse(localStorage.getItem('svg_newsletter_subscribers') || '[]');
-  if (subscribers.includes(email.toLowerCase())) {
+  // Disable button during request
+  submitBtn.disabled = true;
+  submitBtn.textContent = currentLang === 'de' ? 'Wird angemeldet...' : 'Subscribing...';
+
+  try {
+    const resp = await fetch('/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await resp.json();
+
+    if (resp.ok) {
+      formEl.style.display = 'none';
+      successEl.classList.add('show');
+    } else if (data.error === 'already_subscribed') {
+      errorEl.textContent = currentLang === 'de'
+        ? 'Diese E-Mail-Adresse ist bereits für den Newsletter angemeldet.'
+        : 'This email address is already subscribed to the newsletter.';
+      errorEl.classList.add('show');
+    } else {
+      errorEl.textContent = currentLang === 'de'
+        ? 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
+        : 'Please enter a valid email address.';
+      errorEl.classList.add('show');
+    }
+  } catch {
     errorEl.textContent = currentLang === 'de'
-      ? 'Diese E-Mail-Adresse ist bereits für den Newsletter angemeldet.'
-      : 'This email address is already subscribed to the newsletter.';
+      ? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.'
+      : 'An error occurred. Please try again later.';
     errorEl.classList.add('show');
-    return;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = currentLang === 'de' ? 'Anmelden' : 'Subscribe';
   }
-
-  // Store subscription
-  subscribers.push(email.toLowerCase());
-  localStorage.setItem('svg_newsletter_subscribers', JSON.stringify(subscribers));
-
-  // Show success
-  formEl.style.display = 'none';
-  successEl.classList.add('show');
 }
 
 // ─── Smooth Scroll ───
