@@ -479,6 +479,110 @@ section { padding: 100px 40px; }
 .process-step h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
 .process-step p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 
+/* ─── NEWSLETTER ─── */
+#newsletter { background: var(--bg-secondary); }
+.newsletter-box {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+.newsletter-box .newsletter-icon {
+  width: 64px; height: 64px;
+  background: rgba(200,168,78,0.1);
+  border: 1px solid rgba(200,168,78,0.2);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 24px;
+}
+.newsletter-box h3 {
+  font-size: 28px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.newsletter-box > p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 32px;
+}
+.newsletter-form {
+  display: flex;
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.newsletter-form input[type="email"] {
+  flex: 1;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+.newsletter-form input[type="email"]:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.newsletter-form input[type="email"]::placeholder {
+  color: var(--text-muted);
+}
+.newsletter-form button {
+  white-space: nowrap;
+}
+.newsletter-features {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+.newsletter-feature {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.newsletter-feature span.nf-icon {
+  color: var(--gold);
+  font-size: 14px;
+}
+.newsletter-success {
+  display: none;
+  padding: 20px;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 10px;
+  margin-top: 20px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.newsletter-success.show { display: block; }
+.newsletter-success p {
+  font-size: 14px;
+  color: var(--accent-green);
+  line-height: 1.6;
+}
+.newsletter-error {
+  display: none;
+  padding: 12px 16px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 8px;
+  margin-top: 12px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--accent-red);
+}
+.newsletter-error.show { display: block; }
+
 /* ─── CONTACT ─── */
 .contact-grid {
   display: grid;
@@ -573,6 +677,8 @@ section { padding: 100px 40px; }
   .stats-row { grid-template-columns: 1fr 1fr; }
   .contact-grid { grid-template-columns: 1fr; }
   .hero h1 { font-size: 36px; }
+  .newsletter-form { flex-direction: column; }
+  .newsletter-features { gap: 16px; flex-direction: column; align-items: center; }
 }
 </style>
 </head>
@@ -588,6 +694,7 @@ section { padding: 100px 40px; }
     <a href="#risk-dashboard" data-de="Risikoanalyse" data-en="Risk Analysis">Risikoanalyse</a>
     <a href="#services" data-de="Leistungen" data-en="Services">Leistungen</a>
     <a href="#approach" data-de="Ansatz" data-en="Approach">Ansatz</a>
+    <a href="#newsletter" data-de="Newsletter" data-en="Newsletter">Newsletter</a>
     <a href="#contact" data-de="Kontakt" data-en="Contact">Kontakt</a>
     <div class="lang-switch">
       <button class="lang-btn active" onclick="setLang('de')">DE</button>
@@ -784,6 +891,56 @@ section { padding: 100px 40px; }
   </div>
 </section>
 
+<!-- ═══════════════ NEWSLETTER ═══════════════ -->
+<section id="newsletter">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag" data-de="Risikoreport" data-en="Risk Report">Risikoreport</div>
+      <h2 data-de="Täglicher Risikoreport" data-en="Daily Risk Report">Täglicher Risikoreport</h2>
+      <p data-de="Erhalten Sie unsere Risikoanalyse jeden Morgen direkt in Ihr Postfach" data-en="Receive our risk analysis every morning directly in your inbox">Erhalten Sie unsere Risikoanalyse jeden Morgen direkt in Ihr Postfach</p>
+    </div>
+
+    <div class="newsletter-box">
+      <div class="newsletter-icon">📩</div>
+      <h3 data-de="Newsletter abonnieren" data-en="Subscribe to Newsletter">Newsletter abonnieren</h3>
+      <p data-de="Melden Sie sich an und erhalten Sie täglich den aktuellen Globalen Lieferrisiko-Report mit Risikoindizes, regionalen Analysen und sicherheitsrelevanten Meldungen — kostenlos und jederzeit kündbar." data-en="Sign up and receive the daily Global Supply Risk Report with risk indices, regional analyses, and security-relevant alerts — free of charge and cancelable at any time.">Melden Sie sich an und erhalten Sie täglich den aktuellen Globalen Lieferrisiko-Report mit Risikoindizes, regionalen Analysen und sicherheitsrelevanten Meldungen — kostenlos und jederzeit kündbar.</p>
+
+      <form class="newsletter-form" id="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+        <input type="email" id="newsletter-email" required
+          placeholder="ihre.email@unternehmen.de"
+          data-de-placeholder="ihre.email@unternehmen.de"
+          data-en-placeholder="your.email@company.com">
+        <button class="btn btn-primary" type="submit" data-de="Anmelden" data-en="Subscribe">Anmelden</button>
+      </form>
+
+      <div class="newsletter-error" id="newsletter-error"></div>
+
+      <div class="newsletter-success" id="newsletter-success">
+        <p data-de="✓ Vielen Dank für Ihre Anmeldung! Sie erhalten ab morgen den täglichen Risikoreport per E-Mail." data-en="✓ Thank you for subscribing! You will receive the daily risk report via email starting tomorrow.">✓ Vielen Dank für Ihre Anmeldung! Sie erhalten ab morgen den täglichen Risikoreport per E-Mail.</p>
+      </div>
+
+      <div class="newsletter-features">
+        <div class="newsletter-feature">
+          <span class="nf-icon">◆</span>
+          <span data-de="Täglich um 07:00 Uhr" data-en="Daily at 07:00 AM">Täglich um 07:00 Uhr</span>
+        </div>
+        <div class="newsletter-feature">
+          <span class="nf-icon">◆</span>
+          <span data-de="Globaler Risikoindex" data-en="Global Risk Index">Globaler Risikoindex</span>
+        </div>
+        <div class="newsletter-feature">
+          <span class="nf-icon">◆</span>
+          <span data-de="Regionale Analysen" data-en="Regional Analyses">Regionale Analysen</span>
+        </div>
+        <div class="newsletter-feature">
+          <span class="nf-icon">◆</span>
+          <span data-de="Jederzeit kündbar" data-en="Cancel anytime">Jederzeit kündbar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════ CONTACT ═══════════════ -->
 <section id="contact">
   <div class="container">
@@ -866,6 +1023,11 @@ function setLang(lang) {
     else if (el.tagName === 'OPTION') el.textContent = text;
     else el.textContent = text;
   });
+  // Update newsletter email placeholder
+  const nlEmail = document.getElementById('newsletter-email');
+  if (nlEmail) {
+    nlEmail.placeholder = nlEmail.getAttribute('data-' + lang + '-placeholder') || nlEmail.placeholder;
+  }
   document.documentElement.lang = lang;
   loadNewsFeed();
 }
@@ -1215,6 +1377,45 @@ popupStyle.textContent = `
   .leaflet-control-zoom a { background:#1a2332!important; color:#e8e8e8!important; border-color:#2a3444!important; }
 `;
 document.head.appendChild(popupStyle);
+
+// ─── Newsletter ───
+function handleNewsletterSubmit(e) {
+  e.preventDefault();
+  const emailInput = document.getElementById('newsletter-email');
+  const email = emailInput.value.trim();
+  const errorEl = document.getElementById('newsletter-error');
+  const successEl = document.getElementById('newsletter-success');
+  const formEl = document.getElementById('newsletter-form');
+
+  errorEl.classList.remove('show');
+  successEl.classList.remove('show');
+
+  if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    errorEl.textContent = currentLang === 'de'
+      ? 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
+      : 'Please enter a valid email address.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  // Check if already subscribed
+  const subscribers = JSON.parse(localStorage.getItem('svg_newsletter_subscribers') || '[]');
+  if (subscribers.includes(email.toLowerCase())) {
+    errorEl.textContent = currentLang === 'de'
+      ? 'Diese E-Mail-Adresse ist bereits für den Newsletter angemeldet.'
+      : 'This email address is already subscribed to the newsletter.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  // Store subscription
+  subscribers.push(email.toLowerCase());
+  localStorage.setItem('svg_newsletter_subscribers', JSON.stringify(subscribers));
+
+  // Show success
+  formEl.style.display = 'none';
+  successEl.classList.add('show');
+}
 
 // ─── Smooth Scroll ───
 document.querySelectorAll('a[href^="#"]').forEach(a => {
