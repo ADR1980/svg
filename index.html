@@ -805,22 +805,22 @@ section { padding: 100px 40px; }
       </div>
 
       <div>
-        <form class="contact-form" onsubmit="event.preventDefault();">
+        <form class="contact-form" id="contactForm" onsubmit="sendContactForm(event)">
           <div class="form-group">
             <label data-de="Organisation" data-en="Organization">Organisation</label>
-            <input type="text" placeholder="">
+            <input type="text" id="cf-org" placeholder="">
           </div>
           <div class="form-group">
             <label data-de="Ansprechpartner" data-en="Contact Person">Ansprechpartner</label>
-            <input type="text" placeholder="">
+            <input type="text" id="cf-name" required placeholder="">
           </div>
           <div class="form-group">
             <label>E-Mail</label>
-            <input type="email" placeholder="">
+            <input type="email" id="cf-email" required placeholder="">
           </div>
           <div class="form-group">
             <label data-de="Betreff" data-en="Subject">Betreff</label>
-            <select>
+            <select id="cf-subject" required>
               <option value="" data-de="— Bitte wählen —" data-en="— Please select —">— Bitte wählen —</option>
               <option data-de="Ausschreibungsbegleitung" data-en="Tender Support">Ausschreibungsbegleitung</option>
               <option data-de="Beschaffungsanfrage" data-en="Procurement Request">Beschaffungsanfrage</option>
@@ -831,7 +831,7 @@ section { padding: 100px 40px; }
           </div>
           <div class="form-group">
             <label data-de="Nachricht" data-en="Message">Nachricht</label>
-            <textarea></textarea>
+            <textarea id="cf-message" required></textarea>
           </div>
           <button class="btn btn-primary" type="submit" style="width:100%;" data-de="Nachricht senden" data-en="Send Message">Nachricht senden</button>
         </form>
@@ -1224,6 +1224,20 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 });
+
+// ─── Contact Form (mailto) ───
+function sendContactForm(e) {
+  e.preventDefault();
+  const org = document.getElementById('cf-org').value;
+  const name = document.getElementById('cf-name').value;
+  const email = document.getElementById('cf-email').value;
+  const subject = document.getElementById('cf-subject').value;
+  const message = document.getElementById('cf-message').value;
+  const body = (org ? `Organisation: ${org}\n` : '') +
+    `Ansprechpartner: ${name}\nE-Mail: ${email}\n\n${message}`;
+  const mailto = `mailto:info@svg-global.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+}
 
 // ─── Init ───
 document.addEventListener('DOMContentLoaded', () => {
