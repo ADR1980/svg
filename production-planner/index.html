@@ -1940,9 +1940,19 @@
         h += buildDepGraphSVG(pSteps, id);
       }
 
-      // ---- Arbeitsschritte-Tabelle ----
+      // ---- Arbeitsschritte-Tabelle (erweitert) ----
+      // Wochenplan-Daten sammeln für Zuordnung
+      var now = new Date();
+      var detailKW = getKW(now);
+      var detailYear = now.getFullYear();
+      var detailWeekPlan = Storage.getWeekPlan(detailYear, detailKW);
+      var detailWeekDates = getWeekDates(detailYear, detailKW);
+      var dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+
       h += '<div class="fw-600 mb-8 mt-16" style="color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:4px;">'
-        + 'Arbeitsschritte <span class="text-muted fw-400" style="font-size:12px;">(' + pSteps.length + ' Schritte)</span></div>';
+        + 'Arbeitsschritte <span class="text-muted fw-400" style="font-size:12px;">(' + pSteps.length + ' Schritte)</span>'
+        + (pSteps.length > 0 ? ' <button class="btn btn-outline btn-sm" style="float:right; font-size:11px;" onclick="document.querySelectorAll(\'.step-detail-row\').forEach(function(r){r.style.display=r.style.display===\'none\'?\'table-row\':\'none\';})">Details ein-/ausblenden</button>' : '')
+        + '</div>';
 
       if (pSteps.length > 0) {
         h += '<div style="overflow-x:auto;">';
@@ -1963,7 +1973,7 @@
           + '<th style="width:160px;">Abh\u00e4ngig von</th>'
           + '</tr></thead><tbody>';
 
-        pSteps.forEach(function(s) {
+        pSteps.forEach(function(s, sIdx) {
           var depCheck = checkDependencies(s, pSteps);
           var rowClass = s.status === 'abgeschlossen' ? 'ws-done' : (s.status === 'in_bearbeitung' ? 'ws-active' : (!depCheck.canStart ? 'ws-blocked' : ''));
           var pct = s.totalQty > 0 ? Math.round(s.completedQty / s.totalQty * 100) : 0;
@@ -1991,6 +2001,33 @@
             }).join('<br>');
           }
 
+          // Wochenplan-Einträge für diesen Schritt
+          var stepPlanTasks = detailWeekPlan.filter(function(wp) {
+            return wp.projectId === id && wp.workStepId === s.id;
+          });
+
+          // Tagesberichte für diesen Schritt sammeln
+          var stepReports = [];
+          detailWeekDates.forEach(function(wd, di) {
+            var dayIso = wd.getFullYear() + '-' + String(wd.getMonth()+1).padStart(2,'0') + '-' + String(wd.getDate()).padStart(2,'0');
+            var dayReps = Storage.getAllReports(dayIso);
+            dayReps.forEach(function(dr) {
+              if (dr.report && Array.isArray(dr.report)) {
+                dr.report.forEach(function(entry) {
+                  if (entry.projectId === id) {
+                    stepReports.push({
+                      day: dayNames[di],
+                      date: dayIso,
+                      employeeId: dr.employeeId,
+                      entry: entry
+                    });
+                  }
+                });
+              }
+            });
+          });
+
+          // Hauptzeile
           html_row = '<tr class="' + rowClass + '" onclick="openStepEditModal(' + id + ',\'' + s.id + '\')" style="cursor:pointer;">'
             + '<td class="fw-600">#' + s.order + '</td>'
             + '<td>'
@@ -2018,6 +2055,70 @@
             + '</tr>';
 
           h += html_row;
+
+          // ---- Detail-Aufklappzeile ----
+          var hasDetails = (s.notes) || stepPlanTasks.length > 0 || stepReports.length > 0;
+          if (hasDetails) {
+            h += '<tr class="step-detail-row" style="display:none; cursor:default;" onclick="event.stopPropagation();">';
+            h += '<td></td><td colspan="12" style="padding:10px 12px; background:#f8f9fa; border-left:4px solid var(--primary-light);">';
+
+            // Notizen
+            if (s.notes) {
+              h += '<div style="margin-bottom:10px;">'
+                + '<span class="fw-600" style="font-size:12px; color:var(--primary);">Notizen:</span> '
+                + '<span style="font-size:12px;">' + escapeHtml(s.notes) + '</span>'
+                + '</div>';
+            }
+
+            // Wochenplan-Zuweisung
+            if (stepPlanTasks.length > 0) {
+              h += '<div style="margin-bottom:10px;">';
+              h += '<span class="fw-600" style="font-size:12px; color:var(--primary);">Planung KW ' + detailKW + ':</span>';
+              h += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">';
+              stepPlanTasks.forEach(function(pt) {
+                var ptEmp = employees.find(function(e) { return e.id === pt.employeeId; });
+                var dayLabel = pt.day === 'week' ? 'Mo\u2013Fr' : dayNames[pt.day];
+                h += '<div style="background:white; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:12px;">'
+                  + '<span class="fw-600">' + (ptEmp ? escapeHtml(ptEmp.name) : '-') + '</span> '
+                  + '<span class="badge badge-info" style="font-size:10px;">' + dayLabel + '</span>';
+                if (pt.plannedQty) h += ' <span class="text-muted">' + pt.plannedQty + ' Stk.</span>';
+                if (pt.plannedMinutes) h += ' <span class="text-muted">' + pt.plannedMinutes + ' Min</span>';
+                if (pt.description) h += ' <span class="text-muted">\u2013 ' + escapeHtml(pt.description.substring(0, 40)) + '</span>';
+                h += '</div>';
+              });
+              h += '</div></div>';
+            }
+
+            // Tagesberichte
+            if (stepReports.length > 0) {
+              h += '<div>';
+              h += '<span class="fw-600" style="font-size:12px; color:var(--primary);">Berichte KW ' + detailKW + ':</span>';
+              h += '<table style="width:100%; font-size:12px; margin-top:4px; border-collapse:collapse;">';
+              h += '<tr style="background:#eee;"><th style="padding:3px 8px; text-align:left;">Tag</th><th style="padding:3px 8px; text-align:left;">Mitarbeiter</th><th style="padding:3px 8px; text-align:left;">Beschreibung</th><th style="padding:3px 8px;">Menge</th><th style="padding:3px 8px;">Zeit</th><th style="padding:3px 8px;">Fortschritt</th><th style="padding:3px 8px;">Status</th></tr>';
+              stepReports.forEach(function(sr) {
+                var srEmp = employees.find(function(e) { return e.id === sr.employeeId; });
+                var ent = sr.entry;
+                h += '<tr style="border-bottom:1px solid #eee;">'
+                  + '<td style="padding:3px 8px;">' + sr.day + '</td>'
+                  + '<td style="padding:3px 8px;">' + (srEmp ? escapeHtml(srEmp.name) : sr.employeeId) + '</td>'
+                  + '<td style="padding:3px 8px;">' + escapeHtml((ent.completedWork || ent.taskDescription || '').substring(0, 50)) + '</td>'
+                  + '<td style="padding:3px 8px; text-align:center;">' + (ent.completedQty || '-') + '</td>'
+                  + '<td style="padding:3px 8px; text-align:center;">' + (ent.actualMinutes ? ent.actualMinutes + ' Min' : '-') + '</td>'
+                  + '<td style="padding:3px 8px; text-align:center;">' + (ent.achievedProgress ? Math.round(ent.achievedProgress * 100) + '%' : '-') + '</td>'
+                  + '<td style="padding:3px 8px; text-align:center;">';
+                if (ent.deviation) {
+                  h += '<span class="badge badge-danger" style="font-size:10px;">Abweichung</span>';
+                  if (ent.deviationReason) h += '<div style="font-size:10px; color:var(--danger); margin-top:2px;">' + escapeHtml(ent.deviationReason.substring(0, 40)) + '</div>';
+                } else {
+                  h += '<span class="badge badge-success" style="font-size:10px;">OK</span>';
+                }
+                h += '</td></tr>';
+              });
+              h += '</table></div>';
+            }
+
+            h += '</td></tr>';
+          }
         });
 
         // Summenzeile
