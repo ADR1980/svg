@@ -267,6 +267,23 @@
     .report-task-entry .task-header {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
     }
+    .report-date-picker {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+      background: var(--bg); border-radius: 8px; padding: 10px 12px;
+    }
+    .report-date-picker input[type="date"] {
+      border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+      font-size: 14px; font-family: inherit; flex: 1; color: var(--text);
+    }
+    .report-date-picker label { font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .report-section-label {
+      font-size: 13px; font-weight: 600; color: var(--primary); margin: 12px 0 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .report-other-tasks-toggle {
+      font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 500;
+      background: none; border: none; text-decoration: underline;
+    }
 
     .text-sm { font-size: 13px; }
     .text-muted { color: var(--text-light); }
@@ -318,9 +335,7 @@
       <input type="password" id="login-pin" placeholder="PIN eingeben" inputmode="numeric" maxlength="10" style="text-align: center; letter-spacing: 6px;">
       <div id="login-error" style="color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none;">Falscher PIN. Bitte erneut versuchen.</div>
       <button class="login-btn" onclick="doLogin()">Anmelden</button>
-      <div style="margin-top: 16px; font-size: 12px; color: #7f8c8d;">
-        <a href="index.html" style="color: #2c5f8a;">Zur Planer-Ansicht</a>
-      </div>
+      <div style="margin-top: 16px; font-size: 12px; color: #7f8c8d;">&nbsp;</div>
     </div>
   </div>
 
@@ -333,8 +348,6 @@
           <div class="user-info" id="user-display"></div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <a href="dashboard.html" class="header-link" target="_blank">Dashboard</a>
-          <a href="index.html" class="header-link">Planung</a>
           <button onclick="doLogout()" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Abmelden</button>
         </div>
       </div>
@@ -646,7 +659,8 @@
     }
 
     // ---- REPORT ----
-    function goToReport(projectId, area, description, plannedQty) {
+    function goToReport(projectId, area, description, plannedQty, reportDate) {
+      selectedReportDate = reportDate || getISODate(new Date());
       // Switch to report tab
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -657,13 +671,14 @@
     }
 
     function renderReportForm(projectId, area, description, plannedQty) {
-      const today = getISODate(new Date());
+      const today = selectedReportDate || getISODate(new Date());
+      const reportDateObj = new Date(today + 'T12:00:00');
       const existingReport = Storage.getDailyReport(today, currentEmployee.id);
       const projects = Storage.getProjects();
 
       // Merge task photos + existing report photos
       const taskPhotoData = projectId ? TaskPhotos.getPhotos(currentEmployee.id, today, projectId) : [];
-      const taskPhotoUrls = taskPhotoData.map(p => p.data);
+      const taskPhotoUrls = taskPhotoData.map(p => p.data || p);
       if (existingReport && existingReport.photos && existingReport.photos.length > 0) {
         reportPhotos = existingReport.photos;
       } else if (taskPhotoUrls.length > 0) {
@@ -678,7 +693,11 @@
 
       document.getElementById('report-form-container').innerHTML = `
         <div class="card">
-          <div class="fw-600 mb-8">Tagesbericht f&uuml;r ${formatDate(new Date())}</div>
+          <div class="fw-600 mb-8">Tagesbericht</div>
+          <div class="report-date-picker" style="margin-bottom: 12px;">
+            <label>Datum:</label>
+            <input type="date" id="rpt-date" value="${today}" onchange="selectedReportDate = this.value; renderReportForm(${projectId || 'null'}, '${area || ''}', '', ${plannedQty || 0});">
+          </div>
           ${existingReport ? '<div class="badge badge-success mb-8">Bericht bereits eingereicht - wird aktualisiert</div>' : ''}
 
           <div class="form-group">
@@ -854,7 +873,7 @@
         return;
       }
 
-      const today = getISODate(new Date());
+      const reportDate = document.getElementById('rpt-date') ? document.getElementById('rpt-date').value : getISODate(new Date());
       const actualMinutes = parseInt(document.getElementById('rpt-actual-minutes').value) || 0;
       const report = {
         projectId: parseInt(document.getElementById('rpt-project').value),
@@ -870,7 +889,7 @@
         submittedAt: new Date().toISOString()
       };
 
-      Storage.saveDailyReport(today, currentEmployee.id, report);
+      Storage.saveDailyReport(reportDate, currentEmployee.id, report);
 
       // Update project progress
       const projects = Storage.getProjects();
@@ -881,9 +900,10 @@
       }
 
       // Update work step actual time and completed qty
-      const kw = getKW(new Date());
-      const year = new Date().getFullYear();
-      const dayOfWeek = (new Date().getDay() + 6) % 7;
+      const reportDateObj = new Date(reportDate + 'T12:00:00');
+      const kw = getKW(reportDateObj);
+      const year = reportDateObj.getFullYear();
+      const dayOfWeek = (reportDateObj.getDay() + 6) % 7;
       const weekPlan = Storage.getWeekPlan(year, kw);
       const myTask = weekPlan.find(t => t.employeeId === currentEmployee.id
         && t.projectId === report.projectId
@@ -913,7 +933,7 @@
           currentEmployee.name,
           proj.article,
           report.deviationReason,
-          formatDate(new Date())
+          formatDate(reportDateObj)
         );
       }
 
@@ -1096,51 +1116,65 @@
     }
 
     // ---- TAGESBERICHT-MODAL ----
-    function openDailyReportModal() {
-      const today = new Date();
-      const isoDate = getISODate(today);
-      const kw = getKW(today);
-      const year = today.getFullYear();
-      const dayOfWeek = (today.getDay() + 6) % 7;
+    let selectedReportDate = null;
+
+    function openDailyReportModal(dateStr) {
+      const selectedDate = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
+      selectedReportDate = getISODate(selectedDate);
+      const isoDate = selectedReportDate;
+      const kw = getKW(selectedDate);
+      const year = selectedDate.getFullYear();
+      const dayOfWeek = (selectedDate.getDay() + 6) % 7; // 0=Mo, 4=Fr
 
       const plan = Storage.getWeekPlan(year, kw);
       const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week'));
+      // Other day tasks from the same week (excluding selected day)
+      const otherTasks = plan.filter(t => t.employeeId === currentEmployee.id && t.day !== dayOfWeek && t.day !== 'week');
       const projects = Storage.getProjects();
       const existingReport = Storage.getDailyReport(isoDate, currentEmployee.id);
 
+      const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+
+      function renderTaskEntry(task, fromOtherDay) {
+        const proj = projects.find(p => p.id === task.projectId);
+        const isReported = !!existingReport;
+        const dayLabel = fromOtherDay && typeof task.day === 'number' ? `<span class="badge badge-neutral" style="font-size:10px;">${dayNames[task.day] || ''}</span>` : '';
+        return `
+          <div class="report-task-entry" ${fromOtherDay ? 'style="border-left-color: var(--accent);"' : ''}>
+            <div class="task-header">
+              <div class="fw-600 text-sm">${proj ? escapeHtml(proj.article) : 'Unbekannt'} ${dayLabel}</div>
+              ${isReported
+                ? '<span class="badge badge-success" style="font-size:10px;">Berichtet</span>'
+                : '<span class="badge badge-warning" style="font-size:10px;">Offen</span>'}
+            </div>
+            <div class="text-sm text-muted">${proj ? getCustomerName(proj.customerId) : ''}</div>
+            <div class="text-sm mt-8"><strong>Aufgabe:</strong> ${escapeHtml(task.description)}</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+              <span class="badge badge-info">${escapeHtml(task.area)}</span>
+              ${task.plannedQty ? `<span class="badge badge-neutral">${task.plannedQty} Stk.</span>` : ''}
+              ${task.plannedMinutes ? `<span class="badge badge-warning">Soll: ${task.plannedMinutes} Min</span>` : ''}
+            </div>
+            ${!isReported ? `
+              <div style="margin-top:8px;">
+                <button class="btn btn-accent btn-sm" style="width:100%;" onclick="closeDailyReportModal(); goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description).replace(/'/g, "\\'")}', ${task.plannedQty || 0}, '${isoDate}');">
+                  Bericht f&uuml;r diese Aufgabe
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
       let tasksHtml = '';
       if (myTasks.length === 0) {
-        tasksHtml = '<div class="text-sm text-muted" style="padding: 12px 0;">Keine Aufgaben f&uuml;r heute geplant.</div>';
+        tasksHtml = '<div class="text-sm text-muted" style="padding: 12px 0;">Keine Aufgaben f&uuml;r diesen Tag geplant.</div>';
       } else {
-        myTasks.forEach(task => {
-          const proj = projects.find(p => p.id === task.projectId);
-          const taskReport = Storage.getDailyReport(isoDate, currentEmployee.id);
-          const isReported = !!taskReport;
-          tasksHtml += `
-            <div class="report-task-entry">
-              <div class="task-header">
-                <div class="fw-600 text-sm">${proj ? escapeHtml(proj.article) : 'Unbekannt'}</div>
-                ${isReported
-                  ? '<span class="badge badge-success" style="font-size:10px;">Berichtet</span>'
-                  : '<span class="badge badge-warning" style="font-size:10px;">Offen</span>'}
-              </div>
-              <div class="text-sm text-muted">${proj ? getCustomerName(proj.customerId) : ''}</div>
-              <div class="text-sm mt-8"><strong>Aufgabe:</strong> ${escapeHtml(task.description)}</div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
-                <span class="badge badge-info">${escapeHtml(task.area)}</span>
-                ${task.plannedQty ? `<span class="badge badge-neutral">${task.plannedQty} Stk.</span>` : ''}
-                ${task.plannedMinutes ? `<span class="badge badge-warning">Soll: ${task.plannedMinutes} Min</span>` : ''}
-              </div>
-              ${!isReported ? `
-                <div style="margin-top:8px;">
-                  <button class="btn btn-accent btn-sm" style="width:100%;" onclick="closeDailyReportModal(); goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description).replace(/'/g, "\\'")}', ${task.plannedQty || 0});">
-                    Bericht f&uuml;r diese Aufgabe
-                  </button>
-                </div>
-              ` : ''}
-            </div>
-          `;
-        });
+        myTasks.forEach(task => { tasksHtml += renderTaskEntry(task, false); });
+      }
+
+      let otherTasksHtml = '';
+      if (otherTasks.length > 0) {
+        otherTasks.forEach(task => { otherTasksHtml += renderTaskEntry(task, true); });
       }
 
       const overlay = document.createElement('div');
@@ -1153,18 +1187,29 @@
           <div class="report-modal-header">
             <div>
               <div class="fw-600" style="font-size:17px;">Tagesbericht</div>
-              <div class="text-sm text-muted">${formatDate(today)}</div>
+              <div class="text-sm text-muted">${formatDate(selectedDate)}</div>
             </div>
             <button class="report-modal-close" onclick="closeDailyReportModal()">&times;</button>
           </div>
-          <div class="text-sm fw-600 mb-8" style="color: var(--primary);">Heutige Aufgaben (${myTasks.length})</div>
+          <div class="report-date-picker">
+            <label>Datum:</label>
+            <input type="date" id="report-date-input" value="${isoDate}" onchange="closeDailyReportModal(); openDailyReportModal(this.value);">
+          </div>
+          <div class="report-section-label">Aufgaben f&uuml;r ${formatDate(selectedDate)} (${myTasks.length})</div>
           <div class="report-task-list">${tasksHtml}</div>
+          ${otherTasks.length > 0 ? `
+            <div class="report-section-label">
+              Aufgaben anderer Tage (${otherTasks.length})
+              <button class="report-other-tasks-toggle" onclick="document.getElementById('other-day-tasks').style.display = document.getElementById('other-day-tasks').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('other-day-tasks').style.display === 'none' ? 'Einblenden' : 'Ausblenden';">Einblenden</button>
+            </div>
+            <div id="other-day-tasks" class="report-task-list" style="display: none;">${otherTasksHtml}</div>
+          ` : ''}
           ${existingReport ? `
             <div class="card" style="background: #d5f5e3; border: 1px solid #27ae60;">
               <div class="fw-600 text-sm" style="color: #27ae60;">Tagesbericht bereits eingereicht</div>
               <div class="text-sm mt-8"><strong>Erledigt:</strong> ${escapeHtml(existingReport.completedWork || '-')}</div>
               <div class="text-sm mt-8">
-                <button class="btn btn-outline btn-sm" onclick="closeDailyReportModal(); goToReport(${existingReport.projectId}, '${existingReport.area}', '', 0);">
+                <button class="btn btn-outline btn-sm" onclick="closeDailyReportModal(); goToReport(${existingReport.projectId}, '${existingReport.area}', '', 0, '${isoDate}');">
                   Bericht bearbeiten
                 </button>
               </div>
