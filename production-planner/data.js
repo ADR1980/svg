@@ -271,7 +271,55 @@ const ATC_DATA = {
   ],
 
   // Admin-Passwort für Planer-Zugang (Standard: "atc2026")
-  adminPassword: 'atc2026'
+  adminPassword: 'atc2026',
+
+  // Beispiel-Arbeitsschritt-Vorlagen
+  workStepTemplates: [
+    { id: 'WS001', name: 'Materialzuschnitt', description: 'Zuschnitt des Rohmaterials nach Zeichnung', duration: 30, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS002', name: 'CNC-Fr\u00e4sen', description: 'Fr\u00e4sbearbeitung nach CAM-Programm', duration: 60, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS003', name: 'CNC-Drehen', description: 'Drehbearbeitung nach Zeichnung', duration: 45, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS004', name: 'Entgraten', description: 'Entgraten und S\u00e4ubern der Werkst\u00fccke', duration: 15, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS005', name: 'Oberfl\u00e4chenbehandlung', description: 'Oberfl\u00e4chenbehandlung (Eloxieren, Verzinken etc.)', duration: 20, dryingTime: 120, category: 'Fertigung' },
+    { id: 'WS006', name: 'Qualit\u00e4tspr\u00fcfung', description: 'Ma\u00dfliche Pr\u00fcfung und Dokumentation', duration: 15, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS007', name: 'Montage Baugruppe', description: 'Zusammenbau der Einzelteile zur Baugruppe', duration: 45, dryingTime: 0, category: 'Montage' },
+    { id: 'WS008', name: 'Verpacken', description: 'Verpackung gem\u00e4\u00df Verpackungsvorschrift', duration: 10, dryingTime: 0, category: 'Montage' },
+    { id: 'WS009', name: 'CAD-Konstruktion', description: 'Erstellung der 3D-CAD-Daten', duration: 120, dryingTime: 0, category: 'Konstruktion' },
+    { id: 'WS010', name: 'Zeichnungserstellung', description: 'Fertigungszeichnungen aus CAD ableiten', duration: 60, dryingTime: 0, category: 'Konstruktion' }
+  ],
+
+  // Beispiel-Auftragsvorlagen
+  orderTemplates: [
+    {
+      id: 'OT001',
+      name: 'Standard Drehteil',
+      description: 'Vorlage f\u00fcr einfache Drehteile mit Oberfl\u00e4chenbehandlung',
+      steps: [
+        { stepId: 'WS009', order: 1, dependsOn: [] },
+        { stepId: 'WS010', order: 2, dependsOn: ['WS009'] },
+        { stepId: 'WS001', order: 3, dependsOn: ['WS010'] },
+        { stepId: 'WS003', order: 4, dependsOn: ['WS001'] },
+        { stepId: 'WS004', order: 5, dependsOn: ['WS003'] },
+        { stepId: 'WS005', order: 6, dependsOn: ['WS004'] },
+        { stepId: 'WS006', order: 7, dependsOn: ['WS005'] },
+        { stepId: 'WS008', order: 8, dependsOn: ['WS006'] }
+      ]
+    },
+    {
+      id: 'OT002',
+      name: 'Fr\u00e4steil mit Montage',
+      description: 'Fr\u00e4steil inkl. Baugruppenmontage',
+      steps: [
+        { stepId: 'WS009', order: 1, dependsOn: [] },
+        { stepId: 'WS010', order: 2, dependsOn: ['WS009'] },
+        { stepId: 'WS001', order: 3, dependsOn: ['WS010'] },
+        { stepId: 'WS002', order: 4, dependsOn: ['WS001'] },
+        { stepId: 'WS004', order: 5, dependsOn: ['WS002'] },
+        { stepId: 'WS006', order: 6, dependsOn: ['WS004'] },
+        { stepId: 'WS007', order: 7, dependsOn: ['WS006'] },
+        { stepId: 'WS008', order: 8, dependsOn: ['WS007'] }
+      ]
+    }
+  ]
 };
 
 // Storage-Helfer
@@ -345,6 +393,42 @@ const Storage = {
 
   saveWeekPlan(year, kw, plan) {
     this.save('weekplan_' + year + '_' + kw, plan);
+  },
+
+  // Arbeitsschritt-Vorlagen
+  getWorkStepTemplates() {
+    return this.load('workstep_templates', ATC_DATA.workStepTemplates);
+  },
+
+  saveWorkStepTemplates(templates) {
+    this.save('workstep_templates', templates);
+  },
+
+  // Auftragsvorlagen
+  getOrderTemplates() {
+    return this.load('order_templates', ATC_DATA.orderTemplates);
+  },
+
+  saveOrderTemplates(templates) {
+    this.save('order_templates', templates);
+  },
+
+  // Arbeitsschritte pro Projekt
+  getProjectSteps(projectId) {
+    return this.load('project_steps_' + projectId, []);
+  },
+
+  saveProjectSteps(projectId, steps) {
+    this.save('project_steps_' + projectId, steps);
+  },
+
+  // Kunden laden/speichern
+  getCustomers() {
+    return this.load('customers', ATC_DATA.customers);
+  },
+
+  saveCustomers(customers) {
+    this.save('customers', customers);
   }
 };
 
