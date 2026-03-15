@@ -285,6 +285,21 @@
       background: none; border: none; text-decoration: underline;
     }
 
+    /* Self-assign task button */
+    .self-assign-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 12px; background: var(--primary);
+      color: white; border: none; border-radius: 12px; font-size: 14px;
+      font-weight: 600; cursor: pointer; margin-bottom: 16px;
+    }
+    .self-assign-btn:hover { background: var(--primary-light); }
+    .assign-project-btn {
+      padding: 6px 12px; background: var(--primary); color: white; border: none;
+      border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;
+      white-space: nowrap;
+    }
+    .assign-project-btn:hover { background: var(--primary-light); }
+
     .text-sm { font-size: 13px; }
     .text-muted { color: var(--text-light); }
     .mt-8 { margin-top: 8px; }
@@ -358,6 +373,9 @@
       <div class="date-header" id="today-date"></div>
       <button class="daily-report-btn" onclick="openDailyReportModal()">
         <span class="report-icon">&#128221;</span> Tagesbericht erstellen
+      </button>
+      <button class="self-assign-btn" onclick="openSelfAssignModal()">
+        <span>&#10133;</span> Aufgabe &uuml;bernehmen
       </button>
       <div id="today-tasks"></div>
     </div>
@@ -522,7 +540,12 @@
       const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mo, 4=Fr
 
       const plan = Storage.getWeekPlan(year, kw);
-      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week'));
+      const myTasks = [];
+      plan.forEach((t, planIdx) => {
+        if (t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week')) {
+          myTasks.push({ ...t, _planIndex: planIdx });
+        }
+      });
       const report = Storage.getDailyReport(isoDate, currentEmployee.id);
 
       if (myTasks.length === 0) {
@@ -530,7 +553,7 @@
           <div class="empty-state">
             <div class="empty-icon">&#9989;</div>
             <p>Keine Aufgaben f&uuml;r heute geplant.</p>
-            <p class="text-sm text-muted mt-8">Schauen Sie in der &Uuml;bersicht nach aktuellen Projekten.</p>
+            <p class="text-sm text-muted mt-8">&Uuml;bernehmen Sie eine Aufgabe &uuml;ber den Button oben oder die Projekt&uuml;bersicht.</p>
           </div>
         `;
         return;
@@ -605,6 +628,9 @@
                 <button class="btn btn-accent btn-sm" onclick="goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description)}', ${task.plannedQty || 0})">
                   Bericht erstellen
                 </button>
+                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" onclick="removeSelfAssignedTask(${task._planIndex})">
+                  Entfernen
+                </button>
               </div>
             ` : ''}
           </div>
@@ -651,6 +677,11 @@
             </div>
             <div class="text-sm text-muted mt-8">Gesamt: ${Math.round(avg * 100)}%</div>
             ${p.remarks ? `<div class="text-sm mt-8" style="color: var(--accent);">${escapeHtml(p.remarks)}</div>` : ''}
+            <div class="mt-12" style="border-top: 1px solid var(--border); padding-top: 10px;">
+              <button class="assign-project-btn" onclick="openSelfAssignModal(${p.id})">
+                &#10133; Aufgabe f&uuml;r dieses Projekt &uuml;bernehmen
+              </button>
+            </div>
           </div>
         `;
       });
@@ -1224,6 +1255,130 @@
     function closeDailyReportModal() {
       const modal = document.getElementById('daily-report-modal');
       if (modal) modal.remove();
+    }
+
+    // ---- AUFGABE SELBST ZUWEISEN ----
+    function openSelfAssignModal(preselectedProjectId) {
+      const today = new Date();
+      const kw = getKW(today);
+      const year = today.getFullYear();
+      const dayOfWeek = (today.getDay() + 6) % 7;
+      const projects = Storage.getProjects();
+
+      const projOptions = projects.map(p =>
+        `<option value="${p.id}" ${preselectedProjectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
+      ).join('');
+
+      const dayOptions = `
+        <option value="${dayOfWeek}">Heute (${['Mo','Di','Mi','Do','Fr'][dayOfWeek] || 'Heute'})</option>
+        <option value="week">Ganze Woche (Mo-Fr)</option>
+        ${[0,1,2,3,4].filter(d => d !== dayOfWeek).map(d =>
+          `<option value="${d}">${['Montag','Dienstag','Mittwoch','Donnerstag','Freitag'][d]}</option>`
+        ).join('')}
+      `;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'report-modal-overlay';
+      overlay.id = 'self-assign-modal';
+      overlay.onclick = function(e) { if (e.target === overlay) closeSelfAssignModal(); };
+
+      overlay.innerHTML = `
+        <div class="report-modal">
+          <div class="report-modal-header">
+            <div>
+              <div class="fw-600" style="font-size:17px;">Aufgabe &uuml;bernehmen</div>
+              <div class="text-sm text-muted">KW ${kw} / ${year}</div>
+            </div>
+            <button class="report-modal-close" onclick="closeSelfAssignModal()">&times;</button>
+          </div>
+          <form onsubmit="saveSelfAssignedTask(event)">
+            <div class="form-group">
+              <label>Projekt</label>
+              <select class="form-control" id="sa-project" required>${projOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>Bereich</label>
+              <select class="form-control" id="sa-area" required>
+                <option value="konstruktion">Konstruktion</option>
+                <option value="fertigung" selected>Fertigung</option>
+                <option value="montage">Montage</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tag</label>
+              <select class="form-control" id="sa-day" required>${dayOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>Aufgabenbeschreibung</label>
+              <textarea class="form-control" id="sa-desc" rows="3" required placeholder="Was m&ouml;chten Sie an diesem Projekt bearbeiten?"></textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label>Geplante St&uuml;ckzahl</label>
+                <input type="number" class="form-control" id="sa-qty" min="0" placeholder="optional">
+              </div>
+              <div class="form-group">
+                <label>Gesch&auml;tzte Zeit (Min)</label>
+                <input type="number" class="form-control" id="sa-minutes" min="0" placeholder="optional">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">Aufgabe zuweisen</button>
+          </form>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+    }
+
+    function closeSelfAssignModal() {
+      const modal = document.getElementById('self-assign-modal');
+      if (modal) modal.remove();
+    }
+
+    function saveSelfAssignedTask(e) {
+      e.preventDefault();
+      const today = new Date();
+      const kw = getKW(today);
+      const year = today.getFullYear();
+
+      const dayVal = document.getElementById('sa-day').value;
+      const taskData = {
+        employeeId: currentEmployee.id,
+        projectId: parseInt(document.getElementById('sa-project').value),
+        area: document.getElementById('sa-area').value,
+        day: dayVal === 'week' ? 'week' : parseInt(dayVal),
+        description: document.getElementById('sa-desc').value.trim(),
+        plannedQty: parseInt(document.getElementById('sa-qty').value) || 0,
+        plannedMinutes: parseInt(document.getElementById('sa-minutes').value) || 0,
+        actualMinutes: 0
+      };
+
+      const plan = Storage.getWeekPlan(year, kw);
+      plan.push(taskData);
+      Storage.saveWeekPlan(year, kw, plan);
+
+      closeSelfAssignModal();
+      alert('Aufgabe wurde erfolgreich zugewiesen!');
+      renderToday();
+    }
+
+    function removeSelfAssignedTask(taskIndex) {
+      if (!confirm('Aufgabe wirklich entfernen?')) return;
+      const today = new Date();
+      const kw = getKW(today);
+      const year = today.getFullYear();
+      const plan = Storage.getWeekPlan(year, kw);
+
+      if (taskIndex >= 0 && taskIndex < plan.length) {
+        plan.splice(taskIndex, 1);
+        Storage.saveWeekPlan(year, kw, plan);
+        renderToday();
+      }
+    }
+
+    function markTaskDone(projectId, area, description) {
+      // Quick-complete: go directly to report form with this task pre-filled
+      goToReport(projectId, area, description, 0);
     }
 
     // ---- AUFGABEN-FOTOS ----
