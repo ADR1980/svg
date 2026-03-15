@@ -249,6 +249,7 @@
     <div class="dash-tab active" onclick="switchDashView('today')">Heute</div>
     <div class="dash-tab" onclick="switchDashView('week')">Woche</div>
     <div class="dash-tab" onclick="switchDashView('orders')">Auftr&auml;ge</div>
+    <div class="dash-tab" onclick="switchDashView('machines')">Maschinen</div>
   </div>
 
   <!-- Content -->
@@ -270,6 +271,12 @@
     <div class="dash-view" id="view-orders">
       <div class="stats-bar" id="orders-stats"></div>
       <div id="orders-content"></div>
+    </div>
+
+    <!-- ====== MASCHINEN ====== -->
+    <div class="dash-view" id="view-machines">
+      <div class="stats-bar" id="machines-stats"></div>
+      <div id="machines-content"></div>
     </div>
 
   </div>
@@ -391,8 +398,10 @@
       document.querySelectorAll('.dash-tab').forEach(function(t) { t.classList.remove('active'); });
       document.getElementById('view-' + view).classList.add('active');
       var tabs = document.querySelectorAll('.dash-tab');
-      var idx = view === 'today' ? 0 : (view === 'week' ? 1 : 2);
+      var viewMap = { today: 0, week: 1, orders: 2, machines: 3 };
+      var idx = viewMap[view] || 0;
       tabs[idx].classList.add('active');
+      if (view === 'machines') renderMachinesDash();
     }
 
     // ---- Fullscreen ----
@@ -931,6 +940,100 @@
       renderToday();
       renderWeek();
       renderOrders();
+      renderMachinesDash();
+    }
+
+    // ---- MASCHINEN DASHBOARD ----
+    function renderMachinesDash() {
+      var machines = Storage.getMachines();
+      var today = new Date();
+      var kw = getKW(today);
+      var year = today.getFullYear();
+      var plan = Storage.getWeekPlan(year, kw);
+      var dayOfWeek = (today.getDay() + 6) % 7;
+      var hoursPerDay = 8;
+      var dayMinutesMax = hoursPerDay * 60;
+      var weekMinutesMax = dayMinutesMax * 5;
+
+      var activeMachines = machines.filter(function(m) { return m.status === 'aktiv'; });
+      var inMaintenance = machines.filter(function(m) { return m.status === 'wartung'; }).length;
+
+      // Stats
+      var statsHtml = '<div class="stat-item"><div class="stat-num">' + activeMachines.length + '</div><div class="stat-label">Aktiv</div></div>'
+        + '<div class="stat-item"><div class="stat-num" style="color:var(--warning);">' + inMaintenance + '</div><div class="stat-label">In Wartung</div></div>';
+
+      // Calculate avg utilization
+      var totalUtil = 0;
+      activeMachines.forEach(function(mach) {
+        var weekMins = 0;
+        plan.forEach(function(t) {
+          if (t.machineId !== mach.id) return;
+          weekMins += (t.plannedMinutes || 0) + (mach.setupTime || 0);
+        });
+        totalUtil += weekMinutesMax > 0 ? weekMins / weekMinutesMax : 0;
+      });
+      var avgUtil = activeMachines.length > 0 ? Math.round(totalUtil / activeMachines.length * 100) : 0;
+      var avgColor = avgUtil > 80 ? 'var(--danger)' : (avgUtil > 50 ? 'var(--accent)' : 'var(--success)');
+      statsHtml += '<div class="stat-item"><div class="stat-num" style="color:' + avgColor + ';">' + avgUtil + '%</div><div class="stat-label">Durchschnitt KW ' + kw + '</div></div>';
+      document.getElementById('machines-stats').innerHTML = statsHtml;
+
+      // Machine cards
+      var h = '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:16px;">';
+      machines.forEach(function(mach) {
+        var statusColor = mach.status === 'aktiv' ? 'var(--success)' : (mach.status === 'wartung' ? 'var(--warning)' : 'var(--text-light)');
+        var specs = mach.specs || {};
+
+        // Today utilization
+        var todayMins = 0;
+        var weekMins = 0;
+        plan.forEach(function(t) {
+          if (t.machineId !== mach.id) return;
+          var mins = (t.plannedMinutes || 0) + (mach.setupTime || 0);
+          if (t.day === dayOfWeek || t.day === 'week') todayMins += (t.day === 'week' ? Math.round(mins / 5) : mins);
+          weekMins += mins;
+        });
+        var todayPct = dayMinutesMax > 0 ? Math.round(todayMins / dayMinutesMax * 100) : 0;
+        var weekPct = weekMinutesMax > 0 ? Math.round(weekMins / weekMinutesMax * 100) : 0;
+        var todayBarColor = todayPct > 100 ? 'var(--danger)' : (todayPct > 80 ? 'var(--accent)' : 'var(--success)');
+        var weekBarColor = weekPct > 100 ? 'var(--danger)' : (weekPct > 80 ? 'var(--accent)' : 'var(--success)');
+
+        h += '<div class="dash-card" style="border-left: 4px solid ' + statusColor + ';">'
+          + '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">'
+          + '<div>'
+          + '<div style="font-size:16px; font-weight:700;">' + escapeHtml(mach.name) + '</div>'
+          + '<div style="font-size:12px; color:var(--text-light);">' + escapeHtml(mach.type || '') + '</div>'
+          + '</div>'
+          + '<span class="dash-badge" style="background:' + statusColor + '; color:white;">' + escapeHtml(mach.status) + '</span>'
+          + '</div>';
+
+        // Specs summary
+        var specParts = [];
+        if (mach.manufacturer) specParts.push(escapeHtml(mach.manufacturer));
+        if (mach.hourlyRate) specParts.push(mach.hourlyRate.toFixed(0) + ' \u20ac/h');
+        if (mach.setupTime) specParts.push('R\u00fcst: ' + mach.setupTime + ' Min');
+        if (specs.spindleSpeed) specParts.push(specs.spindleSpeed + ' U/min');
+        if (specs.toolChanger) specParts.push(specs.toolChanger + ' WZ');
+        if (specParts.length > 0) {
+          h += '<div style="font-size:11px; color:var(--text-light); margin-bottom:10px;">' + specParts.join(' &middot; ') + '</div>';
+        }
+
+        // Utilization bars
+        h += '<div style="margin-bottom:6px;">'
+          + '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px;">'
+          + '<span>Heute</span><span style="font-weight:700; color:' + todayBarColor + ';">' + todayPct + '% (' + Math.round(todayMins / 60 * 10) / 10 + 'h)</span></div>'
+          + '<div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px;">'
+          + '<div style="height:100%; width:' + Math.min(todayPct, 100) + '%; background:' + todayBarColor + '; border-radius:3px;"></div></div></div>';
+
+        h += '<div>'
+          + '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px;">'
+          + '<span>KW ' + kw + '</span><span style="font-weight:700; color:' + weekBarColor + ';">' + weekPct + '% (' + Math.round(weekMins / 60 * 10) / 10 + 'h)</span></div>'
+          + '<div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px;">'
+          + '<div style="height:100%; width:' + Math.min(weekPct, 100) + '%; background:' + weekBarColor + '; border-radius:3px;"></div></div></div>';
+
+        h += '</div>';
+      });
+      h += '</div>';
+      document.getElementById('machines-content').innerHTML = h;
     }
 
     function tick() {
@@ -952,7 +1055,7 @@
 
     // Auto-cycle views every 20 seconds (optional for unattended display)
     var autoCycle = false;
-    var cycleViews = ['today', 'week', 'orders'];
+    var cycleViews = ['today', 'week', 'orders', 'machines'];
     var cycleIdx = 0;
 
     function startAutoCycle() {
