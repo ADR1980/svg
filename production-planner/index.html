@@ -165,6 +165,28 @@
     .text-right { text-align: right; }
     .fw-600 { font-weight: 600; }
 
+    /* Work Steps Table inline */
+    .ws-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .ws-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer; }
+    .ws-section-header:hover { color: var(--primary); }
+    .ws-toggle { font-size: 18px; transition: transform 0.2s; display: inline-block; }
+    .ws-toggle.open { transform: rotate(90deg); }
+    .ws-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    .ws-table th { background: var(--primary); color: white; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .ws-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .ws-table tr { cursor: pointer; transition: background 0.15s; }
+    .ws-table tr:hover td { background: #eaf2f8; }
+    .ws-table tr.ws-done td { background: #eafaf1; }
+    .ws-table tr.ws-active td { background: #fef9e7; }
+    .ws-table tr.ws-blocked td { background: #fdf2f2; opacity: 0.7; }
+    .ws-time-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; }
+    .ws-dep-graph { position: relative; overflow-x: auto; padding: 12px 0; }
+    .ws-dep-graph svg { display: block; }
+    .ws-node { cursor: pointer; }
+    .ws-node rect { rx: 6; ry: 6; stroke-width: 1.5; transition: all 0.15s; }
+    .ws-node:hover rect { stroke-width: 2.5; filter: brightness(1.05); }
+    .ws-node text { font-family: inherit; pointer-events: none; }
+
     /* Login Screen */
     .login-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;
@@ -554,6 +576,19 @@
           </div>
         </div>
 
+        <!-- Abschnitt: Zeitliche Sicherheit -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Zeitliche Sicherheitsaufschl&auml;ge</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Absoluter Aufschlag (Minuten)</label>
+            <input type="number" class="form-control" id="proj-buffer-min" min="0" value="0" placeholder="z.B. 120">
+          </div>
+          <div class="form-group">
+            <label>Prozentualer Aufschlag (%)</label>
+            <input type="number" class="form-control" id="proj-buffer-pct" min="0" max="100" value="0" step="1" placeholder="z.B. 10">
+          </div>
+        </div>
+
         <!-- Abschnitt: Kaufmännisch -->
         <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Kaufm&auml;nnisch</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -913,6 +948,85 @@
         <div class="flex gap-8 mt-16" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-order-template')">Abbrechen</button>
           <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Einzelnen Arbeitsschritt bearbeiten -->
+  <div class="modal-overlay" id="modal-step-edit">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2 id="step-edit-title">Arbeitsschritt bearbeiten</h2>
+        <button class="modal-close" onclick="closeModal('modal-step-edit')">&times;</button>
+      </div>
+      <form onsubmit="saveStepEdit(event)">
+        <input type="hidden" id="se-project-id">
+        <input type="hidden" id="se-step-id">
+        <div style="display:grid; grid-template-columns:60px 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Nr.</label>
+            <input type="number" class="form-control" id="se-order" min="1" required>
+          </div>
+          <div class="form-group">
+            <label>Bezeichnung</label>
+            <input type="text" class="form-control" id="se-name" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Beschreibung</label>
+          <textarea class="form-control" id="se-description" rows="2"></textarea>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Soll-Zeit (Min/Stk)</label>
+            <input type="number" class="form-control" id="se-planned-duration" min="0" required>
+          </div>
+          <div class="form-group">
+            <label>Trockenzeit (Min)</label>
+            <input type="number" class="form-control" id="se-drying-time" min="0">
+          </div>
+          <div class="form-group">
+            <label>Ist-Zeit (Min ges.)</label>
+            <input type="number" class="form-control" id="se-actual-duration" min="0">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Fertig (Stk)</label>
+            <input type="number" class="form-control" id="se-completed-qty" min="0">
+          </div>
+          <div class="form-group">
+            <label>Gesamt (Stk)</label>
+            <input type="number" class="form-control" id="se-total-qty" min="1" readonly style="background:#f0f0f0;">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" id="se-status">
+              <option value="offen">Offen</option>
+              <option value="in_bearbeitung">In Bearbeitung</option>
+              <option value="abgeschlossen">Abgeschlossen</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Zugewiesen an</label>
+          <select class="form-control" id="se-assigned"></select>
+        </div>
+        <div class="form-group">
+          <label>Abh&auml;ngig von (Ctrl+Klick f&uuml;r mehrere)</label>
+          <select class="form-control" id="se-depends" multiple style="min-height:60px;"></select>
+        </div>
+        <div class="form-group">
+          <label>Notizen</label>
+          <textarea class="form-control" id="se-notes" rows="2"></textarea>
+        </div>
+        <div class="flex gap-8" style="justify-content:space-between;">
+          <button type="button" class="btn btn-danger btn-sm" onclick="deleteStepFromEdit()">Schritt l&ouml;schen</button>
+          <div class="flex gap-8">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-step-edit')">Abbrechen</button>
+            <button type="submit" class="btn btn-primary">Speichern</button>
+          </div>
         </div>
       </form>
     </div>
@@ -1302,19 +1416,196 @@
       return '<span class="badge ' + (colors[priority] || 'badge-info') + '">' + escapeHtml(priority || 'Normal') + '</span>';
     }
 
-    function renderProjects() {
-      const projects = Storage.getProjects();
-      let html = '';
-      projects.forEach(p => {
-        const recentReports = getRecentProjectReports(p.id, 7);
-        const hasDeviations = recentReports.some(r => r.deviation);
-        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
-        const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
-        const status = Schedule.getStatus(avg, expected);
-        const deadlineStr = p.deadline ? new Date(p.deadline).toLocaleDateString('de-DE') : '';
-        const deliveryStr = p.deliveryDate ? new Date(p.deliveryDate).toLocaleDateString('de-DE') : '';
+    // Track expanded state per project
+    function fmtDuration(minutes) {
+      if (minutes < 60) return minutes + ' Min';
+      var h = Math.floor(minutes / 60);
+      var m = minutes % 60;
+      if (h < 8) return h + 'h ' + (m > 0 ? m + 'min' : '');
+      var days = (minutes / 480).toFixed(1); // 8h Arbeitstag
+      return h + 'h (' + days + ' AT)';
+    }
 
-        html += '<div class="card" style="cursor: pointer;" onclick="editProject(' + p.id + ')">'
+    function renderDurationComparison(dc, project) {
+      var maxBar = Math.max(dc.sollWithBuffer, dc.projectedWithBuffer, dc.istMinutes, 1);
+      var sollPct = Math.round(dc.criticalPathMin / maxBar * 100);
+      var bufPct = Math.round(dc.totalBuffer / maxBar * 100);
+      var istPct = Math.round(dc.istMinutes / maxBar * 100);
+      var projPct = Math.round(dc.projectedWithBuffer / maxBar * 100);
+
+      var devColor = dc.deviationFactor > 1.1 ? 'var(--danger)' : (dc.deviationFactor < 0.95 ? 'var(--success)' : 'var(--text)');
+      var projColor = dc.projectedWithBuffer > dc.sollWithBuffer ? 'var(--danger)' : 'var(--success)';
+      var devLabel = dc.deviationFactor > 1.1 ? 'langsamer' : (dc.deviationFactor < 0.95 ? 'schneller' : 'im Plan');
+
+      var h = '<div style="margin-top:12px; padding:12px; background:var(--bg); border-radius:8px; border-left:4px solid ' + projColor + ';">'
+        + '<div class="flex justify-between items-center mb-8">'
+        + '  <div class="fw-600 text-sm" style="color:var(--primary);">Fertigungsdauer</div>'
+        + '  <div class="text-sm">'
+        + '    Abweichungsfaktor: <span style="color:' + devColor + ';font-weight:600;">' + dc.deviationFactor.toFixed(2) + 'x</span>'
+        + '    <span class="text-muted">(' + devLabel + ')</span>'
+        + '  </div>'
+        + '</div>';
+
+      // Soll bar
+      h += '<div class="mb-8">'
+        + '<div class="flex justify-between text-sm mb-8">'
+        + '  <span>Soll (krit. Pfad)</span>'
+        + '  <span class="fw-600">' + fmtDuration(dc.criticalPathMin) + (dc.totalBuffer > 0 ? ' + ' + fmtDuration(dc.totalBuffer) + ' Puffer = ' + fmtDuration(dc.sollWithBuffer) : '') + '</span>'
+        + '</div>'
+        + '<div style="height:14px; background:#ddd; border-radius:4px; overflow:hidden; display:flex;">'
+        + '  <div style="width:' + sollPct + '%; background:var(--primary); border-radius:4px 0 0 4px;"></div>'
+        + (dc.totalBuffer > 0 ? '  <div style="width:' + bufPct + '%; background:var(--primary-light); opacity:0.5;"></div>' : '')
+        + '</div></div>';
+
+      // Ist bar
+      h += '<div class="mb-8">'
+        + '<div class="flex justify-between text-sm mb-8">'
+        + '  <span>Ist (bisher)</span>'
+        + '  <span class="fw-600">' + fmtDuration(dc.istMinutes) + '</span>'
+        + '</div>'
+        + '<div style="height:14px; background:#ddd; border-radius:4px; overflow:hidden;">'
+        + '  <div style="width:' + istPct + '%; background:var(--accent); border-radius:4px;"></div>'
+        + '</div></div>';
+
+      // Prognose bar
+      h += '<div class="mb-8">'
+        + '<div class="flex justify-between text-sm mb-8">'
+        + '  <span>Prognose (Ist + Rest korrigiert)</span>'
+        + '  <span class="fw-600" style="color:' + projColor + ';">' + fmtDuration(Math.round(dc.projectedWithBuffer))
+        + (dc.projectedWithBuffer > dc.sollWithBuffer
+          ? ' <span style="color:var(--danger);">(+' + fmtDuration(Math.round(dc.projectedWithBuffer - dc.sollWithBuffer)) + ')</span>'
+          : ' <span style="color:var(--success);">(-' + fmtDuration(Math.round(dc.sollWithBuffer - dc.projectedWithBuffer)) + ')</span>')
+        + '</span>'
+        + '</div>'
+        + '<div style="height:14px; background:#ddd; border-radius:4px; overflow:hidden; position:relative;">'
+        + '  <div style="width:' + projPct + '%; background:' + projColor + '; border-radius:4px;"></div>';
+      // Marker for Soll
+      var markerPos = Math.round(dc.sollWithBuffer / maxBar * 100);
+      h += '  <div style="position:absolute; top:0; left:' + markerPos + '%; width:2px; height:14px; background:var(--primary);" title="Soll inkl. Puffer"></div>';
+      h += '</div></div>';
+
+      // Stats row
+      h += '<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:4px;">';
+      h += '<div class="text-sm text-center"><div class="text-muted">Verbleibend</div><div class="fw-600">' + fmtDuration(Math.round(dc.remainingSoll)) + '</div></div>';
+      h += '<div class="text-sm text-center"><div class="text-muted">Korrigiert</div><div class="fw-600" style="color:' + devColor + ';">' + fmtDuration(Math.round(dc.remainingAdjusted)) + '</div></div>';
+      h += '<div class="text-sm text-center"><div class="text-muted">Fortschritt</div><div class="fw-600">' + dc.progressPercent + '%</div></div>';
+
+      // Puffer
+      if (dc.totalBuffer > 0) {
+        var bufferUsed = Math.max(0, dc.projectedWithBuffer - dc.criticalPathAdj - dc.totalBuffer);
+        h += '<div class="text-sm text-center"><div class="text-muted">Puffer</div><div class="fw-600">'
+          + (project.bufferPercent > 0 ? project.bufferPercent + '% + ' : '')
+          + (project.bufferMinutes > 0 ? project.bufferMinutes + ' Min' : '')
+          + '</div></div>';
+      } else {
+        h += '<div class="text-sm text-center"><div class="text-muted">Puffer</div><div class="fw-600 text-muted">-</div></div>';
+      }
+      h += '</div>';
+
+      h += '</div>';
+      return h;
+    }
+
+    var expandedProjects = {};
+
+    function toggleProjectSteps(projectId, event) {
+      if (event) event.stopPropagation();
+      expandedProjects[projectId] = !expandedProjects[projectId];
+      renderProjects();
+    }
+
+    function buildDepGraphSVG(steps, projectId) {
+      if (steps.length === 0) return '';
+      // Layout: arrange nodes left-to-right by order, each node is a box
+      var nodeW = 130, nodeH = 44, padX = 28, padY = 16, startX = 16, startY = 12;
+      // Group by dependency level (topological sort)
+      var levels = [];
+      var placed = {};
+      var remaining = steps.slice();
+      var maxIter = steps.length + 1;
+      while (remaining.length > 0 && maxIter-- > 0) {
+        var lvl = [];
+        remaining.forEach(function(s) {
+          var deps = (s.dependsOn || []).filter(function(d) { return !placed[d]; });
+          if (deps.length === 0) lvl.push(s);
+        });
+        if (lvl.length === 0) { lvl = [remaining[0]]; } // break circular
+        lvl.forEach(function(s) { placed[s.id] = true; });
+        levels.push(lvl);
+        remaining = remaining.filter(function(s) { return !placed[s.id]; });
+      }
+      // Compute positions
+      var positions = {};
+      var svgW = levels.length * (nodeW + padX) + startX + 20;
+      var maxRows = Math.max.apply(null, levels.map(function(l) { return l.length; }));
+      var svgH = maxRows * (nodeH + padY) + startY + 16;
+      levels.forEach(function(lvl, li) {
+        var x = startX + li * (nodeW + padX);
+        var totalH = lvl.length * nodeH + (lvl.length - 1) * padY;
+        var offsetY = (svgH - totalH) / 2;
+        lvl.forEach(function(s, si) {
+          positions[s.id] = { x: x, y: offsetY + si * (nodeH + padY), step: s };
+        });
+      });
+      // Draw arrows
+      var arrows = '';
+      steps.forEach(function(s) {
+        var to = positions[s.id];
+        if (!to) return;
+        (s.dependsOn || []).forEach(function(depId) {
+          var from = positions[depId];
+          if (!from) return;
+          var x1 = from.x + nodeW, y1 = from.y + nodeH / 2;
+          var x2 = to.x, y2 = to.y + nodeH / 2;
+          var mx = (x1 + x2) / 2;
+          arrows += '<path d="M' + x1 + ',' + y1 + ' C' + mx + ',' + y1 + ' ' + mx + ',' + y2 + ' ' + x2 + ',' + y2 + '" stroke="#95a5a6" stroke-width="1.5" fill="none" marker-end="url(#arrowhead-' + projectId + ')"/>';
+        });
+      });
+      // Draw nodes
+      var nodes = '';
+      var statusFills = { 'offen': '#ecf0f1', 'in_bearbeitung': '#fef9e7', 'abgeschlossen': '#eafaf1' };
+      var statusStrokes = { 'offen': '#bdc3c7', 'in_bearbeitung': '#f39c12', 'abgeschlossen': '#27ae60' };
+      steps.forEach(function(s) {
+        var pos = positions[s.id];
+        if (!pos) return;
+        var fill = statusFills[s.status] || '#ecf0f1';
+        var stroke = statusStrokes[s.status] || '#bdc3c7';
+        var pct = s.totalQty > 0 ? Math.round(s.completedQty / s.totalQty * 100) : 0;
+        var label = s.name || s.id;
+        if (label.length > 16) label = label.substring(0, 15) + '\u2026';
+        nodes += '<g class="ws-node" onclick="event.stopPropagation();openStepEditModal(' + projectId + ',\'' + s.id + '\')">'
+          + '<rect x="' + pos.x + '" y="' + pos.y + '" width="' + nodeW + '" height="' + nodeH + '" fill="' + fill + '" stroke="' + stroke + '"/>'
+          + '<text x="' + (pos.x + 6) + '" y="' + (pos.y + 16) + '" font-size="11" font-weight="600" fill="' + (s.status === 'abgeschlossen' ? '#27ae60' : '#2c3e50') + '">#' + s.order + ' ' + escapeHtml(label) + '</text>'
+          + '<text x="' + (pos.x + 6) + '" y="' + (pos.y + 32) + '" font-size="10" fill="#7f8c8d">' + pct + '% | ' + s.plannedDuration + 'min/Stk</text>';
+        // Mini progress bar inside node
+        var barW = nodeW - 12, barX = pos.x + 6, barY = pos.y + 37;
+        nodes += '<rect x="' + barX + '" y="' + barY + '" width="' + barW + '" height="3" fill="#ddd" rx="1.5"/>'
+          + '<rect x="' + barX + '" y="' + barY + '" width="' + Math.round(barW * pct / 100) + '" height="3" fill="' + stroke + '" rx="1.5"/>';
+        nodes += '</g>';
+      });
+      return '<div class="ws-dep-graph" onclick="event.stopPropagation()">'
+        + '<svg width="' + svgW + '" height="' + svgH + '" style="min-width:' + svgW + 'px;">'
+        + '<defs><marker id="arrowhead-' + projectId + '" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#95a5a6"/></marker></defs>'
+        + arrows + nodes
+        + '</svg></div>';
+    }
+
+    function renderProjects() {
+      var projects = Storage.getProjects();
+      var employees = Storage.getEmployees();
+      var html = '';
+      projects.forEach(function(p) {
+        var recentReports = getRecentProjectReports(p.id, 7);
+        var hasDeviations = recentReports.some(function(r) { return r.deviation; });
+        var avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        var expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
+        var status = Schedule.getStatus(avg, expected);
+        var pSteps = Storage.getProjectSteps(p.id);
+        var isExpanded = !!expandedProjects[p.id];
+
+        // Project header card
+        html += '<div class="card" style="padding-bottom:' + (isExpanded && pSteps.length > 0 ? '8px' : '20px') + ';">'
+          + '<div style="cursor:pointer;" onclick="editProject(' + p.id + ')">'
           + '<div class="flex justify-between items-center mb-8">'
           + '  <div>'
           + '    <div class="flex items-center gap-8">'
@@ -1335,98 +1626,159 @@
           + '  </div>'
           + '</div>';
 
-        // Details-Zeile
-        const details = [];
+        // Details
+        var details = [];
         if (p.material) details.push('Material: ' + escapeHtml(p.material));
         if (p.surfaceTreatment) details.push('Oberfl\u00e4che: ' + escapeHtml(p.surfaceTreatment));
         if (p.toleranceClass) details.push('Toleranz: ' + escapeHtml(p.toleranceClass));
         if (p.weight) details.push('Gewicht: ' + escapeHtml(p.weight) + ' kg');
         if (details.length > 0) {
           html += '<div class="text-sm text-muted mb-8" style="display:flex; gap:16px; flex-wrap:wrap;">'
-            + details.map(d => '<span>' + d + '</span>').join('')
-            + '</div>';
+            + details.map(function(d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
         }
 
-        // Termine-Zeile
-        const dates = [];
+        // Dates
+        var dates = [];
         if (p.orderDate) dates.push('Auftragseingang: ' + new Date(p.orderDate).toLocaleDateString('de-DE'));
         if (p.startDate) dates.push('Start: ' + new Date(p.startDate).toLocaleDateString('de-DE'));
-        if (deadlineStr) dates.push('Fertigstellung: ' + deadlineStr);
-        if (deliveryStr) dates.push('Liefertermin: ' + deliveryStr);
+        if (p.deadline) dates.push('Fertigstellung: ' + new Date(p.deadline).toLocaleDateString('de-DE'));
+        if (p.deliveryDate) dates.push('Liefertermin: ' + new Date(p.deliveryDate).toLocaleDateString('de-DE'));
         if (dates.length > 0) {
           html += '<div class="text-sm mb-8" style="display:flex; gap:16px; flex-wrap:wrap; color:var(--primary-light);">'
-            + dates.map(d => '<span>' + d + '</span>').join('')
-            + '</div>';
+            + dates.map(function(d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
         }
 
-        // Fortschritt
+        // Progress bars
         html += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">'
           + '<div><div class="text-sm text-muted mb-8">Konstruktion</div>' + renderMiniProgress(p.konstruktion) + '<div class="text-sm mt-8">' + getProgressLabel('konstruktion', p.konstruktion) + '</div></div>'
           + '<div><div class="text-sm text-muted mb-8">Fertigung</div>' + renderMiniProgress(p.fertigung) + '<div class="text-sm mt-8">' + getProgressLabel('fertigung', p.fertigung) + '</div></div>'
           + '<div><div class="text-sm text-muted mb-8">Montage</div>' + renderMiniProgress(p.montage) + '<div class="text-sm mt-8">' + getProgressLabel('montage', p.montage) + '</div></div>'
           + '</div>';
 
-        // Zusatzinfos
-        if (p.inspectionReq || p.packagingReq) {
-          html += '<div class="text-sm mt-8 text-muted">'
-            + (p.inspectionReq ? 'Pr\u00fcfung: ' + escapeHtml(p.inspectionReq) + ' ' : '')
-            + (p.packagingReq ? '| Verpackung: ' + escapeHtml(p.packagingReq) : '')
-            + '</div>';
-        }
-        if (p.remarks) {
-          html += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
-        }
-        if (p.internalNote) {
-          html += '<div class="text-sm mt-8" style="color:var(--text-light); font-style:italic;">Intern: ' + escapeHtml(p.internalNote) + '</div>';
+        if (p.remarks) html += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
+
+        // ---- ZEITLICHER SOLL/IST-VERGLEICH ----
+        var durCalc = pSteps.length > 0 ? Schedule.calcProjectDuration(p.id) : null;
+        if (durCalc) {
+          html += renderDurationComparison(durCalc, p);
         }
 
-        // Berichte
-        if (recentReports.length > 0) {
-          html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">'
-            + '<div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">'
-            + 'Letzte Berichte (7 Tage) '
-            + (hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>')
-            + '</div>';
-          recentReports.slice(0, 3).forEach(r => {
-            html += '<div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">'
-              + '<div><span class="text-muted">' + formatDate(r.date) + '</span> - <strong>' + escapeHtml(r.employeeName) + '</strong>: '
-              + escapeHtml((r.completedWork || '').substring(0, 60)) + ((r.completedWork || '').length > 60 ? '...' : '') + '</div>'
-              + '<div style="display: flex; align-items: center; gap: 6px;">'
-              + (r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : '')
-              + (r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>')
-              + '</div></div>';
-          });
-          if (recentReports.length > 3) html += '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>';
-          html += '</div>';
-        }
+        html += '</div>'; // end clickable project header area
 
-        // Arbeitsschritte-Zusammenfassung
-        var pSteps = Storage.getProjectSteps(p.id);
+        // ---- ARBEITSSCHRITTE SECTION (inline, under project) ----
+        html += '<div class="ws-section">';
+
+        // Header with expand/collapse + summary
+        var doneSteps = pSteps.filter(function(s) { return s.status === 'abgeschlossen'; }).length;
+        var inProgSteps = pSteps.filter(function(s) { return s.status === 'in_bearbeitung'; }).length;
+        var totalSoll = pSteps.reduce(function(s, st) { return s + (st.plannedDuration * st.totalQty); }, 0);
+        var totalIst = pSteps.reduce(function(s, st) { return s + st.actualDuration; }, 0);
+
+        html += '<div class="ws-section-header" onclick="toggleProjectSteps(' + p.id + ', event)">'
+          + '<div class="flex items-center gap-8">'
+          + '  <span class="ws-toggle ' + (isExpanded ? 'open' : '') + '">\u25B6</span>'
+          + '  <span class="fw-600 text-sm">Arbeitsschritte</span>';
         if (pSteps.length > 0) {
-          var doneSteps = pSteps.filter(function(s) { return s.status === 'abgeschlossen'; }).length;
-          var inProgSteps = pSteps.filter(function(s) { return s.status === 'in_bearbeitung'; }).length;
-          var totalSoll = pSteps.reduce(function(s, st) { return s + (st.plannedDuration * st.totalQty); }, 0);
-          var totalIst = pSteps.reduce(function(s, st) { return s + st.actualDuration; }, 0);
-          html += '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">'
-            + '<div class="text-sm">'
-            + '<span class="fw-600">Arbeitsschritte:</span> '
-            + '<span class="badge badge-success">' + doneSteps + ' fertig</span> '
-            + (inProgSteps > 0 ? '<span class="badge badge-warning">' + inProgSteps + ' in Bearb.</span> ' : '')
-            + '<span class="badge badge-info">' + pSteps.length + ' gesamt</span> '
-            + '<span class="text-muted">| Soll: ' + (totalSoll / 60).toFixed(1) + 'h | Ist: ' + (totalIst / 60).toFixed(1) + 'h</span>'
-            + '</div>'
-            + '<button class="btn btn-outline" style="padding:4px 12px;font-size:12px;" onclick="event.stopPropagation();openProjectSteps(' + p.id + ')">Schritte bearbeiten</button>'
-            + '</div>';
+          html += '  <span class="badge badge-success">' + doneSteps + '/' + pSteps.length + ' fertig</span>';
+          if (inProgSteps > 0) html += '  <span class="badge badge-warning">' + inProgSteps + ' aktiv</span>';
+          html += '  <span class="text-sm text-muted">Soll: ' + (totalSoll / 60).toFixed(1) + 'h | Ist: ' + (totalIst / 60).toFixed(1) + 'h';
+          if (totalSoll > 0) {
+            var diff = totalIst - totalSoll;
+            html += ' | <span style="color:' + (diff > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + (diff > 0 ? '+' : '') + diff + ' Min</span>';
+          }
+          html += '</span>';
         } else {
-          html += '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">'
-            + '<div class="text-sm text-muted">Keine Arbeitsschritte definiert</div>'
-            + '<button class="btn btn-primary" style="padding:4px 12px;font-size:12px;" onclick="event.stopPropagation();openProjectSteps(' + p.id + ')">+ Arbeitsschritte</button>'
-            + '</div>';
+          html += '  <span class="text-sm text-muted">Keine Schritte definiert</span>';
+        }
+        html += '</div>'
+          + '<div onclick="event.stopPropagation();">'
+          + '  <button class="btn btn-outline" style="padding:3px 10px;font-size:11px;" onclick="openProjectSteps(' + p.id + ')">Bearbeiten</button>'
+          + '</div></div>';
+
+        // Expanded content
+        if (isExpanded) {
+          if (pSteps.length > 0) {
+            // Dependency graph (SVG)
+            html += buildDepGraphSVG(pSteps, p.id);
+
+            // Table
+            html += '<table class="ws-table" onclick="event.stopPropagation()">'
+              + '<thead><tr>'
+              + '<th style="width:40px;">Nr.</th>'
+              + '<th>Arbeitsschritt</th>'
+              + '<th>Bereich</th>'
+              + '<th style="width:90px;">Soll/Stk</th>'
+              + '<th style="width:90px;">Trockenzeit</th>'
+              + '<th style="width:110px;">Fortschritt</th>'
+              + '<th style="width:130px;">Soll / Ist</th>'
+              + '<th>Zugewiesen</th>'
+              + '<th style="width:80px;">Status</th>'
+              + '<th style="width:140px;">Abh\u00e4ngig von</th>'
+              + '</tr></thead><tbody>';
+
+            pSteps.forEach(function(s) {
+              var depCheck = checkDependencies(s, pSteps);
+              var rowClass = s.status === 'abgeschlossen' ? 'ws-done' : (s.status === 'in_bearbeitung' ? 'ws-active' : (!depCheck.canStart ? 'ws-blocked' : ''));
+              var pct = s.totalQty > 0 ? Math.round(s.completedQty / s.totalQty * 100) : 0;
+              var sollTotal = s.plannedDuration * s.totalQty;
+              var emp = s.assignedTo ? employees.find(function(e) { return e.id === s.assignedTo; }) : null;
+              var wsTemplate = Storage.getWorkStepTemplates().find(function(t) { return t.id === s.stepTemplateId; });
+              var category = wsTemplate ? wsTemplate.category : '-';
+
+              // Soll/Ist bar
+              var barMax = Math.max(sollTotal, s.actualDuration, 1);
+              var sollPct = Math.round(sollTotal / barMax * 100);
+              var istPct = Math.round(s.actualDuration / barMax * 100);
+
+              html += '<tr class="' + rowClass + '" onclick="openStepEditModal(' + p.id + ',\'' + s.id + '\')">'
+                + '<td class="fw-600">#' + s.order + '</td>'
+                + '<td>'
+                + '  <div class="fw-600">' + escapeHtml(s.name) + '</div>'
+                + (s.description ? '<div class="text-muted" style="font-size:11px;">' + escapeHtml(s.description).substring(0, 50) + '</div>' : '')
+                + '</td>'
+                + '<td><span class="badge badge-info">' + escapeHtml(category) + '</span></td>'
+                + '<td>' + s.plannedDuration + ' Min</td>'
+                + '<td>' + (s.dryingTime > 0 ? s.dryingTime + ' Min' : '-') + '</td>'
+                + '<td>'
+                + '  <div style="display:flex; align-items:center; gap:6px;">'
+                + '    <div style="flex:1;height:6px;background:#ecf0f1;border-radius:3px;overflow:hidden;">'
+                + '      <div style="width:' + pct + '%;height:100%;background:' + getProgressColor(pct / 100) + ';border-radius:3px;"></div>'
+                + '    </div>'
+                + '    <span style="font-size:11px;white-space:nowrap;">' + s.completedQty + '/' + s.totalQty + '</span>'
+                + '  </div>'
+                + '</td>'
+                + '<td>'
+                + '  <div style="font-size:11px; margin-bottom:2px;"><span style="color:var(--primary);">S:' + sollTotal + '</span> / <span style="color:' + (s.actualDuration > sollTotal && sollTotal > 0 ? 'var(--danger)' : 'var(--success)') + ';">I:' + s.actualDuration + '</span> Min</div>'
+                + '  <div style="display:flex; gap:1px; height:4px;">'
+                + '    <div class="ws-time-bar" style="width:' + sollPct + '%; background:var(--primary);"></div>'
+                + '    <div class="ws-time-bar" style="width:' + istPct + '%; background:' + (s.actualDuration > sollTotal && sollTotal > 0 ? 'var(--danger)' : 'var(--success)') + ';"></div>'
+                + '  </div>'
+                + '</td>'
+                + '<td>' + (emp ? escapeHtml(emp.name) : '<span class="text-muted">-</span>') + '</td>'
+                + '<td>' + renderStepStatusBadge(s.status, depCheck.canStart) + '</td>'
+                + '<td class="text-sm">' + (depCheck.depNames.length > 0 ? depCheck.depNames.join(', ') : '-') + '</td>'
+                + '</tr>';
+            });
+            html += '</tbody></table>';
+          } else {
+            html += '<div style="text-align:center; padding:16px;" onclick="event.stopPropagation();">'
+              + '<div class="text-muted mb-8">Noch keine Arbeitsschritte definiert.</div>'
+              + '<button class="btn btn-primary btn-sm" onclick="openProjectSteps(' + p.id + ')">+ Arbeitsschritte anlegen</button>'
+              + '</div>';
+          }
         }
 
-        html += '</div>';
+        html += '</div>'; // ws-section
+        html += '</div>'; // card
       });
       document.getElementById('projects-list').innerHTML = html;
+    }
+
+    function renderStepStatusBadge(status, canStart) {
+      if (status === 'abgeschlossen') return '<span class="badge badge-success">Fertig</span>';
+      if (status === 'in_bearbeitung') return '<span class="badge badge-warning">Aktiv</span>';
+      if (!canStart) return '<span class="badge badge-danger">Blockiert</span>';
+      return '<span class="badge" style="background:#ecf0f1;color:#7f8c8d;">Offen</span>';
     }
 
     function openProjectModal(project) {
@@ -1467,7 +1819,8 @@
         'proj-delivery-date': 'deliveryDate', 'proj-material': 'material',
         'proj-surface': 'surfaceTreatment', 'proj-tolerance': 'toleranceClass',
         'proj-weight': 'weight', 'proj-inspection': 'inspectionReq',
-        'proj-packaging': 'packagingReq', 'proj-unit-price': 'unitPrice',
+        'proj-packaging': 'packagingReq', 'proj-buffer-min': 'bufferMinutes',
+        'proj-buffer-pct': 'bufferPercent', 'proj-unit-price': 'unitPrice',
         'proj-order-value': 'orderValue', 'proj-delivery-addr': 'deliveryAddress',
         'proj-internal-note': 'internalNote', 'proj-remarks': 'remarks',
         'proj-konstr': 'konstruktion', 'proj-fert': 'fertigung', 'proj-mont': 'montage'
@@ -1491,6 +1844,8 @@
         document.getElementById('proj-konstr').value = '0';
         document.getElementById('proj-fert').value = '0';
         document.getElementById('proj-mont').value = '0';
+        document.getElementById('proj-buffer-min').value = '0';
+        document.getElementById('proj-buffer-pct').value = '0';
         document.getElementById('proj-unit-price').value = '0';
         document.getElementById('proj-order-value').value = '0';
       }
@@ -1530,6 +1885,8 @@
         konstruktion: parseFloat(document.getElementById('proj-konstr').value),
         fertigung: parseFloat(document.getElementById('proj-fert').value),
         montage: parseFloat(document.getElementById('proj-mont').value),
+        bufferMinutes: parseInt(document.getElementById('proj-buffer-min').value) || 0,
+        bufferPercent: parseInt(document.getElementById('proj-buffer-pct').value) || 0,
         unitPrice: parseFloat(document.getElementById('proj-unit-price').value) || 0,
         orderValue: parseFloat(document.getElementById('proj-order-value').value) || 0,
         deliveryAddress: document.getElementById('proj-delivery-addr').value,
@@ -2004,6 +2361,92 @@
     function saveProjectStepsFromModal() {
       Storage.saveProjectSteps(currentProjectStepsId, currentProjectSteps);
       closeModal('modal-project-steps');
+      refreshView();
+    }
+
+    // ---- Einzelnen Arbeitsschritt bearbeiten (aus Tabelle/Graph) ----
+    function openStepEditModal(projectId, stepId) {
+      var steps = Storage.getProjectSteps(projectId);
+      var step = steps.find(function(s) { return s.id === stepId; });
+      if (!step) return;
+
+      document.getElementById('se-project-id').value = projectId;
+      document.getElementById('se-step-id').value = stepId;
+      document.getElementById('step-edit-title').textContent = '#' + step.order + ' ' + (step.name || 'Arbeitsschritt');
+      document.getElementById('se-order').value = step.order;
+      document.getElementById('se-name').value = step.name || '';
+      document.getElementById('se-description').value = step.description || '';
+      document.getElementById('se-planned-duration').value = step.plannedDuration || 0;
+      document.getElementById('se-drying-time').value = step.dryingTime || 0;
+      document.getElementById('se-actual-duration').value = step.actualDuration || 0;
+      document.getElementById('se-completed-qty').value = step.completedQty || 0;
+      document.getElementById('se-total-qty').value = step.totalQty || 0;
+      document.getElementById('se-status').value = step.status || 'offen';
+      document.getElementById('se-notes').value = step.notes || '';
+
+      // Mitarbeiter-Dropdown
+      var employees = Storage.getEmployees();
+      var empSel = document.getElementById('se-assigned');
+      empSel.innerHTML = '<option value="">-- Nicht zugewiesen --</option>';
+      employees.forEach(function(e) {
+        empSel.innerHTML += '<option value="' + e.id + '"' + (step.assignedTo === e.id ? ' selected' : '') + '>' + escapeHtml(e.name) + '</option>';
+      });
+
+      // Abhängigkeiten-Dropdown
+      var depSel = document.getElementById('se-depends');
+      depSel.innerHTML = '';
+      steps.forEach(function(s) {
+        if (s.id !== stepId) {
+          var sel = (step.dependsOn || []).indexOf(s.id) >= 0 ? ' selected' : '';
+          depSel.innerHTML += '<option value="' + s.id + '"' + sel + '>#' + s.order + ' ' + escapeHtml(s.name) + '</option>';
+        }
+      });
+
+      showModal('modal-step-edit');
+    }
+
+    function saveStepEdit(e) {
+      e.preventDefault();
+      var projectId = parseInt(document.getElementById('se-project-id').value);
+      var stepId = document.getElementById('se-step-id').value;
+      var steps = Storage.getProjectSteps(projectId);
+      var step = steps.find(function(s) { return s.id === stepId; });
+      if (!step) return;
+
+      step.order = parseInt(document.getElementById('se-order').value) || 1;
+      step.name = document.getElementById('se-name').value.trim();
+      step.description = document.getElementById('se-description').value.trim();
+      step.plannedDuration = parseInt(document.getElementById('se-planned-duration').value) || 0;
+      step.dryingTime = parseInt(document.getElementById('se-drying-time').value) || 0;
+      step.actualDuration = parseInt(document.getElementById('se-actual-duration').value) || 0;
+      step.completedQty = parseInt(document.getElementById('se-completed-qty').value) || 0;
+      step.status = document.getElementById('se-status').value;
+      step.assignedTo = document.getElementById('se-assigned').value;
+      step.notes = document.getElementById('se-notes').value.trim();
+
+      // Abhängigkeiten
+      var depSel = document.getElementById('se-depends');
+      var deps = [];
+      for (var j = 0; j < depSel.options.length; j++) {
+        if (depSel.options[j].selected) deps.push(depSel.options[j].value);
+      }
+      step.dependsOn = deps;
+
+      // Sort by order
+      steps.sort(function(a, b) { return a.order - b.order; });
+      Storage.saveProjectSteps(projectId, steps);
+      closeModal('modal-step-edit');
+      refreshView();
+    }
+
+    function deleteStepFromEdit() {
+      if (!confirm('Diesen Arbeitsschritt wirklich l\u00f6schen?')) return;
+      var projectId = parseInt(document.getElementById('se-project-id').value);
+      var stepId = document.getElementById('se-step-id').value;
+      var steps = Storage.getProjectSteps(projectId);
+      steps = steps.filter(function(s) { return s.id !== stepId; });
+      Storage.saveProjectSteps(projectId, steps);
+      closeModal('modal-step-edit');
       refreshView();
     }
 

@@ -65,6 +65,9 @@ const ATC_DATA = {
       konstruktion: 0.00,
       fertigung: 0.25,
       montage: 0.00,
+      // Sicherheitsaufschläge
+      bufferMinutes: 0,
+      bufferPercent: 0,
       // Erweiterte Felder
       status: 'In Produktion',
       priority: 'Normal',
@@ -95,6 +98,7 @@ const ATC_DATA = {
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
+      bufferMinutes: 0, bufferPercent: 0,
       status: 'Auftragseingang',
       priority: 'Hoch',
       startDate: '', deadline: '', orderDate: '', deliveryDate: '',
@@ -112,6 +116,7 @@ const ATC_DATA = {
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
+      bufferMinutes: 0, bufferPercent: 0,
       status: 'Auftragseingang',
       priority: 'Normal',
       startDate: '', deadline: '', orderDate: '', deliveryDate: '',
@@ -129,6 +134,7 @@ const ATC_DATA = {
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
+      bufferMinutes: 0, bufferPercent: 0,
       status: 'Auftragseingang',
       priority: 'Normal',
       startDate: '', deadline: '', orderDate: '', deliveryDate: '',
@@ -146,6 +152,7 @@ const ATC_DATA = {
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
+      bufferMinutes: 0, bufferPercent: 0,
       status: 'Auftragseingang',
       priority: 'Normal',
       startDate: '', deadline: '', orderDate: '', deliveryDate: '',
@@ -682,6 +689,153 @@ const Schedule = {
       if (dow !== 0 && dow !== 6) count++;
     }
     return count;
+  },
+
+  /**
+   * Berechnet die Gesamtfertigungsdauer eines Projekts.
+   * Berücksichtigt:
+   * - Bearbeitungsdauer × Stückzahl pro Arbeitsschritt
+   * - Trockenzeiten (einmalig pro Schritt, nicht pro Stück)
+   * - Abhängigkeiten (kritischer Pfad)
+   * - Sicherheitsaufschläge (absolut + prozentual)
+   * - Ist-Abweichungen (extrapoliert restliche Arbeit anhand bisheriger Abweichung)
+   *
+   * Rückgabe: {
+   *   sollMinutes:        Geplante Gesamtdauer (ohne Sicherheit)
+   *   sollWithBuffer:     Geplante Dauer inkl. Sicherheit
+   *   istMinutes:         Bisher angefallene Ist-Zeit
+   *   remainingSoll:      Verbleibende Soll-Zeit
+   *   remainingAdjusted:  Verbleibende Zeit korrigiert um Ist-Abweichung
+   *   projectedTotal:     Hochgerechnete Gesamtdauer (Ist + korrigiert Rest)
+   *   projectedWithBuffer: Hochgerechnet inkl. Sicherheit
+   *   bufferMinutes:      Absoluter Aufschlag
+   *   bufferPercent:      Prozentualer Aufschlag
+   *   totalBuffer:        Gesamtpuffer in Minuten
+   *   deviationFactor:    Abweichungsfaktor (>1 = langsamer, <1 = schneller)
+   *   criticalPathMin:    Kritischer Pfad Dauer (mit Abhängigkeiten)
+   *   criticalPathAdj:    Kritischer Pfad korrigiert
+   *   stepDetails:        Details pro Schritt
+   *   progressPercent:    Gesamtfortschritt in %
+   * }
+   */
+  calcProjectDuration(projectId) {
+    const project = Storage.getProjects().find(p => p.id === projectId);
+    if (!project) return null;
+    const steps = Storage.getProjectSteps(projectId);
+    if (steps.length === 0) return null;
+
+    const bufferMin = project.bufferMinutes || 0;
+    const bufferPct = project.bufferPercent || 0;
+
+    // Pro Schritt berechnen
+    const stepDetails = steps.map(s => {
+      const sollWork = s.plannedDuration * s.totalQty;        // Arbeitszeit Soll
+      const drying = s.dryingTime || 0;                       // Trockenzeit (einmalig)
+      const sollTotal = sollWork + drying;                     // Soll gesamt
+      const ist = s.actualDuration || 0;                       // bisherige Ist-Zeit
+      const doneQty = s.completedQty || 0;
+      const remainQty = Math.max(0, s.totalQty - doneQty);
+
+      // Abweichungsfaktor pro Schritt
+      let devFactor = 1;
+      if (doneQty > 0 && s.plannedDuration > 0) {
+        const istPerPiece = ist / doneQty;
+        devFactor = istPerPiece / s.plannedDuration;
+      }
+
+      // Verbleibende Arbeitszeit korrigiert
+      const remainSoll = s.plannedDuration * remainQty + (s.status !== 'abgeschlossen' ? drying : 0);
+      const remainAdj = (s.plannedDuration * devFactor) * remainQty + (s.status !== 'abgeschlossen' ? drying : 0);
+
+      return {
+        id: s.id,
+        order: s.order,
+        name: s.name,
+        status: s.status,
+        dependsOn: s.dependsOn || [],
+        sollTotal: sollTotal,
+        ist: ist,
+        remainSoll: s.status === 'abgeschlossen' ? 0 : remainSoll,
+        remainAdj: s.status === 'abgeschlossen' ? 0 : remainAdj,
+        devFactor: devFactor,
+        doneQty: doneQty,
+        totalQty: s.totalQty,
+        pct: s.totalQty > 0 ? Math.round(doneQty / s.totalQty * 100) : 0
+      };
+    });
+
+    // Gesamtsummen (sequenziell)
+    const sollMinutes = stepDetails.reduce((s, d) => s + d.sollTotal, 0);
+    const istMinutes = stepDetails.reduce((s, d) => s + d.ist, 0);
+    const remainingSoll = stepDetails.reduce((s, d) => s + d.remainSoll, 0);
+    const remainingAdjusted = stepDetails.reduce((s, d) => s + d.remainAdj, 0);
+
+    // Globaler Abweichungsfaktor
+    const totalDoneWork = stepDetails.reduce((s, d) => s + d.ist, 0);
+    const totalPlannedDoneWork = stepDetails.reduce((s, d) => {
+      if (d.doneQty > 0) return s + (d.sollTotal * (d.doneQty / d.totalQty));
+      return s;
+    }, 0);
+    const deviationFactor = totalPlannedDoneWork > 0 ? totalDoneWork / totalPlannedDoneWork : 1;
+
+    // Kritischer Pfad (mit Abhängigkeiten) - topologische Berechnung
+    const endTimes = {};       // Soll-Endzeit pro Schritt
+    const endTimesAdj = {};    // Korrigierte Endzeit pro Schritt
+    const stepMap = {};
+    stepDetails.forEach(d => { stepMap[d.id] = d; });
+
+    function calcEnd(stepId, adjusted) {
+      const cache = adjusted ? endTimesAdj : endTimes;
+      if (cache[stepId] !== undefined) return cache[stepId];
+      const d = stepMap[stepId];
+      if (!d) return 0;
+      let start = 0;
+      (d.dependsOn || []).forEach(depId => {
+        start = Math.max(start, calcEnd(depId, adjusted));
+      });
+      const dur = adjusted ? (d.ist + d.remainAdj) : d.sollTotal;
+      cache[stepId] = start + dur;
+      return cache[stepId];
+    }
+
+    let criticalPathMin = 0;
+    let criticalPathAdj = 0;
+    stepDetails.forEach(d => {
+      criticalPathMin = Math.max(criticalPathMin, calcEnd(d.id, false));
+      criticalPathAdj = Math.max(criticalPathAdj, calcEnd(d.id, true));
+    });
+
+    // Puffer berechnen
+    const baseForBuffer = criticalPathMin;
+    const pctBuffer = Math.round(baseForBuffer * bufferPct / 100);
+    const totalBuffer = bufferMin + pctBuffer;
+
+    const sollWithBuffer = criticalPathMin + totalBuffer;
+    const projectedTotal = istMinutes + remainingAdjusted;
+    const projectedWithBuffer = criticalPathAdj + totalBuffer;
+
+    // Gesamtfortschritt
+    const totalQtyAll = stepDetails.reduce((s, d) => s + d.totalQty, 0);
+    const doneQtyAll = stepDetails.reduce((s, d) => s + d.doneQty, 0);
+    const progressPercent = totalQtyAll > 0 ? Math.round(doneQtyAll / totalQtyAll * 100) : 0;
+
+    return {
+      sollMinutes,
+      sollWithBuffer,
+      istMinutes,
+      remainingSoll,
+      remainingAdjusted,
+      projectedTotal,
+      projectedWithBuffer,
+      bufferMinutes: bufferMin,
+      bufferPercent: bufferPct,
+      totalBuffer,
+      deviationFactor,
+      criticalPathMin,
+      criticalPathAdj,
+      stepDetails,
+      progressPercent
+    };
   }
 };
 
