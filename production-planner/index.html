@@ -347,8 +347,39 @@
           <select class="form-control" id="task-employee" required></select>
         </div>
         <div class="form-group">
-          <label>Projekt</label>
-          <select class="form-control" id="task-project" required></select>
+          <label>Projekt aus Projekt&uuml;bersicht</label>
+          <select class="form-control" id="task-project" required onchange="onTaskProjectChange()"></select>
+        </div>
+        <!-- Projekt-Details Vorschau -->
+        <div id="task-project-preview" class="card" style="background: var(--bg); padding: 12px; margin-bottom: 16px; display: none;">
+          <div class="flex justify-between items-center mb-8">
+            <div>
+              <div class="fw-600" id="task-prev-article"></div>
+              <div class="text-sm text-muted" id="task-prev-customer"></div>
+            </div>
+            <div class="text-right">
+              <div class="fw-600" id="task-prev-qty"></div>
+              <div class="text-sm text-muted" id="task-prev-order"></div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div>
+              <div class="text-sm text-muted">Konstruktion</div>
+              <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" id="task-prev-konstr-bar"></div></div>
+              <div class="text-sm" id="task-prev-konstr-label"></div>
+            </div>
+            <div>
+              <div class="text-sm text-muted">Fertigung</div>
+              <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" id="task-prev-fert-bar"></div></div>
+              <div class="text-sm" id="task-prev-fert-label"></div>
+            </div>
+            <div>
+              <div class="text-sm text-muted">Montage</div>
+              <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" id="task-prev-mont-bar"></div></div>
+              <div class="text-sm" id="task-prev-mont-label"></div>
+            </div>
+          </div>
+          <div id="task-prev-remarks" class="text-sm mt-8" style="color: var(--accent);"></div>
         </div>
         <div class="form-group">
           <label>Bereich</label>
@@ -499,19 +530,36 @@
       });
       document.getElementById('dashboard-table').innerHTML = rows;
 
-      // Today reports
+      // Today reports with project progress impact
       if (todayReports.length === 0) {
         document.getElementById('dashboard-reports').innerHTML = '<p class="text-muted text-sm">Noch keine Berichte f&uuml;r heute eingereicht.</p>';
       } else {
-        document.getElementById('dashboard-reports').innerHTML = todayReports.map(r => `
+        document.getElementById('dashboard-reports').innerHTML = todayReports.map(r => {
+          const proj = r.projectId ? projects.find(p => p.id === r.projectId) : null;
+          return `
           <div class="card report-card ${r.deviation ? 'deviation' : 'complete'}" style="margin-bottom: 12px; padding: 12px;">
             <div class="flex justify-between items-center">
-              <div><strong>${escapeHtml(r.employeeName)}</strong> <span class="text-muted text-sm">- ${escapeHtml(r.taskDescription || '')}</span></div>
+              <div>
+                <strong>${escapeHtml(r.employeeName)}</strong>
+                ${proj ? '<span class="text-muted text-sm"> - Pos. ' + proj.id + ': ' + escapeHtml(proj.article) + '</span>' : ''}
+              </div>
               <span class="badge ${r.deviation ? 'badge-danger' : 'badge-success'}">${r.deviation ? 'Abweichung' : 'Erledigt'}</span>
             </div>
+            <div class="mt-8 text-sm">${escapeHtml(r.taskDescription || '')}</div>
+            ${r.achievedProgress !== undefined && r.area ? `
+              <div class="mt-8 text-sm flex items-center gap-8">
+                <span class="fw-600">${escapeHtml(r.area)}:</span>
+                <div class="progress-bar" style="flex:1; max-width: 200px;">
+                  <div class="progress-fill" style="width:${Math.round(r.achievedProgress * 100)}%; background:${getProgressColor(r.achievedProgress)}"></div>
+                </div>
+                <span>${Math.round(r.achievedProgress * 100)}%</span>
+                ${proj ? '<span class="text-muted">(Projekt: ' + getProgressLabel(r.area, r.achievedProgress) + ')</span>' : ''}
+              </div>
+            ` : ''}
+            ${r.completedQty ? `<div class="mt-8 text-sm"><strong>St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
             ${r.deviation ? `<div class="mt-8 text-sm" style="color: var(--danger);">Grund: ${escapeHtml(r.deviationReason || '')}</div>` : ''}
           </div>
-        `).join('');
+        `}).join('');
       }
     }
 
@@ -525,14 +573,36 @@
     }
 
     // ---- PROJECTS ----
+    function getRecentProjectReports(projectId, days) {
+      const reports = [];
+      const today = new Date();
+      const employees = Storage.getEmployees();
+      for (let i = 0; i < days; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const iso = getISODate(d);
+        employees.forEach(emp => {
+          const r = Storage.getDailyReport(iso, emp.id);
+          if (r && r.projectId === projectId) {
+            reports.push({ ...r, date: iso, employeeId: emp.id, employeeName: emp.name });
+          }
+        });
+      }
+      return reports;
+    }
+
     function renderProjects() {
       const projects = Storage.getProjects();
       let html = '';
       projects.forEach(p => {
+        const recentReports = getRecentProjectReports(p.id, 7);
+        const hasDeviations = recentReports.some(r => r.deviation);
+        const lastReport = recentReports.length > 0 ? recentReports[0] : null;
+
         html += `<div class="card" style="cursor: pointer;" onclick="editProject(${p.id})">
           <div class="flex justify-between items-center mb-8">
             <div>
-              <div class="fw-600">${escapeHtml(p.article)}</div>
+              <div class="fw-600">Pos. ${p.id}: ${escapeHtml(p.article)}</div>
               <div class="text-sm text-muted">${getCustomerName(p.customerId)} ${p.orderNumber ? '| Auftrag: ' + escapeHtml(p.orderNumber) : ''}</div>
             </div>
             <div class="text-right">
@@ -557,6 +627,28 @@
               <div class="text-sm mt-8">${getProgressLabel('montage', p.montage)}</div>
             </div>
           </div>
+          ${recentReports.length > 0 ? `
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+              <div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">
+                Letzte Berichte (7 Tage)
+                ${hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>'}
+              </div>
+              ${recentReports.slice(0, 3).map(r => `
+                <div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <span class="text-muted">${formatDate(r.date)}</span> -
+                    <strong>${escapeHtml(r.employeeName)}</strong>:
+                    ${escapeHtml((r.completedWork || '').substring(0, 60))}${(r.completedWork || '').length > 60 ? '...' : ''}
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    ${r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : ''}
+                    ${r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>'}
+                  </div>
+                </div>
+              `).join('')}
+              ${recentReports.length > 3 ? '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>' : ''}
+            </div>
+          ` : ''}
         </div>`;
       });
       document.getElementById('projects-list').innerHTML = html;
@@ -670,18 +762,25 @@
         html += `<div class="kw-header">${dayNames[i]}<br>${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>`;
       });
 
+      const allProjects = Storage.getProjects();
       employees.forEach(emp => {
         html += `<div class="kw-cell kw-project">${escapeHtml(emp.name)}<br><span class="text-sm text-muted">${escapeHtml(emp.role)}</span></div>`;
         for (let day = 0; day < 5; day++) {
           const dayTasks = plan.filter(t => t.employeeId === emp.id && t.day === day);
+          const dayDate = dates[day];
+          const dayIso = getISODate(dayDate);
+          const dayReport = Storage.getDailyReport(dayIso, emp.id);
           html += `<div class="kw-cell">`;
           dayTasks.forEach(t => {
-            const projects = Storage.getProjects();
-            const proj = projects.find(p => p.id === t.projectId);
-            html += `<div class="kw-task" onclick="deleteTask('${emp.id}', ${day}, ${t.projectId})" title="Klicken zum Entfernen">
-              ${proj ? escapeHtml(proj.article).substring(0, 25) : '?'}
+            const proj = allProjects.find(p => p.id === t.projectId);
+            const reported = dayReport && dayReport.projectId === t.projectId;
+            const hasDeviation = reported && dayReport.deviation;
+            const bgColor = reported ? (hasDeviation ? '#fadbd8' : '#d5f5e3') : '';
+            html += `<div class="kw-task" style="${bgColor ? 'background:' + bgColor + '; color: var(--text);' : ''}" onclick="deleteTask('${emp.id}', ${day}, ${t.projectId})" title="${reported ? (hasDeviation ? 'Abweichung gemeldet' : 'Erledigt') : 'Klicken zum Entfernen'}">
+              <strong>${proj ? escapeHtml(proj.article).substring(0, 25) : '?'}</strong>
               <br><span style="font-size:10px; opacity:0.8;">${escapeHtml(t.description || '').substring(0, 30)}</span>
               ${t.plannedQty ? '<br><span style="font-size:10px;">' + t.plannedQty + ' Stk.</span>' : ''}
+              ${reported ? '<br><span style="font-size:10px; font-weight:600;">' + (hasDeviation ? 'Abweichung!' : 'Erledigt') + '</span>' : ''}
             </div>`;
           });
           html += '</div>';
@@ -708,30 +807,81 @@
       const empSel = document.getElementById('task-employee');
       const projSel = document.getElementById('task-project');
 
-      empSel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
-      projSel.innerHTML = projects.map(p => `<option value="${p.id}">${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`).join('');
+      empSel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
+      projSel.innerHTML = '<option value="">-- Projekt w\u00e4hlen --</option>' +
+        projects.map(p => {
+          const avg = Math.round(((p.konstruktion + p.fertigung + p.montage) / 3) * 100);
+          return `<option value="${p.id}">[Pos. ${p.id}] ${escapeHtml(p.article)} - ${getCustomerName(p.customerId)} (${avg}%)</option>`;
+        }).join('');
 
       // Fill target progress
       updateTaskTargetProgress();
       document.getElementById('task-area').addEventListener('change', updateTaskTargetProgress);
 
+      // Reset preview
+      document.getElementById('task-project-preview').style.display = 'none';
+
       showModal('modal-task');
+    }
+
+    function onTaskProjectChange() {
+      const projId = parseInt(document.getElementById('task-project').value);
+      const preview = document.getElementById('task-project-preview');
+      if (!projId) { preview.style.display = 'none'; return; }
+
+      const projects = Storage.getProjects();
+      const p = projects.find(pr => pr.id === projId);
+      if (!p) { preview.style.display = 'none'; return; }
+
+      preview.style.display = 'block';
+      document.getElementById('task-prev-article').textContent = p.article;
+      document.getElementById('task-prev-customer').textContent = getCustomerName(p.customerId);
+      document.getElementById('task-prev-qty').textContent = p.quantity + ' ' + p.unit;
+      document.getElementById('task-prev-order').textContent = p.orderNumber ? 'Auftrag: ' + p.orderNumber : '';
+      document.getElementById('task-prev-remarks').textContent = p.remarks || '';
+      document.getElementById('task-prev-remarks').style.display = p.remarks ? 'block' : 'none';
+
+      // Progress bars
+      ['konstr', 'fert', 'mont'].forEach((key, i) => {
+        const area = ['konstruktion', 'fertigung', 'montage'][i];
+        const val = p[area];
+        const pct = Math.round(val * 100);
+        document.getElementById('task-prev-' + key + '-bar').style.cssText = 'width:' + pct + '%; background:' + getProgressColor(val);
+        document.getElementById('task-prev-' + key + '-label').textContent = pct + '% - ' + getProgressLabel(area, val);
+      });
     }
 
     function updateTaskTargetProgress() {
       const area = document.getElementById('task-area').value;
       const sel = document.getElementById('task-target-progress');
-      sel.innerHTML = ATC_DATA.progressScales[area].map(s =>
-        `<option value="${s.value}">${Math.round(s.value * 100)}% - ${escapeHtml(s.label)}</option>`
-      ).join('');
+
+      // Show current progress of selected project for this area
+      const projId = parseInt(document.getElementById('task-project').value);
+      const projects = Storage.getProjects();
+      const proj = projId ? projects.find(p => p.id === projId) : null;
+      const currentVal = proj ? proj[area] : 0;
+
+      sel.innerHTML = ATC_DATA.progressScales[area].map(s => {
+        const isCurrent = s.value === currentVal;
+        const isPast = s.value < currentVal;
+        let label = Math.round(s.value * 100) + '% - ' + escapeHtml(s.label);
+        if (isCurrent) label += ' [AKTUELL]';
+        return `<option value="${s.value}" ${isPast ? 'style="color:#999"' : ''} ${isCurrent ? 'style="font-weight:bold"' : ''}>${label}</option>`;
+      }).join('');
+
+      // Pre-select next step above current
+      const nextStep = ATC_DATA.progressScales[area].find(s => s.value > currentVal);
+      if (nextStep) sel.value = nextStep.value;
     }
 
     function saveTask(e) {
       e.preventDefault();
+      const projId = parseInt(document.getElementById('task-project').value);
+      if (!projId) { alert('Bitte ein Projekt ausw\u00e4hlen.'); return; }
       const plan = Storage.getWeekPlan(currentYear, currentKW);
       plan.push({
         employeeId: document.getElementById('task-employee').value,
-        projectId: parseInt(document.getElementById('task-project').value),
+        projectId: projId,
         area: document.getElementById('task-area').value,
         day: parseInt(document.getElementById('task-day').value),
         description: document.getElementById('task-desc').value,
@@ -829,16 +979,33 @@
         return;
       }
 
-      document.getElementById('reports-list').innerHTML = reports.map(r => `
+      const projects = Storage.getProjects();
+      document.getElementById('reports-list').innerHTML = reports.map(r => {
+        const proj = r.projectId ? projects.find(p => p.id === r.projectId) : null;
+        return `
         <div class="card report-card ${r.deviation ? 'deviation' : 'complete'}" style="cursor: pointer;" onclick="showReportDetail('${date}', '${r.employeeId}')">
           <div class="flex justify-between items-center">
             <div>
               <div class="fw-600">${escapeHtml(r.employeeName)}</div>
-              <div class="text-sm text-muted">${escapeHtml(r.taskDescription || 'Kein Aufgabenbezug')}</div>
+              <div class="text-sm text-muted">
+                ${proj ? 'Pos. ' + proj.id + ': ' + escapeHtml(proj.article) + ' (' + getCustomerName(proj.customerId) + ')' : escapeHtml(r.taskDescription || 'Kein Aufgabenbezug')}
+              </div>
             </div>
             <span class="badge ${r.deviation ? 'badge-danger' : 'badge-success'}">${r.deviation ? 'Abweichung' : 'Plan erf\u00fcllt'}</span>
           </div>
           <div class="mt-8 text-sm">${escapeHtml(r.completedWork || '')}</div>
+          ${r.achievedProgress !== undefined && r.area && proj ? `
+            <div class="mt-8" style="background: var(--bg); padding: 8px 12px; border-radius: 6px;">
+              <div class="text-sm flex items-center gap-8">
+                <span class="fw-600">${escapeHtml(r.area)}:</span>
+                <div class="progress-bar" style="flex:1; max-width: 200px;">
+                  <div class="progress-fill" style="width:${Math.round(r.achievedProgress * 100)}%; background:${getProgressColor(r.achievedProgress)}"></div>
+                </div>
+                <span class="fw-600">${Math.round(r.achievedProgress * 100)}%</span>
+              </div>
+              <div class="text-sm text-muted mt-8">Aktueller Projektstatus: K ${Math.round(proj.konstruktion * 100)}% | F ${Math.round(proj.fertigung * 100)}% | M ${Math.round(proj.montage * 100)}%</div>
+            </div>
+          ` : ''}
           ${r.deviation ? `<div class="mt-8 text-sm" style="color: var(--danger);"><strong>Abweichungsgrund:</strong> ${escapeHtml(r.deviationReason || '')}</div>` : ''}
           ${r.photos && r.photos.length > 0 ? `
             <div class="report-photos">
@@ -847,7 +1014,7 @@
           ` : ''}
           ${r.completedQty !== undefined ? `<div class="mt-8 text-sm"><strong>Erledigte St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
         </div>
-      `).join('');
+      `}).join('');
     }
 
     function showReportDetail(date, empId) {
@@ -861,12 +1028,34 @@
       document.getElementById('report-detail-content').innerHTML = `
         <div class="mb-8"><strong>Mitarbeiter:</strong> ${emp ? escapeHtml(emp.name) : empId}</div>
         <div class="mb-8"><strong>Datum:</strong> ${formatDate(date)}</div>
-        ${proj ? `<div class="mb-8"><strong>Projekt:</strong> ${escapeHtml(proj.article)} (${getCustomerName(proj.customerId)})</div>` : ''}
+        ${proj ? `<div class="mb-8"><strong>Projekt:</strong> Pos. ${proj.id}: ${escapeHtml(proj.article)} (${getCustomerName(proj.customerId)})</div>` : ''}
         <div class="mb-8"><strong>Bereich:</strong> ${escapeHtml(r.area || '-')}</div>
         <hr style="margin: 16px 0; border: none; border-top: 1px solid var(--border);">
         <div class="mb-8"><strong>Aufgabe:</strong> ${escapeHtml(r.taskDescription || '-')}</div>
         <div class="mb-8"><strong>Erledigte Arbeit:</strong> ${escapeHtml(r.completedWork || '-')}</div>
         ${r.completedQty !== undefined ? `<div class="mb-8"><strong>Erledigte St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
+        ${r.achievedProgress !== undefined && r.area ? `
+          <div class="mb-8"><strong>Gemeldeter Fortschritt (${escapeHtml(r.area)}):</strong> ${Math.round(r.achievedProgress * 100)}% - ${getProgressLabel(r.area, r.achievedProgress)}</div>
+        ` : ''}
+        ${proj ? `
+          <div class="mb-8" style="background: var(--bg); padding: 12px; border-radius: 8px;">
+            <div class="fw-600 mb-8">Aktueller Projektfortschritt</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+              <div>
+                <div class="text-sm text-muted">Konstruktion</div>
+                ${renderMiniProgress(proj.konstruktion)}
+              </div>
+              <div>
+                <div class="text-sm text-muted">Fertigung</div>
+                ${renderMiniProgress(proj.fertigung)}
+              </div>
+              <div>
+                <div class="text-sm text-muted">Montage</div>
+                ${renderMiniProgress(proj.montage)}
+              </div>
+            </div>
+          </div>
+        ` : ''}
         <div class="mb-8">
           <strong>Status:</strong>
           <span class="badge ${r.deviation ? 'badge-danger' : 'badge-success'}">${r.deviation ? 'Abweichung vom Plan' : 'Plan erf\u00fcllt'}</span>
