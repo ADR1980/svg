@@ -8,7 +8,7 @@ const ATC_DATA = {
     { id: '10023', name: 'MAM Electronic', contact: '', email: '', phone: '', contactEmail: '', password: '' },
     { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
     { id: '10021', name: 'BA Clearance GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
-    { id: '10016', name: 'EP Arms GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10016', name: 'EP Arms GmbH', contact: '', email: '', phone: '', contactEmail: 'info@eparms.de', password: 'eparms2026' },
     { id: '10002', name: 'ATC SiPro GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
     { id: '10001', name: '1 MOA GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' }
   ],
@@ -429,9 +429,18 @@ const Storage = {
     this.save('project_steps_' + projectId, steps);
   },
 
-  // Kunden laden/speichern
+  // Kunden laden/speichern (mit Merge neuer Felder aus Defaults)
   getCustomers() {
-    return this.load('customers', ATC_DATA.customers);
+    const stored = this.load('customers', ATC_DATA.customers);
+    // Merge neue Felder (contactEmail, password) aus Defaults falls im localStorage fehlend
+    return stored.map(c => {
+      const def = ATC_DATA.customers.find(d => d.id === c.id);
+      return {
+        contactEmail: '', password: '',
+        ...(def || {}),
+        ...c
+      };
+    });
   },
 
   saveCustomers(customers) {
