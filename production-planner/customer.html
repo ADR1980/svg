@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ATC Produktion - Kundenportal</title>
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --primary-light: #2c5f8a;
+      --accent: #e67e22;
+      --success: #27ae60;
+      --danger: #e74c3c;
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --text: #2c3e50;
+      --text-light: #7f8c8d;
+      --border: #dce1e6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); max-width: 800px; margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    /* Login Screen */
+    .login-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 40px 20px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    }
+    .login-logo { font-size: 48px; margin-bottom: 8px; }
+    .login-title { color: white; font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .login-subtitle { color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 32px; }
+    .login-card {
+      background: white; border-radius: 16px; padding: 32px; width: 100%; max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .login-card label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .login-card input {
+      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 16px; margin-bottom: 16px; font-family: inherit;
+    }
+    .login-btn {
+      width: 100%; padding: 14px; background: var(--primary); color: white; border: none;
+      border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+    .login-btn:hover { opacity: 0.9; }
+
+    /* App Header */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white; padding: 16px 20px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .app-header-top { display: flex; justify-content: space-between; align-items: center; }
+    .app-header h1 { font-size: 18px; font-weight: 600; }
+    .app-header .user-info { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+
+    /* Cards */
+    .card {
+      background: var(--card); border-radius: 12px; padding: 16px;
+      margin: 12px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 8px; background: #ecf0f1; border-radius: 4px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 4px; transition: width 0.3s;
+    }
+    .progress-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px;
+    }
+    .progress-item {
+      text-align: center; background: var(--bg); border-radius: 8px; padding: 10px 8px;
+    }
+    .progress-item .label { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+    .progress-item .value { font-size: 18px; font-weight: 700; }
+    .progress-detail {
+      font-size: 12px; color: var(--text-light); margin-top: 4px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    }
+    .badge-success { background: #d5f5e3; color: #27ae60; }
+    .badge-warning { background: #fdebd0; color: #e67e22; }
+    .badge-info { background: #d6eaf8; color: #2980b9; }
+    .badge-neutral { background: #eaecee; color: #7f8c8d; }
+    .badge-danger { background: #fadbd8; color: #e74c3c; }
+
+    /* Status */
+    .status-badge {
+      padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    }
+
+    /* Summary Card */
+    .summary-card {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white; border-radius: 12px; padding: 20px; margin: 16px;
+    }
+    .summary-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px;
+    }
+    .summary-item { text-align: center; }
+    .summary-item .num { font-size: 28px; font-weight: 700; }
+    .summary-item .label { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+    .text-sm { font-size: 13px; }
+    .text-muted { color: var(--text-light); }
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mb-8 { margin-bottom: 8px; }
+    .fw-600 { font-weight: 600; }
+
+    .section-title {
+      font-size: 15px; font-weight: 600; padding: 16px 16px 0;
+      color: var(--primary);
+    }
+
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--text-light);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    @media (max-width: 400px) {
+      .app-header h1 { font-size: 16px; }
+      .card { padding: 12px; margin: 8px 12px; }
+      .progress-grid { gap: 8px; }
+      .progress-item { padding: 8px 4px; }
+      .progress-item .value { font-size: 16px; }
+      .summary-grid { gap: 8px; }
+      .summary-item .num { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <script src="data.js"></script>
+
+  <!-- LOGIN -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-logo">&#128274;</div>
+    <div class="login-title">ATC Produktion</div>
+    <div class="login-subtitle">Kundenportal</div>
+    <div class="login-card">
+      <label>Email-Adresse</label>
+      <input type="email" id="login-email" placeholder="ihre.email@firma.de" autocomplete="email" style="text-align: center;">
+      <label>Passwort</label>
+      <input type="password" id="login-password" placeholder="Passwort eingeben" style="text-align: center;">
+      <div id="login-error" style="color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none;">Falsche Zugangsdaten. Bitte erneut versuchen.</div>
+      <button class="login-btn" onclick="doLogin()">Anmelden</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="main-app" style="display: none;">
+    <div class="app-header">
+      <div class="app-header-top">
+        <div>
+          <h1>ATC Produktion</h1>
+          <div class="user-info" id="user-display"></div>
+        </div>
+        <button onclick="doLogout()" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Abmelden</button>
+      </div>
+    </div>
+
+    <div id="portal-content"></div>
+  </div>
+
+  <script>
+    let currentCustomer = null;
+
+    function initLogin() {
+      const existing = Auth.getLoggedInCustomer();
+      if (existing) {
+        currentCustomer = existing;
+        showApp();
+      }
+      // Enter-Key Login
+      document.getElementById('login-password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') doLogin();
+      });
+      document.getElementById('login-email').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') document.getElementById('login-password').focus();
+      });
+    }
+
+    function doLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) return;
+
+      const result = Auth.loginCustomer(email, password);
+      if (result) {
+        currentCustomer = result;
+        showApp();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-password').focus();
+      }
+    }
+
+    function doLogout() {
+      Auth.logoutCustomer();
+      currentCustomer = null;
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-password').value = '';
+      document.getElementById('login-error').style.display = 'none';
+    }
+
+    function showApp() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('user-display').textContent = currentCustomer.name;
+      renderPortal();
+    }
+
+    function renderPortal() {
+      const projects = Storage.getProjects();
+      const myProjects = projects.filter(p => p.customerId === currentCustomer.id);
+
+      if (myProjects.length === 0) {
+        document.getElementById('portal-content').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128230;</div>
+            <p>Aktuell keine aktiven Projekte.</p>
+            <p class="text-sm text-muted mt-8">Sobald neue Auftr&auml;ge erfasst werden, erscheinen sie hier.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Summary
+      const totalProjects = myProjects.length;
+      const avgProgress = myProjects.reduce((s, p) => s + (p.konstruktion + p.fertigung + p.montage) / 3, 0) / totalProjects;
+      const completedProjects = myProjects.filter(p => {
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        return avg >= 1;
+      }).length;
+
+      let html = `
+        <div class="summary-card">
+          <div class="fw-600" style="font-size: 16px;">Ihre Projekte bei ATC</div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <div class="num">${totalProjects}</div>
+              <div class="label">Projekte</div>
+            </div>
+            <div class="summary-item">
+              <div class="num">${Math.round(avgProgress * 100)}%</div>
+              <div class="label">Durchschnitt</div>
+            </div>
+            <div class="summary-item">
+              <div class="num">${completedProjects}</div>
+              <div class="label">Abgeschlossen</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      html += '<div class="section-title">Ihre Projekte</div>';
+
+      myProjects.forEach(p => {
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        const statusColor = getProgressColor(avg);
+        const statusBadge = getStatusBadge(p.status);
+
+        html += `
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="fw-600">${escapeHtml(p.article)}</div>
+                <div class="text-sm text-muted">${p.orderNumber ? 'Auftrag: ' + escapeHtml(p.orderNumber) : 'Projekt #' + p.id}</div>
+              </div>
+              ${statusBadge}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="text-sm">Gesamtfortschritt</span>
+              <span class="fw-600" style="color: ${statusColor};">${Math.round(avg * 100)}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${Math.round(avg * 100)}%; background: ${statusColor};"></div>
+            </div>
+            <div class="progress-grid">
+              <div class="progress-item">
+                <div class="label">Konstruktion</div>
+                <div class="value" style="color: ${getProgressColor(p.konstruktion)};">${Math.round(p.konstruktion * 100)}%</div>
+                <div class="progress-detail">${getProgressLabel('konstruktion', p.konstruktion)}</div>
+              </div>
+              <div class="progress-item">
+                <div class="label">Fertigung</div>
+                <div class="value" style="color: ${getProgressColor(p.fertigung)};">${Math.round(p.fertigung * 100)}%</div>
+                <div class="progress-detail">${getProgressLabel('fertigung', p.fertigung)}</div>
+              </div>
+              <div class="progress-item">
+                <div class="label">Montage</div>
+                <div class="value" style="color: ${getProgressColor(p.montage)};">${Math.round(p.montage * 100)}%</div>
+                <div class="progress-detail">${getProgressLabel('montage', p.montage)}</div>
+              </div>
+            </div>
+            <div class="mt-12" style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <span class="badge badge-neutral">${p.quantity} ${p.unit}</span>
+              ${p.deadline ? '<span class="badge badge-info">Frist: ' + escapeHtml(p.deadline) + '</span>' : ''}
+              ${p.deliveryDate ? '<span class="badge badge-info">Lieferung: ' + escapeHtml(p.deliveryDate) + '</span>' : ''}
+            </div>
+            ${p.remarks ? '<div class="text-sm mt-8" style="color: var(--accent);">' + escapeHtml(p.remarks) + '</div>' : ''}
+          </div>
+        `;
+      });
+
+      document.getElementById('portal-content').innerHTML = html;
+    }
+
+    function getStatusBadge(status) {
+      const colors = {
+        'Angebot': 'badge-neutral',
+        'Auftragseingang': 'badge-info',
+        'In Produktion': 'badge-warning',
+        'Qualit\u00e4tspr\u00fcfung': 'badge-info',
+        'Versandbereit': 'badge-success',
+        'Ausgeliefert': 'badge-success',
+        'Abgeschlossen': 'badge-success'
+      };
+      const cls = colors[status] || 'badge-neutral';
+      return `<span class="badge ${cls}">${escapeHtml(status || 'Offen')}</span>`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    initLogin();
+  </script>
+</body>
+</html>
