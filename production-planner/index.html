@@ -286,6 +286,7 @@
       <div class="subtitle">VL-0006-A Projekt&uuml;bersicht 2026</div>
     </div>
     <div class="header-right">
+      <a href="dashboard.html" target="_blank">Hallen-Dashboard</a>
       <a href="app.html">Mitarbeiter-App</a>
       <a href="#" onclick="doAdminLogout()" style="background: rgba(255,255,255,0.1);">Abmelden</a>
     </div>
@@ -622,6 +623,20 @@
           <button type="submit" class="btn btn-primary">Speichern</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Projektdetail-Modal -->
+  <div class="modal-overlay" id="modal-project-detail">
+    <div class="modal" style="max-width: 1100px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 id="project-detail-title">Projektdetails</h2>
+        <div class="flex gap-8">
+          <button class="btn btn-outline btn-sm" id="project-detail-edit-btn">Bearbeiten</button>
+          <button class="modal-close" onclick="closeModal('modal-project-detail')">&times;</button>
+        </div>
+      </div>
+      <div id="project-detail-content"></div>
     </div>
   </div>
 
@@ -1605,7 +1620,7 @@
 
         // Project header card
         html += '<div class="card" style="padding-bottom:' + (isExpanded && pSteps.length > 0 ? '8px' : '20px') + ';">'
-          + '<div style="cursor:pointer;" onclick="editProject(' + p.id + ')">'
+          + '<div style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">'
           + '<div class="flex justify-between items-center mb-8">'
           + '  <div>'
           + '    <div class="flex items-center gap-8">'
@@ -1856,6 +1871,179 @@
       const projects = Storage.getProjects();
       const p = projects.find(p => p.id === id);
       if (p) openProjectModal(p);
+    }
+
+    function openProjectDetail(id) {
+      var projects = Storage.getProjects();
+      var p = projects.find(function(pr) { return pr.id === id; });
+      if (!p) return;
+      var employees = Storage.getEmployees();
+      var pSteps = Storage.getProjectSteps(id);
+      var customerName = getCustomerName(p.customerId);
+
+      document.getElementById('project-detail-title').textContent = 'Pos. ' + p.id + ': ' + p.article;
+      document.getElementById('project-detail-edit-btn').onclick = function() {
+        closeModal('modal-project-detail');
+        editProject(id);
+      };
+
+      var h = '';
+
+      // ---- Kopfbereich: Infos ----
+      h += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">';
+
+      // Linke Spalte
+      h += '<div>';
+      h += '<div class="fw-600 mb-8" style="color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:4px;">Auftragsdaten</div>';
+      h += '<table style="font-size:13px; width:100%;">';
+      h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0; width:140px;">Kunde</td><td class="fw-600">' + escapeHtml(customerName) + '</td></tr>';
+      if (p.orderNumber) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Auftragsnummer</td><td>' + escapeHtml(p.orderNumber) + '</td></tr>';
+      h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Menge</td><td class="fw-600">' + p.quantity + ' ' + p.unit + '</td></tr>';
+      h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Status</td><td>' + '<span class="badge badge-info">' + escapeHtml(p.status || 'Auftragseingang') + '</span> ' + getPriorityBadge(p.priority) + '</td></tr>';
+      if (p.material) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Material</td><td>' + escapeHtml(p.material) + '</td></tr>';
+      if (p.surfaceTreatment) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Oberfl\u00e4che</td><td>' + escapeHtml(p.surfaceTreatment) + '</td></tr>';
+      if (p.drawingNumber) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Zeichnung</td><td>' + escapeHtml(p.drawingNumber) + '</td></tr>';
+      if (p.toleranceClass) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Toleranz</td><td>' + escapeHtml(p.toleranceClass) + '</td></tr>';
+      h += '</table></div>';
+
+      // Rechte Spalte
+      h += '<div>';
+      h += '<div class="fw-600 mb-8" style="color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:4px;">Termine</div>';
+      h += '<table style="font-size:13px; width:100%;">';
+      if (p.orderDate) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0; width:140px;">Auftragseingang</td><td>' + new Date(p.orderDate).toLocaleDateString('de-DE') + '</td></tr>';
+      if (p.startDate) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Startdatum</td><td>' + new Date(p.startDate).toLocaleDateString('de-DE') + '</td></tr>';
+      if (p.deadline) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Fertigstellung</td><td>' + new Date(p.deadline).toLocaleDateString('de-DE') + '</td></tr>';
+      if (p.deliveryDate) h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Liefertermin</td><td>' + new Date(p.deliveryDate).toLocaleDateString('de-DE') + '</td></tr>';
+
+      // Sicherheitsaufschläge
+      if (p.bufferMinutes || p.bufferPercent) {
+        h += '<tr><td class="text-muted" style="padding:3px 12px 3px 0;">Zeitpuffer</td><td>';
+        var parts = [];
+        if (p.bufferMinutes) parts.push(p.bufferMinutes + ' Min');
+        if (p.bufferPercent) parts.push(p.bufferPercent + '%');
+        h += parts.join(' + ') + '</td></tr>';
+      }
+      h += '</table>';
+
+      if (p.remarks) h += '<div class="text-sm mt-8" style="color:var(--accent); padding:6px; background:#fef9e7; border-radius:4px;">' + escapeHtml(p.remarks) + '</div>';
+      h += '</div></div>';
+
+      // ---- Soll/Ist-Vergleich ----
+      var durCalc = pSteps.length > 0 ? Schedule.calcProjectDuration(id) : null;
+      if (durCalc) {
+        h += renderDurationComparison(durCalc, p);
+      }
+
+      // ---- Abhängigkeits-Graph ----
+      if (pSteps.length > 0) {
+        h += '<div class="fw-600 mb-8 mt-16" style="color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:4px;">Abh\u00e4ngigkeits-Graph</div>';
+        h += buildDepGraphSVG(pSteps, id);
+      }
+
+      // ---- Arbeitsschritte-Tabelle ----
+      h += '<div class="fw-600 mb-8 mt-16" style="color:var(--primary); border-bottom:2px solid var(--border); padding-bottom:4px;">'
+        + 'Arbeitsschritte <span class="text-muted fw-400" style="font-size:12px;">(' + pSteps.length + ' Schritte)</span></div>';
+
+      if (pSteps.length > 0) {
+        h += '<div style="overflow-x:auto;">';
+        h += '<table class="ws-table">'
+          + '<thead><tr>'
+          + '<th style="width:36px;">Nr.</th>'
+          + '<th>Arbeitsschritt</th>'
+          + '<th>Bereich</th>'
+          + '<th style="width:90px;">Soll/Stk</th>'
+          + '<th style="width:85px;">Trockenzeit</th>'
+          + '<th style="width:80px;">Menge</th>'
+          + '<th style="width:105px;">Soll gesamt</th>'
+          + '<th style="width:90px;">Ist gesamt</th>'
+          + '<th style="width:90px;">Abweichung</th>'
+          + '<th style="width:110px;">Fortschritt</th>'
+          + '<th>Zugewiesen</th>'
+          + '<th style="width:80px;">Status</th>'
+          + '<th style="width:160px;">Abh\u00e4ngig von</th>'
+          + '</tr></thead><tbody>';
+
+        pSteps.forEach(function(s) {
+          var depCheck = checkDependencies(s, pSteps);
+          var rowClass = s.status === 'abgeschlossen' ? 'ws-done' : (s.status === 'in_bearbeitung' ? 'ws-active' : (!depCheck.canStart ? 'ws-blocked' : ''));
+          var pct = s.totalQty > 0 ? Math.round(s.completedQty / s.totalQty * 100) : 0;
+          var sollTotal = s.plannedDuration * s.totalQty;
+          var drying = s.dryingTime || 0;
+          var sollMitTrocknung = sollTotal + drying;
+          var emp = s.assignedTo ? employees.find(function(e) { return e.id === s.assignedTo; }) : null;
+          var wsTemplate = Storage.getWorkStepTemplates().find(function(t) { return t.id === s.stepTemplateId; });
+          var category = wsTemplate ? wsTemplate.category : '-';
+
+          // Abweichung berechnen
+          var abwMinutes = s.actualDuration - sollTotal;
+          var abwColor = abwMinutes > 0 ? 'var(--danger)' : (abwMinutes < 0 ? 'var(--success)' : 'var(--text)');
+          var abwText = abwMinutes === 0 ? '-' : ((abwMinutes > 0 ? '+' : '') + abwMinutes + ' Min');
+
+          // Abhängigkeiten als lesbare Namen
+          var depNames = depCheck.depNames;
+          var depHtml = '-';
+          if (depNames.length > 0) {
+            depHtml = depNames.map(function(dn) {
+              var depStep = pSteps.find(function(ds) { return ds.name === dn || '#' + ds.order === dn; });
+              var depDone = depStep && depStep.status === 'abgeschlossen';
+              var icon = depDone ? '<span style="color:var(--success);">\u2713</span>' : '<span style="color:var(--danger);">\u2717</span>';
+              return icon + ' ' + escapeHtml(dn);
+            }).join('<br>');
+          }
+
+          html_row = '<tr class="' + rowClass + '" onclick="openStepEditModal(' + id + ',\'' + s.id + '\')" style="cursor:pointer;">'
+            + '<td class="fw-600">#' + s.order + '</td>'
+            + '<td>'
+            + '  <div class="fw-600">' + escapeHtml(s.name) + '</div>'
+            + (s.description ? '<div class="text-muted" style="font-size:11px;">' + escapeHtml(s.description).substring(0, 80) + '</div>' : '')
+            + '</td>'
+            + '<td><span class="badge badge-info">' + escapeHtml(category) + '</span></td>'
+            + '<td>' + s.plannedDuration + ' Min</td>'
+            + '<td>' + (drying > 0 ? drying + ' Min' : '-') + '</td>'
+            + '<td class="fw-600">' + s.completedQty + ' / ' + s.totalQty + '</td>'
+            + '<td>' + sollTotal + ' Min' + (drying > 0 ? ' <span class="text-muted">(+' + drying + ')</span>' : '') + '</td>'
+            + '<td class="fw-600">' + s.actualDuration + ' Min</td>'
+            + '<td style="color:' + abwColor + '; font-weight:600;">' + abwText + '</td>'
+            + '<td>'
+            + '  <div style="display:flex; align-items:center; gap:6px;">'
+            + '    <div style="flex:1;height:8px;background:#ecf0f1;border-radius:4px;overflow:hidden;">'
+            + '      <div style="width:' + pct + '%;height:100%;background:' + getProgressColor(pct / 100) + ';border-radius:4px;"></div>'
+            + '    </div>'
+            + '    <span style="font-size:11px;white-space:nowrap;font-weight:600;">' + pct + '%</span>'
+            + '  </div>'
+            + '</td>'
+            + '<td>' + (emp ? escapeHtml(emp.name) : '<span class="text-muted">-</span>') + '</td>'
+            + '<td>' + renderStepStatusBadge(s.status, depCheck.canStart) + '</td>'
+            + '<td style="font-size:11px; line-height:1.6;">' + depHtml + '</td>'
+            + '</tr>';
+
+          h += html_row;
+        });
+
+        // Summenzeile
+        var sumSoll = pSteps.reduce(function(s, st) { return s + (st.plannedDuration * st.totalQty); }, 0);
+        var sumDrying = pSteps.reduce(function(s, st) { return s + (st.dryingTime || 0); }, 0);
+        var sumIst = pSteps.reduce(function(s, st) { return s + st.actualDuration; }, 0);
+        var sumAbw = sumIst - sumSoll;
+        var sumAbwColor = sumAbw > 0 ? 'var(--danger)' : (sumAbw < 0 ? 'var(--success)' : 'var(--text)');
+        h += '<tr style="background:var(--bg); font-weight:600; border-top:2px solid var(--primary);">'
+          + '<td colspan="6" style="text-align:right;">Summe:</td>'
+          + '<td>' + sumSoll + ' Min' + (sumDrying > 0 ? ' <span class="text-muted">(+' + sumDrying + ')</span>' : '') + '</td>'
+          + '<td>' + sumIst + ' Min</td>'
+          + '<td style="color:' + sumAbwColor + ';">' + (sumAbw > 0 ? '+' : '') + sumAbw + ' Min</td>'
+          + '<td colspan="4"></td>'
+          + '</tr>';
+
+        h += '</tbody></table></div>';
+      } else {
+        h += '<div style="text-align:center; padding:20px; color:var(--text-muted);">'
+          + 'Noch keine Arbeitsschritte definiert.'
+          + ' <button class="btn btn-primary btn-sm" onclick="closeModal(\'modal-project-detail\'); openProjectSteps(' + id + ')">+ Arbeitsschritte anlegen</button>'
+          + '</div>';
+      }
+
+      document.getElementById('project-detail-content').innerHTML = h;
+      showModal('modal-project-detail');
     }
 
     function saveProject(e) {
@@ -2775,7 +2963,7 @@
                     const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
                     const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
                     const status = Schedule.getStatus(avg, expected);
-                    return '<tr style="cursor:pointer;" onclick="editProject(' + p.id + ')">' +
+                    return '<tr style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">' +
                       '<td>' + p.id + '</td>' +
                       '<td>' + escapeHtml(p.article) + '</td>' +
                       '<td>' + p.quantity + ' ' + p.unit + '</td>' +

@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATC Produktion - Dashboard</title>
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --primary-light: #2c5f8a;
+      --accent: #e67e22;
+      --success: #27ae60;
+      --danger: #e74c3c;
+      --warning: #f39c12;
+      --bg: #0d1b2a;
+      --card: #1b2838;
+      --card-hover: #223344;
+      --text: #ecf0f1;
+      --text-light: #95a5a6;
+      --border: #2c3e50;
+      --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; overflow-x: hidden;
+    }
+
+    /* Header */
+    .dash-header {
+      background: linear-gradient(135deg, var(--primary) 0%, #0f2744 100%);
+      padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 3px solid var(--accent);
+    }
+    .dash-header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+    .dash-header .subtitle { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+    .dash-header-right { display: flex; align-items: center; gap: 20px; }
+    .dash-clock { font-size: 32px; font-weight: 300; font-variant-numeric: tabular-nums; }
+    .dash-date { font-size: 14px; color: var(--text-light); text-align: right; }
+    .dash-kw { font-size: 13px; color: var(--accent); font-weight: 600; }
+
+    /* Tabs */
+    .dash-tabs {
+      display: flex; gap: 0; background: #0f1e30; padding: 0 32px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dash-tab {
+      padding: 12px 28px; cursor: pointer; font-size: 14px; font-weight: 600;
+      color: var(--text-light); border-bottom: 3px solid transparent; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .dash-tab:hover { color: var(--text); }
+    .dash-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Content */
+    .dash-content { padding: 20px 32px; }
+    .dash-view { display: none; }
+    .dash-view.active { display: block; }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card); border-radius: 10px; padding: 16px 20px;
+      border-left: 4px solid var(--primary-light);
+    }
+    .stat-card.highlight { border-left-color: var(--accent); }
+    .stat-card.success { border-left-color: var(--success); }
+    .stat-card.warning { border-left-color: var(--warning); }
+    .stat-card.danger { border-left-color: var(--danger); }
+    .stat-label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .stat-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+
+    /* Section */
+    .section-title {
+      font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .section-title .badge { font-size: 11px; text-transform: none; letter-spacing: 0; }
+
+    /* Tables */
+    .dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .dash-table thead th {
+      background: var(--primary); color: white; padding: 10px 12px; text-align: left;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .dash-table tbody td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .dash-table tbody tr { transition: background 0.15s; }
+    .dash-table tbody tr:hover { background: var(--card-hover); }
+    .dash-table tbody tr.row-done { opacity: 0.5; }
+    .dash-table tbody tr.row-done td:first-child { text-decoration: line-through; }
+    .dash-table tbody tr.row-active { background: rgba(230, 126, 34, 0.08); }
+    .dash-table tbody tr.row-blocked { background: rgba(231, 76, 60, 0.06); }
+
+    /* Employee Swim Lanes */
+    .swim-lanes {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .swim-lane {
+      background: var(--card); border-radius: 10px; overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .swim-lane-header {
+      background: var(--primary); padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .swim-lane-header .emp-name { font-weight: 700; font-size: 15px; }
+    .swim-lane-header .emp-role {
+      font-size: 11px; background: rgba(255,255,255,0.15);
+      padding: 3px 10px; border-radius: 10px;
+    }
+    .swim-lane-body { padding: 12px; }
+    .task-card {
+      background: var(--bg); border-radius: 8px; padding: 12px; margin-bottom: 10px;
+      border-left: 4px solid var(--primary-light); cursor: default;
+    }
+    .task-card:last-child { margin-bottom: 0; }
+    .task-card.task-active { border-left-color: var(--accent); background: rgba(230, 126, 34, 0.06); }
+    .task-card.task-done { border-left-color: var(--success); opacity: 0.55; }
+    .task-card.task-blocked { border-left-color: var(--danger); }
+    .task-card .task-project { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+    .task-card .task-desc { font-size: 12px; color: var(--text-light); margin-bottom: 6px; }
+    .task-card .task-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-light); }
+    .task-card .task-meta span { display: flex; align-items: center; gap: 4px; }
+    .task-empty { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
+
+    /* Week Grid */
+    .week-grid {
+      display: grid; grid-template-columns: 180px repeat(5, 1fr);
+      gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .week-cell {
+      background: var(--card); padding: 10px; min-height: 80px;
+    }
+    .week-cell.header {
+      background: var(--primary); color: white; font-weight: 700;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+      min-height: auto; padding: 10px 12px; display: flex; align-items: center;
+    }
+    .week-cell.emp-cell {
+      background: #162638; display: flex; align-items: center; font-weight: 600;
+      font-size: 13px; min-height: auto;
+    }
+    .week-cell.today { background: rgba(230, 126, 34, 0.08); }
+    .week-task {
+      font-size: 11px; padding: 6px 8px; margin-bottom: 4px; border-radius: 4px;
+      background: var(--bg); border-left: 3px solid var(--primary-light);
+    }
+    .week-task.wt-done { border-left-color: var(--success); opacity: 0.5; }
+    .week-task.wt-active { border-left-color: var(--accent); }
+    .week-task .wt-project { font-weight: 600; }
+    .week-task .wt-desc { color: var(--text-light); margin-top: 2px; }
+
+    /* Badges */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge-success { background: rgba(39, 174, 96, 0.2); color: #2ecc71; }
+    .badge-warning { background: rgba(243, 156, 18, 0.2); color: #f1c40f; }
+    .badge-danger { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+    .badge-info { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+    .badge-accent { background: rgba(230, 126, 34, 0.2); color: var(--accent); }
+
+    /* Progress bar */
+    .progress-sm {
+      height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;
+    }
+    .progress-sm .fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    /* Utilities */
+    .text-muted { color: var(--text-light); }
+    .text-success { color: var(--success); }
+    .text-danger { color: var(--danger); }
+    .text-warning { color: var(--warning); }
+    .text-accent { color: var(--accent); }
+    .fw-600 { font-weight: 600; }
+    .fw-700 { font-weight: 700; }
+    .mt-16 { margin-top: 16px; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-16 { margin-bottom: 16px; }
+
+    /* Auto-Refresh Indicator */
+    .refresh-indicator {
+      position: fixed; bottom: 16px; right: 16px; background: var(--card);
+      padding: 8px 16px; border-radius: 20px; font-size: 11px;
+      color: var(--text-light); box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .refresh-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Fullscreen button */
+    .btn-fullscreen {
+      background: rgba(255,255,255,0.1); border: none; color: var(--text-light);
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .btn-fullscreen:hover { background: rgba(255,255,255,0.2); color: white; }
+
+    /* Responsive for large displays */
+    @media (min-width: 1920px) {
+      .dash-header h1 { font-size: 26px; }
+      .dash-clock { font-size: 40px; }
+      .stat-value { font-size: 34px; }
+      .dash-table { font-size: 14px; }
+      .swim-lanes { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+    }
+
+    /* Print */
+    @media print {
+      body { background: white; color: black; }
+      .dash-header, .dash-tabs, .refresh-indicator { display: none; }
+      .dash-view { display: block !important; page-break-after: always; }
+      .stat-card, .swim-lane, .task-card, .week-cell { background: white; border: 1px solid #ddd; }
+      .dash-table thead th { background: #eee; color: black; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div>
+      <h1>ATC Produktions-Dashboard</h1>
+      <div class="subtitle">Fertigungs&uuml;bersicht &mdash; Hallenmonitor</div>
+    </div>
+    <div class="dash-header-right">
+      <div style="text-align:right;">
+        <div class="dash-date" id="dash-date"></div>
+        <div class="dash-kw" id="dash-kw"></div>
+      </div>
+      <div class="dash-clock" id="dash-clock"></div>
+      <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Vollbild">&#x26F6; Vollbild</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="dash-tabs">
+    <div class="dash-tab active" onclick="switchDashView('today')">Heute</div>
+    <div class="dash-tab" onclick="switchDashView('week')">Woche</div>
+    <div class="dash-tab" onclick="switchDashView('orders')">Auftr&auml;ge</div>
+  </div>
+
+  <!-- Content -->
+  <div class="dash-content">
+
+    <!-- ====== TAGESANSICHT ====== -->
+    <div class="dash-view active" id="view-today">
+      <div class="stats-bar" id="today-stats"></div>
+      <div id="today-content"></div>
+    </div>
+
+    <!-- ====== WOCHENANSICHT ====== -->
+    <div class="dash-view" id="view-week">
+      <div class="stats-bar" id="week-stats"></div>
+      <div id="week-content"></div>
+    </div>
+
+    <!-- ====== AUFTRAGSÜBERSICHT ====== -->
+    <div class="dash-view" id="view-orders">
+      <div class="stats-bar" id="orders-stats"></div>
+      <div id="orders-content"></div>
+    </div>
+
+  </div>
+
+  <!-- Auto-Refresh Indicator -->
+  <div class="refresh-indicator">
+    <div class="refresh-dot"></div>
+    <span>Auto-Refresh <span id="refresh-countdown">60</span>s</span>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    // ---- Helpers ----
+    var DAY_NAMES = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
+    var DAY_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function getWeekDates(year, kw) {
+      var jan4 = new Date(year, 0, 4);
+      var dow = jan4.getDay() || 7;
+      var monday = new Date(jan4);
+      monday.setDate(jan4.getDate() - dow + 1 + (kw - 1) * 7);
+      var dates = [];
+      for (var i = 0; i < 5; i++) {
+        var d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(d);
+      }
+      return dates;
+    }
+
+    function fmtDate(d) {
+      return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    }
+
+    function fmtDateShort(d) {
+      return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    }
+
+    function isoDate(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
+    function getProjectName(projectId) {
+      var p = Storage.getProjects().find(function(pr) { return pr.id === projectId; });
+      return p ? p.article : 'Projekt #' + projectId;
+    }
+
+    function getProjectShort(projectId) {
+      var name = getProjectName(projectId);
+      return name.length > 35 ? name.substring(0, 33) + '\u2026' : name;
+    }
+
+    function getCustomerName(customerId) {
+      var custs = Storage.getCustomers();
+      var c = custs.find(function(cu) { return cu.id === customerId; });
+      return c ? c.name : '';
+    }
+
+    function getAreaLabel(area) {
+      if (area === 'konstruktion') return 'Konstruktion';
+      if (area === 'fertigung') return 'Fertigung';
+      if (area === 'montage') return 'Montage';
+      return area || '-';
+    }
+
+    function getAreaBadge(area) {
+      var cls = area === 'fertigung' ? 'badge-accent' : (area === 'konstruktion' ? 'badge-info' : 'badge-warning');
+      return '<span class="badge ' + cls + '">' + getAreaLabel(area) + '</span>';
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'erledigt' || status === 'abgeschlossen') return '<span class="badge badge-success">Erledigt</span>';
+      if (status === 'in_bearbeitung' || status === 'aktiv') return '<span class="badge badge-warning">Aktiv</span>';
+      if (status === 'blockiert') return '<span class="badge badge-danger">Blockiert</span>';
+      return '<span class="badge badge-info">Offen</span>';
+    }
+
+    function getProgressColor(pct) {
+      if (pct >= 80) return 'var(--success)';
+      if (pct >= 40) return 'var(--warning)';
+      return 'var(--primary-light)';
+    }
+
+    function getReportForTask(task, dateStr, reports) {
+      if (!reports) return null;
+      var empReports = reports.filter(function(r) { return r.employeeId === task.employeeId; });
+      for (var i = 0; i < empReports.length; i++) {
+        var rep = empReports[i];
+        if (rep.report && Array.isArray(rep.report)) {
+          var match = rep.report.find(function(entry) {
+            return entry.projectId === task.projectId;
+          });
+          if (match) return match;
+        }
+      }
+      return null;
+    }
+
+    // ---- Clock ----
+    function updateClock() {
+      var now = new Date();
+      document.getElementById('dash-clock').textContent =
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0') + ':' +
+        String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('dash-date').textContent =
+        now.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+      document.getElementById('dash-kw').textContent = 'KW ' + getKW(now) + ' / ' + now.getFullYear();
+    }
+
+    // ---- View Switching ----
+    function switchDashView(view) {
+      document.querySelectorAll('.dash-view').forEach(function(v) { v.classList.remove('active'); });
+      document.querySelectorAll('.dash-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.getElementById('view-' + view).classList.add('active');
+      var tabs = document.querySelectorAll('.dash-tab');
+      var idx = view === 'today' ? 0 : (view === 'week' ? 1 : 2);
+      tabs[idx].classList.add('active');
+    }
+
+    // ---- Fullscreen ----
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // ---- Get all tasks with context ----
+    function getTodayTasks() {
+      var now = new Date();
+      var year = now.getFullYear();
+      var kw = getKW(now);
+      var dayOfWeek = (now.getDay() + 6) % 7; // 0=Mo, 4=Fr
+      var plan = Storage.getWeekPlan(year, kw);
+      var todayIso = isoDate(now);
+
+      // Filter tasks for today
+      var tasks = plan.filter(function(t) {
+        return t.day === 'week' || t.day === dayOfWeek;
+      });
+
+      // Enrich with report data
+      var allReports = Storage.getAllReports(todayIso);
+      tasks.forEach(function(t) {
+        t._report = getReportForTask(t, todayIso, allReports);
+        t._project = Storage.getProjects().find(function(p) { return p.id === t.projectId; });
+        t._employee = Storage.getEmployees().find(function(e) { return e.id === t.employeeId; });
+        // Check work step status
+        if (t.workStepId && t._project) {
+          var steps = Storage.getProjectSteps(t.projectId);
+          t._step = steps.find(function(s) { return s.id === t.workStepId; });
+        }
+      });
+
+      return tasks;
+    }
+
+    function getWeekTasks() {
+      var now = new Date();
+      var year = now.getFullYear();
+      var kw = getKW(now);
+      var plan = Storage.getWeekPlan(year, kw);
+      var dates = getWeekDates(year, kw);
+
+      // Enrich
+      plan.forEach(function(t) {
+        t._project = Storage.getProjects().find(function(p) { return p.id === t.projectId; });
+        t._employee = Storage.getEmployees().find(function(e) { return e.id === t.employeeId; });
+        if (t.workStepId) {
+          var steps = Storage.getProjectSteps(t.projectId);
+          t._step = steps.find(function(s) { return s.id === t.workStepId; });
+        }
+        // Get report for each day
+        if (t.day !== 'week' && dates[t.day]) {
+          var dayIso = isoDate(dates[t.day]);
+          var reps = Storage.getAllReports(dayIso);
+          t._report = getReportForTask(t, dayIso, reps);
+        }
+      });
+
+      return { plan: plan, dates: dates };
+    }
+
+    // ============================================
+    //  TAGESANSICHT
+    // ============================================
+    function renderToday() {
+      var tasks = getTodayTasks();
+      var employees = Storage.getEmployees();
+      var projects = Storage.getProjects();
+      var now = new Date();
+      var todayIso = isoDate(now);
+
+      // Stats
+      var totalTasks = tasks.length;
+      var doneTasks = tasks.filter(function(t) { return t._report; }).length;
+      var deviations = tasks.filter(function(t) { return t._report && t._report.deviation; }).length;
+      var activeProjects = [];
+      tasks.forEach(function(t) {
+        if (activeProjects.indexOf(t.projectId) === -1) activeProjects.push(t.projectId);
+      });
+      var activeEmps = [];
+      tasks.forEach(function(t) {
+        if (activeEmps.indexOf(t.employeeId) === -1) activeEmps.push(t.employeeId);
+      });
+
+      var statsHtml = ''
+        + '<div class="stat-card highlight"><div class="stat-label">Aufgaben heute</div>'
+        + '<div class="stat-value">' + totalTasks + '</div>'
+        + '<div class="stat-sub">' + activeProjects.length + ' Auftr\u00e4ge betroffen</div></div>'
+
+        + '<div class="stat-card success"><div class="stat-label">Erledigt</div>'
+        + '<div class="stat-value">' + doneTasks + ' <span style="font-size:16px; color:var(--text-light);">/ ' + totalTasks + '</span></div>'
+        + '<div class="stat-sub">' + (totalTasks > 0 ? Math.round(doneTasks / totalTasks * 100) : 0) + '% abgeschlossen</div></div>'
+
+        + '<div class="stat-card' + (deviations > 0 ? ' danger' : '') + '"><div class="stat-label">Abweichungen</div>'
+        + '<div class="stat-value" style="color:' + (deviations > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + deviations + '</div>'
+        + '<div class="stat-sub">' + (deviations > 0 ? 'Plan\u00e4nderung erforderlich' : 'Alles im Plan') + '</div></div>'
+
+        + '<div class="stat-card"><div class="stat-label">Mitarbeiter aktiv</div>'
+        + '<div class="stat-value">' + activeEmps.length + ' <span style="font-size:16px; color:var(--text-light);">/ ' + employees.length + '</span></div>'
+        + '<div class="stat-sub">im Einsatz heute</div></div>';
+
+      document.getElementById('today-stats').innerHTML = statsHtml;
+
+      // ---- Swim Lanes per Employee ----
+      var h = '<div class="section-title">Aufgaben nach Mitarbeiter</div>';
+      h += '<div class="swim-lanes">';
+
+      employees.forEach(function(emp) {
+        var empTasks = tasks.filter(function(t) { return t.employeeId === emp.id; });
+
+        h += '<div class="swim-lane">';
+        h += '<div class="swim-lane-header">'
+          + '<span class="emp-name">' + escapeHtml(emp.name) + '</span>'
+          + '<span class="emp-role">' + escapeHtml(emp.role) + '</span>'
+          + '</div>';
+        h += '<div class="swim-lane-body">';
+
+        if (empTasks.length === 0) {
+          h += '<div class="task-empty">Keine Aufgaben heute</div>';
+        } else {
+          empTasks.forEach(function(t) {
+            var isDone = !!t._report;
+            var hasDev = t._report && t._report.deviation;
+            var isBlocked = t._step && t._step.status === 'blockiert';
+            var isActive = t._step && t._step.status === 'in_bearbeitung';
+            var cardClass = isDone ? 'task-done' : (isBlocked ? 'task-blocked' : (isActive ? 'task-active' : ''));
+
+            h += '<div class="task-card ' + cardClass + '">';
+            h += '<div class="task-project">' + escapeHtml(getProjectShort(t.projectId)) + '</div>';
+            if (t.description) {
+              h += '<div class="task-desc">' + escapeHtml(t.description.substring(0, 60)) + '</div>';
+            }
+            h += '<div class="task-meta">';
+            h += getAreaBadge(t.area);
+            if (t.plannedQty) h += ' <span>\u25B8 ' + t.plannedQty + ' Stk.</span>';
+            if (t.plannedMinutes) h += ' <span>\u25B8 ' + t.plannedMinutes + ' Min</span>';
+            if (isDone) {
+              h += hasDev
+                ? ' <span class="badge badge-danger">Abweichung</span>'
+                : ' <span class="badge badge-success">Erledigt</span>';
+            }
+            if (t._step) {
+              var pct = t._step.totalQty > 0 ? Math.round(t._step.completedQty / t._step.totalQty * 100) : 0;
+              h += ' <span>\u25B8 Schritt: ' + pct + '%</span>';
+            }
+            h += '</div>';
+
+            // Mini progress if step linked
+            if (t._step && t._step.totalQty > 0) {
+              var stepPct = Math.round(t._step.completedQty / t._step.totalQty * 100);
+              h += '<div class="progress-sm" style="margin-top:8px;">'
+                + '<div class="fill" style="width:' + stepPct + '%; background:' + getProgressColor(stepPct) + ';"></div>'
+                + '</div>';
+            }
+            h += '</div>';
+          });
+        }
+        h += '</div></div>';
+      });
+      h += '</div>';
+
+      // ---- Table: Tasks by Order ----
+      h += '<div class="section-title mt-16" style="margin-top:32px;">Aufgaben nach Auftrag</div>';
+      h += '<div style="overflow-x:auto;">';
+      h += '<table class="dash-table"><thead><tr>'
+        + '<th>Auftrag</th>'
+        + '<th>Kunde</th>'
+        + '<th>Mitarbeiter</th>'
+        + '<th>Bereich</th>'
+        + '<th>Aufgabe</th>'
+        + '<th>Menge</th>'
+        + '<th>Zeit</th>'
+        + '<th>Arbeitsschritt</th>'
+        + '<th>Status</th>'
+        + '</tr></thead><tbody>';
+
+      // Group by project
+      var byProject = {};
+      tasks.forEach(function(t) {
+        if (!byProject[t.projectId]) byProject[t.projectId] = [];
+        byProject[t.projectId].push(t);
+      });
+
+      Object.keys(byProject).forEach(function(pid) {
+        var pTasks = byProject[pid];
+        var proj = pTasks[0]._project;
+        pTasks.forEach(function(t, i) {
+          var isDone = !!t._report;
+          var hasDev = t._report && t._report.deviation;
+          var rowCls = isDone ? 'row-done' : (t._step && t._step.status === 'in_bearbeitung' ? 'row-active' : '');
+          h += '<tr class="' + rowCls + '">';
+          if (i === 0) {
+            h += '<td rowspan="' + pTasks.length + '" class="fw-700" style="vertical-align:top; border-right:2px solid var(--border);">'
+              + escapeHtml(getProjectShort(t.projectId))
+              + (proj && proj.orderNumber ? '<br><span class="text-muted" style="font-size:11px;">' + escapeHtml(proj.orderNumber) + '</span>' : '')
+              + '</td>';
+            h += '<td rowspan="' + pTasks.length + '" style="vertical-align:top; font-size:12px;">'
+              + (proj ? escapeHtml(getCustomerName(proj.customerId)) : '-') + '</td>';
+          }
+          h += '<td class="fw-600">' + (t._employee ? escapeHtml(t._employee.name) : '-') + '</td>';
+          h += '<td>' + getAreaBadge(t.area) + '</td>';
+          h += '<td>' + escapeHtml(t.description ? t.description.substring(0, 40) : '-') + '</td>';
+          h += '<td>' + (t.plannedQty ? t.plannedQty + ' Stk.' : '-') + '</td>';
+          h += '<td>' + (t.plannedMinutes ? t.plannedMinutes + ' Min' : '-') + '</td>';
+          h += '<td style="font-size:12px;">' + (t._step ? escapeHtml(t._step.name.substring(0, 25)) : '-') + '</td>';
+          h += '<td>';
+          if (isDone && hasDev) {
+            h += '<span class="badge badge-danger">Abweichung</span>';
+          } else if (isDone) {
+            h += '<span class="badge badge-success">Erledigt</span>';
+          } else {
+            h += '<span class="badge badge-info">Offen</span>';
+          }
+          h += '</td></tr>';
+        });
+      });
+
+      if (tasks.length === 0) {
+        h += '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-light);">Keine Aufgaben f\u00fcr heute geplant</td></tr>';
+      }
+
+      h += '</tbody></table></div>';
+      document.getElementById('today-content').innerHTML = h;
+    }
+
+    // ============================================
+    //  WOCHENANSICHT
+    // ============================================
+    function renderWeek() {
+      var data = getWeekTasks();
+      var plan = data.plan;
+      var dates = data.dates;
+      var employees = Storage.getEmployees();
+      var now = new Date();
+      var todayIdx = -1;
+      var todayIso = isoDate(now);
+      dates.forEach(function(d, i) { if (isoDate(d) === todayIso) todayIdx = i; });
+
+      // Stats
+      var totalTasks = plan.length;
+      var weekDoneTasks = 0;
+      dates.forEach(function(dt, di) {
+        var dayIso = isoDate(dt);
+        var reps = Storage.getAllReports(dayIso);
+        plan.forEach(function(t) {
+          if ((t.day === 'week' || t.day === di) && reps.length > 0) {
+            var r = getReportForTask(t, dayIso, reps);
+            if (r) weekDoneTasks++;
+          }
+        });
+      });
+
+      var projectIds = [];
+      plan.forEach(function(t) {
+        if (projectIds.indexOf(t.projectId) === -1) projectIds.push(t.projectId);
+      });
+
+      var statsHtml = ''
+        + '<div class="stat-card highlight"><div class="stat-label">Aufgaben KW ' + getKW(now) + '</div>'
+        + '<div class="stat-value">' + totalTasks + '</div>'
+        + '<div class="stat-sub">' + DAY_SHORT[todayIdx] + '. ' + fmtDateShort(dates[todayIdx >= 0 ? todayIdx : 0]) + ' bis ' + fmtDateShort(dates[4]) + '</div></div>'
+
+        + '<div class="stat-card success"><div class="stat-label">Abgeschlossen</div>'
+        + '<div class="stat-value">' + weekDoneTasks + '</div>'
+        + '<div class="stat-sub">Berichte eingereicht</div></div>'
+
+        + '<div class="stat-card"><div class="stat-label">Auftr\u00e4ge</div>'
+        + '<div class="stat-value">' + projectIds.length + '</div>'
+        + '<div class="stat-sub">in Bearbeitung</div></div>'
+
+        + '<div class="stat-card"><div class="stat-label">Mitarbeiter</div>'
+        + '<div class="stat-value">' + employees.length + '</div>'
+        + '<div class="stat-sub">eingeplant</div></div>';
+
+      document.getElementById('week-stats').innerHTML = statsHtml;
+
+      // ---- Week Grid ----
+      var h = '<div class="section-title">Wochenplan KW ' + getKW(now) + '</div>';
+      h += '<div style="overflow-x:auto;">';
+      h += '<div class="week-grid">';
+
+      // Header row
+      h += '<div class="week-cell header">Mitarbeiter</div>';
+      dates.forEach(function(d, i) {
+        var isToday = i === todayIdx;
+        h += '<div class="week-cell header' + (isToday ? ' today' : '') + '">'
+          + DAY_NAMES[i] + '<br><span style="font-weight:400; font-size:11px;">' + fmtDateShort(d) + '</span>'
+          + (isToday ? ' <span class="badge badge-accent" style="margin-left:6px;">Heute</span>' : '')
+          + '</div>';
+      });
+
+      // Employee rows
+      employees.forEach(function(emp) {
+        h += '<div class="week-cell emp-cell">'
+          + '<div><div>' + escapeHtml(emp.name) + '</div>'
+          + '<div style="font-size:11px; color:var(--text-light); font-weight:400;">' + escapeHtml(emp.role) + '</div></div></div>';
+
+        dates.forEach(function(d, di) {
+          var isToday = di === todayIdx;
+          var dayIso = isoDate(d);
+          var dayTasks = plan.filter(function(t) {
+            return t.employeeId === emp.id && (t.day === 'week' || t.day === di);
+          });
+
+          // Get reports
+          var dayReports = Storage.getAllReports(dayIso);
+
+          h += '<div class="week-cell' + (isToday ? ' today' : '') + '">';
+
+          if (dayTasks.length === 0) {
+            h += '<div style="color:var(--text-light); font-size:11px; text-align:center; padding-top:20px;">&mdash;</div>';
+          } else {
+            dayTasks.forEach(function(t) {
+              var report = getReportForTask(t, dayIso, dayReports);
+              var isDone = !!report;
+              var hasDev = report && report.deviation;
+              var wtClass = isDone ? 'wt-done' : (t.day === 'week' ? '' : 'wt-active');
+
+              h += '<div class="week-task ' + wtClass + '">';
+              h += '<div class="wt-project">' + escapeHtml(getProjectShort(t.projectId).substring(0, 22)) + '</div>';
+              if (t.description) h += '<div class="wt-desc">' + escapeHtml(t.description.substring(0, 30)) + '</div>';
+              // Meta line
+              var meta = [];
+              if (t.plannedQty) meta.push(t.plannedQty + ' Stk.');
+              if (t.plannedMinutes) meta.push(t.plannedMinutes + ' Min');
+              if (meta.length > 0) h += '<div class="wt-desc">' + meta.join(' | ') + '</div>';
+              if (isDone) {
+                h += hasDev
+                  ? '<span class="badge badge-danger" style="margin-top:4px;">Abweichung</span>'
+                  : '<span class="badge badge-success" style="margin-top:4px;">OK</span>';
+              }
+              h += '</div>';
+            });
+          }
+          h += '</div>';
+        });
+      });
+
+      h += '</div></div>';
+
+      // ---- Week Table by Order ----
+      h += '<div class="section-title" style="margin-top:32px;">Wochenaufgaben nach Auftrag</div>';
+      h += '<div style="overflow-x:auto;">';
+      h += '<table class="dash-table"><thead><tr>'
+        + '<th>Auftrag</th>'
+        + '<th>Kunde</th>'
+        + '<th>Mitarbeiter</th>'
+        + '<th>Bereich</th>'
+        + '<th>Aufgabe</th>'
+        + '<th>Tag</th>'
+        + '<th>Menge</th>'
+        + '<th>Zeit</th>'
+        + '<th>Arbeitsschritt</th>'
+        + '</tr></thead><tbody>';
+
+      var byProj = {};
+      plan.forEach(function(t) {
+        if (!byProj[t.projectId]) byProj[t.projectId] = [];
+        byProj[t.projectId].push(t);
+      });
+
+      Object.keys(byProj).forEach(function(pid) {
+        var pTasks = byProj[pid];
+        var proj = pTasks[0]._project;
+        pTasks.forEach(function(t, i) {
+          h += '<tr>';
+          if (i === 0) {
+            h += '<td rowspan="' + pTasks.length + '" class="fw-700" style="vertical-align:top; border-right:2px solid var(--border);">'
+              + escapeHtml(getProjectShort(t.projectId))
+              + (proj && proj.orderNumber ? '<br><span class="text-muted" style="font-size:11px;">' + escapeHtml(proj.orderNumber) + '</span>' : '')
+              + '</td>';
+            h += '<td rowspan="' + pTasks.length + '" style="vertical-align:top; font-size:12px;">'
+              + (proj ? escapeHtml(getCustomerName(proj.customerId)) : '-') + '</td>';
+          }
+          h += '<td class="fw-600">' + (t._employee ? escapeHtml(t._employee.name) : '-') + '</td>';
+          h += '<td>' + getAreaBadge(t.area) + '</td>';
+          h += '<td>' + escapeHtml(t.description ? t.description.substring(0, 40) : '-') + '</td>';
+          h += '<td>' + (t.day === 'week' ? '<span class="badge badge-info">Mo\u2013Fr</span>' : '<span class="fw-600">' + DAY_SHORT[t.day] + '</span>') + '</td>';
+          h += '<td>' + (t.plannedQty ? t.plannedQty + ' Stk.' : '-') + '</td>';
+          h += '<td>' + (t.plannedMinutes ? t.plannedMinutes + ' Min' : '-') + '</td>';
+          h += '<td style="font-size:12px;">' + (t._step ? escapeHtml(t._step.name.substring(0, 25)) : '-') + '</td>';
+          h += '</tr>';
+        });
+      });
+
+      if (plan.length === 0) {
+        h += '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-light);">Keine Aufgaben f\u00fcr diese Woche geplant</td></tr>';
+      }
+
+      h += '</tbody></table></div>';
+      document.getElementById('week-content').innerHTML = h;
+    }
+
+    // ============================================
+    //  AUFTRAGSÜBERSICHT
+    // ============================================
+    function renderOrders() {
+      var projects = Storage.getProjects();
+      var activeProjects = projects.filter(function(p) {
+        return p.status !== 'Abgeschlossen' && p.status !== 'Storniert';
+      });
+
+      // Stats
+      var totalActive = activeProjects.length;
+      var inProd = activeProjects.filter(function(p) { return p.status === 'In Produktion'; }).length;
+      var withDeadline = activeProjects.filter(function(p) { return p.deadline; });
+      var overdue = withDeadline.filter(function(p) { return new Date(p.deadline) < new Date(); }).length;
+
+      var statsHtml = ''
+        + '<div class="stat-card highlight"><div class="stat-label">Aktive Auftr\u00e4ge</div>'
+        + '<div class="stat-value">' + totalActive + '</div></div>'
+        + '<div class="stat-card success"><div class="stat-label">In Produktion</div>'
+        + '<div class="stat-value">' + inProd + '</div></div>'
+        + '<div class="stat-card' + (overdue > 0 ? ' danger' : '') + '"><div class="stat-label">\u00dcberf\u00e4llig</div>'
+        + '<div class="stat-value" style="color:' + (overdue > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + overdue + '</div></div>';
+
+      document.getElementById('orders-stats').innerHTML = statsHtml;
+
+      // Table
+      var h = '<div class="section-title">Auftr\u00e4ge mit Arbeitsschritten</div>';
+      h += '<div style="overflow-x:auto;">';
+
+      activeProjects.forEach(function(p) {
+        var pSteps = Storage.getProjectSteps(p.id);
+        var durCalc = pSteps.length > 0 ? Schedule.calcProjectDuration(p.id) : null;
+        var customerName = getCustomerName(p.customerId);
+
+        h += '<div style="background:var(--card); border-radius:10px; margin-bottom:16px; overflow:hidden; box-shadow:var(--shadow);">';
+
+        // Order header
+        h += '<div style="padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">';
+        h += '<div>';
+        h += '<span class="fw-700" style="font-size:15px;">Pos. ' + p.id + ': ' + escapeHtml(p.article) + '</span>';
+        h += ' <span class="badge badge-info">' + escapeHtml(p.status) + '</span>';
+        if (p.priority === 'Hoch' || p.priority === 'Dringend') {
+          h += ' <span class="badge badge-danger">' + escapeHtml(p.priority) + '</span>';
+        }
+        h += '<div style="font-size:12px; color:var(--text-light); margin-top:2px;">'
+          + escapeHtml(customerName)
+          + (p.orderNumber ? ' | ' + escapeHtml(p.orderNumber) : '')
+          + ' | ' + p.quantity + ' ' + p.unit
+          + '</div>';
+        h += '</div>';
+        h += '<div style="text-align:right; font-size:12px;">';
+        if (p.deadline) {
+          var dl = new Date(p.deadline);
+          var isOverdue = dl < new Date();
+          h += '<div style="color:' + (isOverdue ? 'var(--danger)' : 'var(--text-light)') + ';">'
+            + 'Frist: ' + dl.toLocaleDateString('de-DE') + (isOverdue ? ' <span class="badge badge-danger">\u00dcberf\u00e4llig</span>' : '')
+            + '</div>';
+        }
+        if (durCalc) {
+          var hrs = Math.round(durCalc.sollWithBuffer / 60 * 10) / 10;
+          h += '<div class="text-muted">Soll: ' + hrs + 'h | Fortschritt: ' + durCalc.progressPercent + '%</div>';
+        }
+        h += '</div></div>';
+
+        // Steps table
+        if (pSteps.length > 0) {
+          h += '<table class="dash-table" style="margin:0;"><thead><tr>'
+            + '<th style="width:36px;">Nr.</th>'
+            + '<th>Arbeitsschritt</th>'
+            + '<th>Zugewiesen</th>'
+            + '<th style="width:80px;">Soll/Stk</th>'
+            + '<th style="width:100px;">Fortschritt</th>'
+            + '<th style="width:90px;">Soll ges.</th>'
+            + '<th style="width:90px;">Ist ges.</th>'
+            + '<th style="width:90px;">Abweichung</th>'
+            + '<th style="width:80px;">Status</th>'
+            + '<th style="width:150px;">Abh\u00e4ngig von</th>'
+            + '</tr></thead><tbody>';
+
+          pSteps.forEach(function(s) {
+            var emp = s.assignedTo ? Storage.getEmployees().find(function(e) { return e.id === s.assignedTo; }) : null;
+            var pct = s.totalQty > 0 ? Math.round(s.completedQty / s.totalQty * 100) : 0;
+            var sollTotal = s.plannedDuration * s.totalQty;
+            var abw = s.actualDuration - sollTotal;
+            var abwColor = abw > 0 ? 'var(--danger)' : (abw < 0 ? 'var(--success)' : 'var(--text)');
+            var rowCls = s.status === 'abgeschlossen' ? 'row-done' : (s.status === 'in_bearbeitung' ? 'row-active' : '');
+
+            // Dependencies
+            var depNames = [];
+            (s.dependsOn || []).forEach(function(depId) {
+              var dep = pSteps.find(function(ds) { return ds.id === depId; });
+              if (dep) {
+                var icon = dep.status === 'abgeschlossen' ? '<span class="text-success">\u2713</span>' : '<span class="text-danger">\u2717</span>';
+                depNames.push(icon + ' #' + dep.order + ' ' + escapeHtml(dep.name.substring(0, 15)));
+              }
+            });
+
+            h += '<tr class="' + rowCls + '">'
+              + '<td class="fw-700">#' + s.order + '</td>'
+              + '<td class="fw-600">' + escapeHtml(s.name) + '</td>'
+              + '<td>' + (emp ? escapeHtml(emp.name) : '<span class="text-muted">-</span>') + '</td>'
+              + '<td>' + s.plannedDuration + ' Min</td>'
+              + '<td>'
+              + '  <div style="display:flex; align-items:center; gap:6px;">'
+              + '    <div class="progress-sm" style="flex:1;">'
+              + '      <div class="fill" style="width:' + pct + '%; background:' + getProgressColor(pct) + ';"></div>'
+              + '    </div>'
+              + '    <span style="font-size:11px; min-width:40px;">' + s.completedQty + '/' + s.totalQty + '</span>'
+              + '  </div>'
+              + '</td>'
+              + '<td>' + sollTotal + ' Min</td>'
+              + '<td class="fw-600">' + s.actualDuration + ' Min</td>'
+              + '<td style="color:' + abwColor + '; font-weight:600;">' + (abw === 0 ? '-' : (abw > 0 ? '+' : '') + abw + ' Min') + '</td>'
+              + '<td>' + getStatusBadge(s.status) + '</td>'
+              + '<td style="font-size:11px; line-height:1.6;">' + (depNames.length > 0 ? depNames.join('<br>') : '-') + '</td>'
+              + '</tr>';
+          });
+
+          h += '</tbody></table>';
+        } else {
+          h += '<div style="padding:16px; text-align:center; color:var(--text-light); font-size:13px;">Keine Arbeitsschritte definiert</div>';
+        }
+        h += '</div>';
+      });
+
+      h += '</div>';
+      document.getElementById('orders-content').innerHTML = h;
+    }
+
+    // ============================================
+    //  INIT & AUTO-REFRESH
+    // ============================================
+    var REFRESH_INTERVAL = 60; // seconds
+    var refreshTimer = REFRESH_INTERVAL;
+
+    function renderAll() {
+      renderToday();
+      renderWeek();
+      renderOrders();
+    }
+
+    function tick() {
+      updateClock();
+      refreshTimer--;
+      document.getElementById('refresh-countdown').textContent = refreshTimer;
+      if (refreshTimer <= 0) {
+        refreshTimer = REFRESH_INTERVAL;
+        renderAll();
+      }
+    }
+
+    // Initial render
+    updateClock();
+    renderAll();
+
+    // Update clock every second, refresh data every REFRESH_INTERVAL
+    setInterval(tick, 1000);
+
+    // Auto-cycle views every 20 seconds (optional for unattended display)
+    var autoCycle = false;
+    var cycleViews = ['today', 'week', 'orders'];
+    var cycleIdx = 0;
+
+    function startAutoCycle() {
+      autoCycle = true;
+      setInterval(function() {
+        if (!autoCycle) return;
+        cycleIdx = (cycleIdx + 1) % cycleViews.length;
+        switchDashView(cycleViews[cycleIdx]);
+      }, 20000);
+    }
+
+    // URL param ?cycle=1 activates auto-cycling
+    if (window.location.search.indexOf('cycle=1') !== -1) {
+      startAutoCycle();
+    }
+  </script>
+</body>
+</html>
