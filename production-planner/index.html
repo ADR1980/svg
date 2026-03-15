@@ -496,6 +496,10 @@
           </select>
         </div>
         <div class="form-group">
+          <label>Email-Adresse (= Login-Name)</label>
+          <input type="email" class="form-control" id="emp-email" placeholder="vorname.nachname@firma.de" required>
+        </div>
+        <div class="form-group">
           <label>Login-PIN (f&uuml;r Mitarbeiter-App)</label>
           <input type="text" class="form-control" id="emp-pin" inputmode="numeric" maxlength="10" placeholder="z.B. 1234" required>
         </div>
@@ -1071,6 +1075,12 @@
       }
 
       Storage.saveWeekPlan(currentYear, currentKW, plan);
+
+      // Bei neuer Aufgabe: Email-Benachrichtigung an Mitarbeiter
+      if (editIndex === '' && typeof Notify !== 'undefined') {
+        try { Notify.notifyTaskAssigned(taskData.employeeId, taskData.projectId, currentKW); } catch(err) {}
+      }
+
       closeModal('modal-task');
       renderPlanning();
     }
@@ -1091,16 +1101,18 @@
     function renderEmployees() {
       const employees = Storage.getEmployees();
       document.getElementById('employees-table').innerHTML = `
-        <tr><th>ID</th><th>Name</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
+        <tr><th>ID</th><th>Name</th><th>Email (Login)</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
       ` + employees.map(e => `
         <tr>
           <td><strong>${escapeHtml(e.id)}</strong></td>
           <td>${escapeHtml(e.name)}</td>
+          <td>${e.email ? '<a href="mailto:' + escapeHtml(e.email) + '" style="color: var(--primary-light);">' + escapeHtml(e.email) + '</a>' : '<span class="text-muted text-sm">nicht hinterlegt</span>'}</td>
           <td><span class="badge badge-info">${escapeHtml(e.role)}</span></td>
           <td><code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">${e.pin ? '****' : 'nicht gesetzt'}</code></td>
           <td style="white-space: nowrap;">
             <button class="btn btn-sm btn-outline" onclick="editEmployee('${e.id}')">Bearbeiten</button>
             <button class="btn btn-sm btn-primary" onclick="openChangePinModal('${e.id}')">PIN &auml;ndern</button>
+            ${e.email ? '<button class="btn btn-sm btn-outline" onclick="sendReminderEmail(\'' + e.id + '\')">Erinnerung</button>' : ''}
             <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${e.id}')">L&ouml;schen</button>
           </td>
         </tr>
@@ -1114,6 +1126,7 @@
       document.getElementById('emp-name').value = emp ? emp.name : '';
       document.getElementById('emp-role').value = emp ? emp.role : 'Fertigung';
       document.getElementById('emp-pin').value = emp ? (emp.pin || '') : '';
+      document.getElementById('emp-email').value = emp ? (emp.email || '') : '';
       showModal('modal-employee');
     }
 
@@ -1131,7 +1144,8 @@
         id: document.getElementById('emp-id').value.toUpperCase(),
         name: document.getElementById('emp-name').value,
         role: document.getElementById('emp-role').value,
-        pin: document.getElementById('emp-pin').value
+        pin: document.getElementById('emp-pin').value,
+        email: document.getElementById('emp-email').value
       };
 
       if (editId) {
@@ -1148,6 +1162,18 @@
       Storage.saveEmployees(employees);
       closeModal('modal-employee');
       renderEmployees();
+    }
+
+    function sendReminderEmail(empId) {
+      const employees = Storage.getEmployees();
+      const emp = employees.find(e => e.id === empId);
+      if (!emp || !emp.email) {
+        alert('Keine Email-Adresse hinterlegt!');
+        return;
+      }
+      const subject = encodeURIComponent('Erinnerung: Tagesbericht ausstehend');
+      const body = encodeURIComponent('Hallo ' + emp.name + ',\n\nbitte denke daran, deinen Tagesbericht für heute einzureichen.\n\nViele Grüße\nATC Produktionsplanung');
+      window.open('mailto:' + emp.email + '?subject=' + subject + '&body=' + body);
     }
 
     function deleteEmployee(id) {

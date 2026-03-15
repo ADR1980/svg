@@ -206,8 +206,8 @@
     <div class="login-title">ATC Produktion</div>
     <div class="login-subtitle">Mitarbeiter-App</div>
     <div class="login-card">
-      <label>Mitarbeiter</label>
-      <select id="login-employee"></select>
+      <label>Email-Adresse</label>
+      <input type="email" id="login-email" placeholder="ihre.email@firma.de" autocomplete="email" style="text-align: center; margin-bottom: 20px;">
       <label>PIN</label>
       <input type="password" id="login-pin" placeholder="PIN eingeben" inputmode="numeric" maxlength="10" style="text-align: center; letter-spacing: 6px;">
       <div id="login-error" style="color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none;">Falscher PIN. Bitte erneut versuchen.</div>
@@ -305,10 +305,6 @@
 
     // ---- LOGIN ----
     function initLogin() {
-      const employees = Storage.getEmployees();
-      const sel = document.getElementById('login-employee');
-      sel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
-
       // Check if already logged in (session-based)
       const emp = Auth.getLoggedInEmployee();
       if (emp) {
@@ -316,27 +312,36 @@
         showApp();
         return;
       }
+      // Restore last used email
+      const lastEmail = localStorage.getItem('atc_last_email');
+      if (lastEmail) document.getElementById('login-email').value = lastEmail;
       document.getElementById('login-screen').style.display = 'flex';
     }
 
     function doLogin() {
-      const empId = document.getElementById('login-employee').value;
+      const email = document.getElementById('login-email').value.trim();
       const pin = document.getElementById('login-pin').value;
       const errorEl = document.getElementById('login-error');
 
+      if (!email) {
+        errorEl.textContent = 'Bitte Email-Adresse eingeben.';
+        errorEl.style.display = 'block';
+        return;
+      }
       if (!pin) {
         errorEl.textContent = 'Bitte PIN eingeben.';
         errorEl.style.display = 'block';
         return;
       }
 
-      const result = Auth.loginEmployee(empId, pin);
+      const result = Auth.loginEmployee(email, pin);
       if (result) {
         currentEmployee = result;
+        localStorage.setItem('atc_last_email', email);
         errorEl.style.display = 'none';
         showApp();
       } else {
-        errorEl.textContent = 'Falscher PIN. Bitte erneut versuchen.';
+        errorEl.textContent = 'Email oder PIN falsch. Bitte erneut versuchen.';
         errorEl.style.display = 'block';
         document.getElementById('login-pin').value = '';
         document.getElementById('login-pin').focus();
@@ -355,7 +360,7 @@
     function showApp() {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('main-app').style.display = 'block';
-      document.getElementById('user-display').textContent = currentEmployee.name + ' | ' + currentEmployee.role;
+      document.getElementById('user-display').textContent = currentEmployee.name + ' | ' + currentEmployee.email;
       renderToday();
     }
 
@@ -405,9 +410,10 @@
       const projects = Storage.getProjects();
       let html = '';
 
-      myTasks.forEach(task => {
+      myTasks.forEach((task, taskIdx) => {
         const proj = projects.find(p => p.id === task.projectId);
         const isReported = !!report;
+        const taskPhotos = TaskPhotos.getPhotos(currentEmployee.id, isoDate, task.projectId);
         html += `
           <div class="card task-card ${isReported ? 'completed' : ''}">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -439,6 +445,18 @@
                 <div class="text-sm text-muted mt-8">${getProgressLabel(task.area, proj[task.area] || 0)}</div>
               </div>
             ` : ''}
+
+            <!-- Fotos zur Aufgabe -->
+            <div class="mt-8" style="border-top: 1px solid var(--border); padding-top: 8px;">
+              <div class="fw-600 text-sm mb-8">Fotos zur Dokumentation (${taskPhotos.length})</div>
+              <div class="photo-upload" id="task-photos-${task.projectId}">
+                ${taskPhotos.map((ph, i) => `<img src="${ph.data}" class="photo-preview" onclick="removeTaskPhoto(${task.projectId}, ${i})" title="Tippen zum Entfernen">`).join('')}
+                <label class="photo-add" for="task-photo-input-${task.projectId}">+</label>
+              </div>
+              <input type="file" id="task-photo-input-${task.projectId}" accept="image/*" capture="environment" multiple style="display:none;" onchange="addTaskPhoto(event, ${task.projectId})">
+              <div class="text-sm text-muted mt-8">Fotos mit der Kamera aufnehmen oder aus Galerie w&auml;hlen</div>
+            </div>
+
             ${!isReported ? `
               <div class="task-actions">
                 <button class="btn btn-accent btn-sm" onclick="goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description)}', ${task.plannedQty || 0})">
@@ -513,7 +531,16 @@
       const existingReport = Storage.getDailyReport(today, currentEmployee.id);
       const projects = Storage.getProjects();
 
-      reportPhotos = existingReport ? (existingReport.photos || []) : [];
+      // Merge task photos + existing report photos
+      const taskPhotoData = projectId ? TaskPhotos.getPhotos(currentEmployee.id, today, projectId) : [];
+      const taskPhotoUrls = taskPhotoData.map(p => p.data);
+      if (existingReport && existingReport.photos && existingReport.photos.length > 0) {
+        reportPhotos = existingReport.photos;
+      } else if (taskPhotoUrls.length > 0) {
+        reportPhotos = taskPhotoUrls;
+      } else {
+        reportPhotos = [];
+      }
 
       const projOptions = projects.map(p =>
         `<option value="${p.id}" ${projectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
@@ -715,6 +742,16 @@
         Storage.saveProjects(projects);
       }
 
+      // Email-Benachrichtigung bei Abweichung an Admin
+      if (report.deviation && proj) {
+        Notify.notifyDeviationToAdmin(
+          currentEmployee.name,
+          proj.article,
+          report.deviationReason,
+          formatDate(new Date())
+        );
+      }
+
       alert('Bericht erfolgreich eingereicht!');
 
       // Go back to today
@@ -777,6 +814,42 @@
       }
 
       document.getElementById('history-list').innerHTML = html;
+    }
+
+    // ---- AUFGABEN-FOTOS ----
+    function addTaskPhoto(event, projectId) {
+      const today = getISODate(new Date());
+      const files = event.target.files;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxSize = 1200;
+            let w = img.width, h = img.height;
+            if (w > maxSize || h > maxSize) {
+              if (w > h) { h = (h / w) * maxSize; w = maxSize; }
+              else { w = (w / h) * maxSize; h = maxSize; }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            TaskPhotos.addPhoto(currentEmployee.id, today, projectId, canvas.toDataURL('image/jpeg', 0.7));
+            renderToday();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      event.target.value = '';
+    }
+
+    function removeTaskPhoto(projectId, index) {
+      if (!confirm('Foto entfernen?')) return;
+      const today = getISODate(new Date());
+      TaskPhotos.removePhoto(currentEmployee.id, today, projectId, index);
+      renderToday();
     }
 
     // ---- PIN ÄNDERN ----
