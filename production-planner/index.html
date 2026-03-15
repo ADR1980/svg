@@ -576,6 +576,19 @@
           </div>
         </div>
 
+        <!-- Abschnitt: Zeitliche Sicherheit -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Zeitliche Sicherheitsaufschl&auml;ge</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Absoluter Aufschlag (Minuten)</label>
+            <input type="number" class="form-control" id="proj-buffer-min" min="0" value="0" placeholder="z.B. 120">
+          </div>
+          <div class="form-group">
+            <label>Prozentualer Aufschlag (%)</label>
+            <input type="number" class="form-control" id="proj-buffer-pct" min="0" max="100" value="0" step="1" placeholder="z.B. 10">
+          </div>
+        </div>
+
         <!-- Abschnitt: Kaufmännisch -->
         <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Kaufm&auml;nnisch</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -1404,6 +1417,95 @@
     }
 
     // Track expanded state per project
+    function fmtDuration(minutes) {
+      if (minutes < 60) return minutes + ' Min';
+      var h = Math.floor(minutes / 60);
+      var m = minutes % 60;
+      if (h < 8) return h + 'h ' + (m > 0 ? m + 'min' : '');
+      var days = (minutes / 480).toFixed(1); // 8h Arbeitstag
+      return h + 'h (' + days + ' AT)';
+    }
+
+    function renderDurationComparison(dc, project) {
+      var maxBar = Math.max(dc.sollWithBuffer, dc.projectedWithBuffer, dc.istMinutes, 1);
+      var sollPct = Math.round(dc.criticalPathMin / maxBar * 100);
+      var bufPct = Math.round(dc.totalBuffer / maxBar * 100);
+      var istPct = Math.round(dc.istMinutes / maxBar * 100);
+      var projPct = Math.round(dc.projectedWithBuffer / maxBar * 100);
+
+      var devColor = dc.deviationFactor > 1.1 ? 'var(--danger)' : (dc.deviationFactor < 0.95 ? 'var(--success)' : 'var(--text)');
+      var projColor = dc.projectedWithBuffer > dc.sollWithBuffer ? 'var(--danger)' : 'var(--success)';
+      var devLabel = dc.deviationFactor > 1.1 ? 'langsamer' : (dc.deviationFactor < 0.95 ? 'schneller' : 'im Plan');
+
+      var h = '<div style="margin-top:12px; padding:12px; background:var(--bg); border-radius:8px; border-left:4px solid ' + projColor + ';">'
+        + '<div class="flex justify-between items-center mb-8">'
+        + '  <div class="fw-600 text-sm" style="color:var(--primary);">Fertigungsdauer</div>'
+        + '  <div class="text-sm">'
+        + '    Abweichungsfaktor: <span style="color:' + devColor + ';font-weight:600;">' + dc.deviationFactor.toFixed(2) + 'x</span>'
+        + '    <span class="text-muted">(' + devLabel + ')</span>'
+        + '  </div>'
+        + '</div>';
+
+      // Soll bar
+      h += '<div class="mb-8">'
+        + '<div class="flex justify-between text-sm mb-8">'
+        + '  <span>Soll (krit. Pfad)</span>'
+        + '  <span class="fw-600">' + fmtDuration(dc.criticalPathMin) + (dc.totalBuffer > 0 ? ' + ' + fmtDuration(dc.totalBuffer) + ' Puffer = ' + fmtDuration(dc.sollWithBuffer) : '') + '</span>'
+        + '</div>'
+        + '<div style="height:14px; background:#ddd; border-radius:4px; overflow:hidden; display:flex;">'
+        + '  <div style="width:' + sollPct + '%; background:var(--primary); border-radius:4px 0 0 4px;"></div>'
+        + (dc.totalBuffer > 0 ? '  <div style="width:' + bufPct + '%; background:var(--primary-light); opacity:0.5;"></div>' : '')
+        + '</div></div>';
+
+      // Ist bar
+      h += '<div class="mb-8">'
+        + '<div class="flex justify-between text-sm mb-8">'
+        + '  <span>Ist (bisher)</span>'
+        + '  <span class="fw-600">' + fmtDuration(dc.istMinutes) + '</span>'
+        + '</div>'
+        + '<div style="height:14px; background:#ddd; border-radius:4px; overflow:hidden;">'
+        + '  <div style="width:' + istPct + '%; background:var(--accent); border-radius:4px;"></div>'
+        + '</div></div>';
+
+      // Prognose bar
+      h += '<div class="mb-8">'
+        + '<div class="flex justify-between text-sm mb-8">'
+        + '  <span>Prognose (Ist + Rest korrigiert)</span>'
+        + '  <span class="fw-600" style="color:' + projColor + ';">' + fmtDuration(Math.round(dc.projectedWithBuffer))
+        + (dc.projectedWithBuffer > dc.sollWithBuffer
+          ? ' <span style="color:var(--danger);">(+' + fmtDuration(Math.round(dc.projectedWithBuffer - dc.sollWithBuffer)) + ')</span>'
+          : ' <span style="color:var(--success);">(-' + fmtDuration(Math.round(dc.sollWithBuffer - dc.projectedWithBuffer)) + ')</span>')
+        + '</span>'
+        + '</div>'
+        + '<div style="height:14px; background:#ddd; border-radius:4px; overflow:hidden; position:relative;">'
+        + '  <div style="width:' + projPct + '%; background:' + projColor + '; border-radius:4px;"></div>';
+      // Marker for Soll
+      var markerPos = Math.round(dc.sollWithBuffer / maxBar * 100);
+      h += '  <div style="position:absolute; top:0; left:' + markerPos + '%; width:2px; height:14px; background:var(--primary);" title="Soll inkl. Puffer"></div>';
+      h += '</div></div>';
+
+      // Stats row
+      h += '<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:4px;">';
+      h += '<div class="text-sm text-center"><div class="text-muted">Verbleibend</div><div class="fw-600">' + fmtDuration(Math.round(dc.remainingSoll)) + '</div></div>';
+      h += '<div class="text-sm text-center"><div class="text-muted">Korrigiert</div><div class="fw-600" style="color:' + devColor + ';">' + fmtDuration(Math.round(dc.remainingAdjusted)) + '</div></div>';
+      h += '<div class="text-sm text-center"><div class="text-muted">Fortschritt</div><div class="fw-600">' + dc.progressPercent + '%</div></div>';
+
+      // Puffer
+      if (dc.totalBuffer > 0) {
+        var bufferUsed = Math.max(0, dc.projectedWithBuffer - dc.criticalPathAdj - dc.totalBuffer);
+        h += '<div class="text-sm text-center"><div class="text-muted">Puffer</div><div class="fw-600">'
+          + (project.bufferPercent > 0 ? project.bufferPercent + '% + ' : '')
+          + (project.bufferMinutes > 0 ? project.bufferMinutes + ' Min' : '')
+          + '</div></div>';
+      } else {
+        h += '<div class="text-sm text-center"><div class="text-muted">Puffer</div><div class="fw-600 text-muted">-</div></div>';
+      }
+      h += '</div>';
+
+      h += '</div>';
+      return h;
+    }
+
     var expandedProjects = {};
 
     function toggleProjectSteps(projectId, event) {
@@ -1554,6 +1656,13 @@
           + '</div>';
 
         if (p.remarks) html += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
+
+        // ---- ZEITLICHER SOLL/IST-VERGLEICH ----
+        var durCalc = pSteps.length > 0 ? Schedule.calcProjectDuration(p.id) : null;
+        if (durCalc) {
+          html += renderDurationComparison(durCalc, p);
+        }
+
         html += '</div>'; // end clickable project header area
 
         // ---- ARBEITSSCHRITTE SECTION (inline, under project) ----
@@ -1710,7 +1819,8 @@
         'proj-delivery-date': 'deliveryDate', 'proj-material': 'material',
         'proj-surface': 'surfaceTreatment', 'proj-tolerance': 'toleranceClass',
         'proj-weight': 'weight', 'proj-inspection': 'inspectionReq',
-        'proj-packaging': 'packagingReq', 'proj-unit-price': 'unitPrice',
+        'proj-packaging': 'packagingReq', 'proj-buffer-min': 'bufferMinutes',
+        'proj-buffer-pct': 'bufferPercent', 'proj-unit-price': 'unitPrice',
         'proj-order-value': 'orderValue', 'proj-delivery-addr': 'deliveryAddress',
         'proj-internal-note': 'internalNote', 'proj-remarks': 'remarks',
         'proj-konstr': 'konstruktion', 'proj-fert': 'fertigung', 'proj-mont': 'montage'
@@ -1734,6 +1844,8 @@
         document.getElementById('proj-konstr').value = '0';
         document.getElementById('proj-fert').value = '0';
         document.getElementById('proj-mont').value = '0';
+        document.getElementById('proj-buffer-min').value = '0';
+        document.getElementById('proj-buffer-pct').value = '0';
         document.getElementById('proj-unit-price').value = '0';
         document.getElementById('proj-order-value').value = '0';
       }
@@ -1773,6 +1885,8 @@
         konstruktion: parseFloat(document.getElementById('proj-konstr').value),
         fertigung: parseFloat(document.getElementById('proj-fert').value),
         montage: parseFloat(document.getElementById('proj-mont').value),
+        bufferMinutes: parseInt(document.getElementById('proj-buffer-min').value) || 0,
+        bufferPercent: parseInt(document.getElementById('proj-buffer-pct').value) || 0,
         unitPrice: parseFloat(document.getElementById('proj-unit-price').value) || 0,
         orderValue: parseFloat(document.getElementById('proj-order-value').value) || 0,
         deliveryAddress: document.getElementById('proj-delivery-addr').value,
