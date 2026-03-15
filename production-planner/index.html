@@ -406,28 +406,33 @@
 
   <!-- MODALS -->
   <div class="modal-overlay" id="modal-project">
-    <div class="modal">
+    <div class="modal" style="max-width: 900px;">
       <div class="modal-header">
         <h2 id="project-modal-title">Neues Projekt</h2>
         <button class="modal-close" onclick="closeModal('modal-project')">&times;</button>
       </div>
       <form onsubmit="saveProject(event)">
         <input type="hidden" id="proj-edit-id">
-        <div class="form-group">
-          <label>Kunde</label>
-          <select class="form-control" id="proj-customer" required>
-            <option value="">-- Kunde w&auml;hlen --</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Auftragsnummer</label>
-          <input type="text" class="form-control" id="proj-order">
+
+        <!-- Abschnitt: Auftragsdaten -->
+        <div class="fw-600 mb-8" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Auftragsdaten</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Kunde</label>
+            <select class="form-control" id="proj-customer" required>
+              <option value="">-- Kunde w&auml;hlen --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Auftragsnummer</label>
+            <input type="text" class="form-control" id="proj-order">
+          </div>
         </div>
         <div class="form-group">
           <label>Artikelbezeichnung</label>
           <input type="text" class="form-control" id="proj-article" required>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Menge</label>
             <input type="number" class="form-control" id="proj-qty" required>
@@ -436,7 +441,76 @@
             <label>Einheit</label>
             <input type="text" class="form-control" id="proj-unit" value="St&uuml;ck">
           </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" id="proj-status"></select>
+          </div>
         </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Priorit&auml;t</label>
+            <select class="form-control" id="proj-priority"></select>
+          </div>
+          <div class="form-group">
+            <label>Zeichnungsnummer</label>
+            <input type="text" class="form-control" id="proj-drawing" placeholder="z.B. ZNR-2026-001">
+          </div>
+        </div>
+
+        <!-- Abschnitt: Termine -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Termine</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Auftragseingang</label>
+            <input type="date" class="form-control" id="proj-order-date">
+          </div>
+          <div class="form-group">
+            <label>Produktionsstart</label>
+            <input type="date" class="form-control" id="proj-start">
+          </div>
+          <div class="form-group">
+            <label>Ziel-Fertigstellung</label>
+            <input type="date" class="form-control" id="proj-deadline">
+          </div>
+          <div class="form-group">
+            <label>Liefertermin</label>
+            <input type="date" class="form-control" id="proj-delivery-date">
+          </div>
+        </div>
+
+        <!-- Abschnitt: Fertigung -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Fertigung &amp; Material</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Material / Werkstoff</label>
+            <input type="text" class="form-control" id="proj-material" placeholder="z.B. Alu 7075, Stahl S235">
+          </div>
+          <div class="form-group">
+            <label>Oberfl&auml;chenbehandlung</label>
+            <input type="text" class="form-control" id="proj-surface" placeholder="z.B. Eloxiert, Verzinkt">
+          </div>
+          <div class="form-group">
+            <label>Toleranzklasse</label>
+            <input type="text" class="form-control" id="proj-tolerance" placeholder="z.B. ISO 2768-m">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Gewicht pro St&uuml;ck (kg)</label>
+            <input type="text" class="form-control" id="proj-weight" placeholder="z.B. 0.5">
+          </div>
+          <div class="form-group">
+            <label>Pr&uuml;fvorschrift</label>
+            <input type="text" class="form-control" id="proj-inspection" placeholder="z.B. 100% Sichtpr\u00fcfung">
+          </div>
+          <div class="form-group">
+            <label>Verpackungsvorschrift</label>
+            <input type="text" class="form-control" id="proj-packaging" placeholder="z.B. Einzelverpackt">
+          </div>
+        </div>
+
+        <!-- Abschnitt: Fortschritt -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Fortschritt</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Konstruktion</label>
@@ -451,20 +525,35 @@
             <select class="form-control" id="proj-mont"></select>
           </div>
         </div>
+
+        <!-- Abschnitt: Kaufmännisch -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Kaufm&auml;nnisch</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label>Startdatum</label>
-            <input type="date" class="form-control" id="proj-start">
+            <label>St&uuml;ckpreis (&euro;)</label>
+            <input type="number" class="form-control" id="proj-unit-price" step="0.01" min="0">
           </div>
           <div class="form-group">
-            <label>Ziel-Fertigstellung</label>
-            <input type="date" class="form-control" id="proj-deadline">
+            <label>Auftragswert (&euro;)</label>
+            <input type="number" class="form-control" id="proj-order-value" step="0.01" min="0">
           </div>
+        </div>
+        <div class="form-group">
+          <label>Lieferadresse</label>
+          <input type="text" class="form-control" id="proj-delivery-addr" placeholder="Falls abweichend von Kundenadresse">
+        </div>
+
+        <!-- Abschnitt: Notizen -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Notizen</div>
+        <div class="form-group">
+          <label>Interne Notiz</label>
+          <textarea class="form-control" id="proj-internal-note" rows="2" placeholder="Nur intern sichtbar"></textarea>
         </div>
         <div class="form-group">
           <label>Bemerkungen</label>
           <textarea class="form-control" id="proj-remarks" rows="2"></textarea>
         </div>
+
         <div class="flex gap-8" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-project')">Abbrechen</button>
           <button type="submit" class="btn btn-primary">Speichern</button>
@@ -1068,113 +1157,178 @@
       return reports;
     }
 
+    function getPriorityBadge(priority) {
+      const colors = { 'Dringend': 'badge-danger', 'Hoch': 'badge-warning', 'Normal': 'badge-info', 'Niedrig': 'badge-success' };
+      return '<span class="badge ' + (colors[priority] || 'badge-info') + '">' + escapeHtml(priority || 'Normal') + '</span>';
+    }
+
     function renderProjects() {
       const projects = Storage.getProjects();
       let html = '';
       projects.forEach(p => {
         const recentReports = getRecentProjectReports(p.id, 7);
         const hasDeviations = recentReports.some(r => r.deviation);
-        const lastReport = recentReports.length > 0 ? recentReports[0] : null;
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
+        const status = Schedule.getStatus(avg, expected);
+        const deadlineStr = p.deadline ? new Date(p.deadline).toLocaleDateString('de-DE') : '';
+        const deliveryStr = p.deliveryDate ? new Date(p.deliveryDate).toLocaleDateString('de-DE') : '';
 
-        html += `<div class="card" style="cursor: pointer;" onclick="editProject(${p.id})">
-          <div class="flex justify-between items-center mb-8">
-            <div>
-              <div class="fw-600">Pos. ${p.id}: ${escapeHtml(p.article)}</div>
-              <div class="text-sm text-muted">${getCustomerName(p.customerId)} ${p.orderNumber ? '| Auftrag: ' + escapeHtml(p.orderNumber) : ''}</div>
-            </div>
-            <div class="text-right">
-              <div class="fw-600">${p.quantity} ${p.unit}</div>
-              ${p.remarks ? '<div class="text-sm text-muted">' + escapeHtml(p.remarks) + '</div>' : ''}
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-            <div>
-              <div class="text-sm text-muted mb-8">Konstruktion</div>
-              ${renderMiniProgress(p.konstruktion)}
-              <div class="text-sm mt-8">${getProgressLabel('konstruktion', p.konstruktion)}</div>
-            </div>
-            <div>
-              <div class="text-sm text-muted mb-8">Fertigung</div>
-              ${renderMiniProgress(p.fertigung)}
-              <div class="text-sm mt-8">${getProgressLabel('fertigung', p.fertigung)}</div>
-            </div>
-            <div>
-              <div class="text-sm text-muted mb-8">Montage</div>
-              ${renderMiniProgress(p.montage)}
-              <div class="text-sm mt-8">${getProgressLabel('montage', p.montage)}</div>
-            </div>
-          </div>
-          ${recentReports.length > 0 ? `
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-              <div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">
-                Letzte Berichte (7 Tage)
-                ${hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>'}
-              </div>
-              ${recentReports.slice(0, 3).map(r => `
-                <div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
-                  <div>
-                    <span class="text-muted">${formatDate(r.date)}</span> -
-                    <strong>${escapeHtml(r.employeeName)}</strong>:
-                    ${escapeHtml((r.completedWork || '').substring(0, 60))}${(r.completedWork || '').length > 60 ? '...' : ''}
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    ${r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : ''}
-                    ${r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>'}
-                  </div>
-                </div>
-              `).join('')}
-              ${recentReports.length > 3 ? '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>' : ''}
-            </div>
-          ` : ''}
-        </div>`;
+        html += '<div class="card" style="cursor: pointer;" onclick="editProject(' + p.id + ')">'
+          + '<div class="flex justify-between items-center mb-8">'
+          + '  <div>'
+          + '    <div class="flex items-center gap-8">'
+          + '      <span class="status-dot status-' + status + '"></span>'
+          + '      <span class="fw-600">Pos. ' + p.id + ': ' + escapeHtml(p.article) + '</span>'
+          + '      ' + getPriorityBadge(p.priority)
+          + '      <span class="badge badge-info">' + escapeHtml(p.status || 'Auftragseingang') + '</span>'
+          + '    </div>'
+          + '    <div class="text-sm text-muted" style="margin-top:4px;">' + getCustomerName(p.customerId)
+          +        (p.orderNumber ? ' | Auftrag: ' + escapeHtml(p.orderNumber) : '')
+          +        (p.drawingNumber ? ' | Zeichnung: ' + escapeHtml(p.drawingNumber) : '')
+          + '    </div>'
+          + '  </div>'
+          + '  <div class="text-right">'
+          + '    <div class="fw-600">' + p.quantity + ' ' + p.unit + '</div>'
+          + (p.unitPrice ? '<div class="text-sm text-muted">' + p.unitPrice.toFixed(2) + ' \u20ac/Stk.</div>' : '')
+          + (p.orderValue ? '<div class="text-sm fw-600" style="color:var(--accent);">' + p.orderValue.toFixed(2) + ' \u20ac</div>' : '')
+          + '  </div>'
+          + '</div>';
+
+        // Details-Zeile
+        const details = [];
+        if (p.material) details.push('Material: ' + escapeHtml(p.material));
+        if (p.surfaceTreatment) details.push('Oberfl\u00e4che: ' + escapeHtml(p.surfaceTreatment));
+        if (p.toleranceClass) details.push('Toleranz: ' + escapeHtml(p.toleranceClass));
+        if (p.weight) details.push('Gewicht: ' + escapeHtml(p.weight) + ' kg');
+        if (details.length > 0) {
+          html += '<div class="text-sm text-muted mb-8" style="display:flex; gap:16px; flex-wrap:wrap;">'
+            + details.map(d => '<span>' + d + '</span>').join('')
+            + '</div>';
+        }
+
+        // Termine-Zeile
+        const dates = [];
+        if (p.orderDate) dates.push('Auftragseingang: ' + new Date(p.orderDate).toLocaleDateString('de-DE'));
+        if (p.startDate) dates.push('Start: ' + new Date(p.startDate).toLocaleDateString('de-DE'));
+        if (deadlineStr) dates.push('Fertigstellung: ' + deadlineStr);
+        if (deliveryStr) dates.push('Liefertermin: ' + deliveryStr);
+        if (dates.length > 0) {
+          html += '<div class="text-sm mb-8" style="display:flex; gap:16px; flex-wrap:wrap; color:var(--primary-light);">'
+            + dates.map(d => '<span>' + d + '</span>').join('')
+            + '</div>';
+        }
+
+        // Fortschritt
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">'
+          + '<div><div class="text-sm text-muted mb-8">Konstruktion</div>' + renderMiniProgress(p.konstruktion) + '<div class="text-sm mt-8">' + getProgressLabel('konstruktion', p.konstruktion) + '</div></div>'
+          + '<div><div class="text-sm text-muted mb-8">Fertigung</div>' + renderMiniProgress(p.fertigung) + '<div class="text-sm mt-8">' + getProgressLabel('fertigung', p.fertigung) + '</div></div>'
+          + '<div><div class="text-sm text-muted mb-8">Montage</div>' + renderMiniProgress(p.montage) + '<div class="text-sm mt-8">' + getProgressLabel('montage', p.montage) + '</div></div>'
+          + '</div>';
+
+        // Zusatzinfos
+        if (p.inspectionReq || p.packagingReq) {
+          html += '<div class="text-sm mt-8 text-muted">'
+            + (p.inspectionReq ? 'Pr\u00fcfung: ' + escapeHtml(p.inspectionReq) + ' ' : '')
+            + (p.packagingReq ? '| Verpackung: ' + escapeHtml(p.packagingReq) : '')
+            + '</div>';
+        }
+        if (p.remarks) {
+          html += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
+        }
+        if (p.internalNote) {
+          html += '<div class="text-sm mt-8" style="color:var(--text-light); font-style:italic;">Intern: ' + escapeHtml(p.internalNote) + '</div>';
+        }
+
+        // Berichte
+        if (recentReports.length > 0) {
+          html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">'
+            + '<div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">'
+            + 'Letzte Berichte (7 Tage) '
+            + (hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>')
+            + '</div>';
+          recentReports.slice(0, 3).forEach(r => {
+            html += '<div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">'
+              + '<div><span class="text-muted">' + formatDate(r.date) + '</span> - <strong>' + escapeHtml(r.employeeName) + '</strong>: '
+              + escapeHtml((r.completedWork || '').substring(0, 60)) + ((r.completedWork || '').length > 60 ? '...' : '') + '</div>'
+              + '<div style="display: flex; align-items: center; gap: 6px;">'
+              + (r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : '')
+              + (r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>')
+              + '</div></div>';
+          });
+          if (recentReports.length > 3) html += '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>';
+          html += '</div>';
+        }
+
+        html += '</div>';
       });
       document.getElementById('projects-list').innerHTML = html;
     }
 
     function openProjectModal(project) {
+      // Kunden-Dropdown
       const sel = document.getElementById('proj-customer');
       sel.innerHTML = '<option value="">-- Kunde w&auml;hlen --</option>';
       getCustomers().forEach(c => {
-        sel.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)} (${c.id})</option>`;
+        sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.name) + ' (' + c.id + ')</option>';
       });
 
+      // Fortschritts-Dropdowns
       ['konstruktion', 'fertigung', 'montage'].forEach((type, i) => {
         const selId = ['proj-konstr', 'proj-fert', 'proj-mont'][i];
         const s = document.getElementById(selId);
         s.innerHTML = '';
         ATC_DATA.progressScales[type].forEach(step => {
-          s.innerHTML += `<option value="${step.value}">${Math.round(step.value * 100)}% - ${escapeHtml(step.label)}</option>`;
+          s.innerHTML += '<option value="' + step.value + '">' + Math.round(step.value * 100) + '% - ' + escapeHtml(step.label) + '</option>';
         });
       });
 
+      // Status-Dropdown
+      const statusSel = document.getElementById('proj-status');
+      statusSel.innerHTML = ATC_DATA.projectStatuses.map(s =>
+        '<option value="' + s + '">' + escapeHtml(s) + '</option>'
+      ).join('');
+
+      // Priorität-Dropdown
+      const prioSel = document.getElementById('proj-priority');
+      prioSel.innerHTML = ATC_DATA.priorities.map(p =>
+        '<option value="' + p + '">' + escapeHtml(p) + '</option>'
+      ).join('');
+
+      const fields = {
+        'proj-edit-id': 'id', 'proj-customer': 'customerId', 'proj-order': 'orderNumber',
+        'proj-article': 'article', 'proj-qty': 'quantity', 'proj-unit': 'unit',
+        'proj-status': 'status', 'proj-priority': 'priority', 'proj-drawing': 'drawingNumber',
+        'proj-order-date': 'orderDate', 'proj-start': 'startDate', 'proj-deadline': 'deadline',
+        'proj-delivery-date': 'deliveryDate', 'proj-material': 'material',
+        'proj-surface': 'surfaceTreatment', 'proj-tolerance': 'toleranceClass',
+        'proj-weight': 'weight', 'proj-inspection': 'inspectionReq',
+        'proj-packaging': 'packagingReq', 'proj-unit-price': 'unitPrice',
+        'proj-order-value': 'orderValue', 'proj-delivery-addr': 'deliveryAddress',
+        'proj-internal-note': 'internalNote', 'proj-remarks': 'remarks',
+        'proj-konstr': 'konstruktion', 'proj-fert': 'fertigung', 'proj-mont': 'montage'
+      };
+
       if (project) {
         document.getElementById('project-modal-title').textContent = 'Projekt bearbeiten';
-        document.getElementById('proj-edit-id').value = project.id;
-        document.getElementById('proj-customer').value = project.customerId;
-        document.getElementById('proj-order').value = project.orderNumber || '';
-        document.getElementById('proj-article').value = project.article;
-        document.getElementById('proj-qty').value = project.quantity;
-        document.getElementById('proj-unit').value = project.unit;
-        document.getElementById('proj-konstr').value = project.konstruktion;
-        document.getElementById('proj-fert').value = project.fertigung;
-        document.getElementById('proj-mont').value = project.montage;
-        document.getElementById('proj-start').value = project.startDate || '';
-        document.getElementById('proj-deadline').value = project.deadline || '';
-        document.getElementById('proj-remarks').value = project.remarks || '';
+        Object.keys(fields).forEach(elId => {
+          const el = document.getElementById(elId);
+          if (el) el.value = project[fields[elId]] !== undefined ? project[fields[elId]] : '';
+        });
       } else {
         document.getElementById('project-modal-title').textContent = 'Neues Projekt';
-        document.getElementById('proj-edit-id').value = '';
-        document.getElementById('proj-customer').value = '';
-        document.getElementById('proj-order').value = '';
-        document.getElementById('proj-article').value = '';
-        document.getElementById('proj-qty').value = '';
+        Object.keys(fields).forEach(elId => {
+          const el = document.getElementById(elId);
+          if (el) el.value = '';
+        });
         document.getElementById('proj-unit').value = 'St\u00fcck';
+        document.getElementById('proj-status').value = 'Auftragseingang';
+        document.getElementById('proj-priority').value = 'Normal';
         document.getElementById('proj-konstr').value = '0';
         document.getElementById('proj-fert').value = '0';
         document.getElementById('proj-mont').value = '0';
-        document.getElementById('proj-start').value = '';
-        document.getElementById('proj-deadline').value = '';
-        document.getElementById('proj-remarks').value = '';
+        document.getElementById('proj-unit-price').value = '0';
+        document.getElementById('proj-order-value').value = '0';
       }
       showModal('modal-project');
     }
@@ -1196,11 +1350,26 @@
         article: document.getElementById('proj-article').value,
         quantity: parseInt(document.getElementById('proj-qty').value),
         unit: document.getElementById('proj-unit').value,
+        status: document.getElementById('proj-status').value,
+        priority: document.getElementById('proj-priority').value,
+        drawingNumber: document.getElementById('proj-drawing').value,
+        orderDate: document.getElementById('proj-order-date').value || '',
+        startDate: document.getElementById('proj-start').value || '',
+        deadline: document.getElementById('proj-deadline').value || '',
+        deliveryDate: document.getElementById('proj-delivery-date').value || '',
+        material: document.getElementById('proj-material').value,
+        surfaceTreatment: document.getElementById('proj-surface').value,
+        toleranceClass: document.getElementById('proj-tolerance').value,
+        weight: document.getElementById('proj-weight').value,
+        inspectionReq: document.getElementById('proj-inspection').value,
+        packagingReq: document.getElementById('proj-packaging').value,
         konstruktion: parseFloat(document.getElementById('proj-konstr').value),
         fertigung: parseFloat(document.getElementById('proj-fert').value),
         montage: parseFloat(document.getElementById('proj-mont').value),
-        startDate: document.getElementById('proj-start').value || '',
-        deadline: document.getElementById('proj-deadline').value || '',
+        unitPrice: parseFloat(document.getElementById('proj-unit-price').value) || 0,
+        orderValue: parseFloat(document.getElementById('proj-order-value').value) || 0,
+        deliveryAddress: document.getElementById('proj-delivery-addr').value,
+        internalNote: document.getElementById('proj-internal-note').value,
         remarks: document.getElementById('proj-remarks').value
       };
 
