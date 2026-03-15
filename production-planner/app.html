@@ -341,7 +341,7 @@
       const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mo, 4=Fr
 
       const plan = Storage.getWeekPlan(year, kw);
-      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && t.day === dayOfWeek);
+      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week'));
       const report = Storage.getDailyReport(isoDate, currentEmployee.id);
 
       if (myTasks.length === 0) {
@@ -375,6 +375,7 @@
             </div>
             <div class="task-meta">
               <span class="task-meta-item">${escapeHtml(task.area)}</span>
+              ${task.day === 'week' ? '<span class="task-meta-item" style="background:#d6eaf8; color:#2980b9;">Wochenaufgabe Mo-Fr</span>' : ''}
               ${task.plannedQty ? `<span class="task-meta-item">${task.plannedQty} Stk. geplant</span>` : ''}
               ${task.targetProgress !== undefined ? `<span class="task-meta-item">Ziel: ${Math.round(task.targetProgress * 100)}%</span>` : ''}
             </div>

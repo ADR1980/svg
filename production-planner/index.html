@@ -338,10 +338,11 @@
   <div class="modal-overlay" id="modal-task">
     <div class="modal">
       <div class="modal-header">
-        <h2>Aufgabe zuweisen</h2>
+        <h2 id="task-modal-title">Aufgabe zuweisen</h2>
         <button class="modal-close" onclick="closeModal('modal-task')">&times;</button>
       </div>
       <form onsubmit="saveTask(event)">
+        <input type="hidden" id="task-edit-index" value="">
         <div class="form-group">
           <label>Mitarbeiter</label>
           <select class="form-control" id="task-employee" required></select>
@@ -390,8 +391,9 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Tag</label>
+          <label>Zeitraum</label>
           <select class="form-control" id="task-day" required>
+            <option value="week">Ganze Woche (Mo-Fr)</option>
             <option value="0">Montag</option>
             <option value="1">Dienstag</option>
             <option value="2">Mittwoch</option>
@@ -413,9 +415,12 @@
             <select class="form-control" id="task-target-progress"></select>
           </div>
         </div>
-        <div class="flex gap-8" style="justify-content: flex-end;">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modal-task')">Abbrechen</button>
-          <button type="submit" class="btn btn-accent">Zuweisen</button>
+        <div class="flex gap-8" style="justify-content: space-between;">
+          <button type="button" class="btn btn-danger" id="task-delete-btn" style="display:none;" onclick="deleteCurrentTask()">L&ouml;schen</button>
+          <div class="flex gap-8">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-task')">Abbrechen</button>
+            <button type="submit" class="btn btn-accent" id="task-submit-btn">Zuweisen</button>
+          </div>
         </div>
       </form>
     </div>
@@ -765,18 +770,41 @@
       const allProjects = Storage.getProjects();
       employees.forEach(emp => {
         html += `<div class="kw-cell kw-project">${escapeHtml(emp.name)}<br><span class="text-sm text-muted">${escapeHtml(emp.role)}</span></div>`;
+
+        // Whole-week tasks for this employee
+        const weekTasks = plan.filter(t => t.employeeId === emp.id && t.day === 'week');
+
         for (let day = 0; day < 5; day++) {
           const dayTasks = plan.filter(t => t.employeeId === emp.id && t.day === day);
           const dayDate = dates[day];
           const dayIso = getISODate(dayDate);
           const dayReport = Storage.getDailyReport(dayIso, emp.id);
           html += `<div class="kw-cell">`;
+
+          // Show week tasks in each day cell (visually distinct)
+          weekTasks.forEach(t => {
+            const idx = plan.indexOf(t);
+            const proj = allProjects.find(p => p.id === t.projectId);
+            const reported = dayReport && dayReport.projectId === t.projectId;
+            const hasDeviation = reported && dayReport.deviation;
+            let style = 'background: var(--primary); border-left: 3px solid var(--accent); cursor: pointer;';
+            if (reported) style = 'background:' + (hasDeviation ? '#e74c3c' : '#27ae60') + '; border-left: 3px solid var(--accent); cursor: pointer; color: white;';
+            html += `<div class="kw-task" style="${style}" onclick="editTask(${idx})" title="Wochenaufgabe - Klicken zum Bearbeiten">
+              <strong>${proj ? escapeHtml(proj.article).substring(0, 20) : '?'}</strong>
+              <br><span style="font-size:10px; opacity:0.8;">${escapeHtml(t.description || '').substring(0, 25)}</span>
+              ${day === 0 ? '<br><span style="font-size:9px; opacity:0.7;">Mo-Fr</span>' : ''}
+              ${reported ? '<br><span style="font-size:10px; font-weight:600;">' + (hasDeviation ? 'Abw.!' : 'OK') + '</span>' : ''}
+            </div>`;
+          });
+
+          // Day-specific tasks
           dayTasks.forEach(t => {
+            const idx = plan.indexOf(t);
             const proj = allProjects.find(p => p.id === t.projectId);
             const reported = dayReport && dayReport.projectId === t.projectId;
             const hasDeviation = reported && dayReport.deviation;
             const bgColor = reported ? (hasDeviation ? '#fadbd8' : '#d5f5e3') : '';
-            html += `<div class="kw-task" style="${bgColor ? 'background:' + bgColor + '; color: var(--text);' : ''}" onclick="deleteTask('${emp.id}', ${day}, ${t.projectId})" title="${reported ? (hasDeviation ? 'Abweichung gemeldet' : 'Erledigt') : 'Klicken zum Entfernen'}">
+            html += `<div class="kw-task" style="${bgColor ? 'background:' + bgColor + '; color: var(--text);' : ''} cursor: pointer;" onclick="editTask(${idx})" title="Klicken zum Bearbeiten">
               <strong>${proj ? escapeHtml(proj.article).substring(0, 25) : '?'}</strong>
               <br><span style="font-size:10px; opacity:0.8;">${escapeHtml(t.description || '').substring(0, 30)}</span>
               ${t.plannedQty ? '<br><span style="font-size:10px;">' + t.plannedQty + ' Stk.</span>' : ''}
@@ -801,11 +829,17 @@
       renderPlanning();
     }
 
-    function openTaskModal() {
+    function openTaskModal(existingTask, editIndex) {
       const employees = Storage.getEmployees();
       const projects = Storage.getProjects();
       const empSel = document.getElementById('task-employee');
       const projSel = document.getElementById('task-project');
+      const isEdit = existingTask !== undefined && existingTask !== null;
+
+      document.getElementById('task-modal-title').textContent = isEdit ? 'Aufgabe bearbeiten' : 'Aufgabe zuweisen';
+      document.getElementById('task-submit-btn').textContent = isEdit ? 'Speichern' : 'Zuweisen';
+      document.getElementById('task-edit-index').value = isEdit ? editIndex : '';
+      document.getElementById('task-delete-btn').style.display = isEdit ? 'inline-flex' : 'none';
 
       empSel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
       projSel.innerHTML = '<option value="">-- Projekt w\u00e4hlen --</option>' +
@@ -814,14 +848,42 @@
           return `<option value="${p.id}">[Pos. ${p.id}] ${escapeHtml(p.article)} - ${getCustomerName(p.customerId)} (${avg}%)</option>`;
         }).join('');
 
-      // Fill target progress
-      updateTaskTargetProgress();
-      document.getElementById('task-area').addEventListener('change', updateTaskTargetProgress);
+      // Fill values if editing
+      if (isEdit) {
+        empSel.value = existingTask.employeeId;
+        projSel.value = existingTask.projectId;
+        document.getElementById('task-area').value = existingTask.area;
+        document.getElementById('task-day').value = existingTask.day;
+        document.getElementById('task-desc').value = existingTask.description || '';
+        document.getElementById('task-planned-qty').value = existingTask.plannedQty || '';
+        onTaskProjectChange();
+        updateTaskTargetProgress();
+        if (existingTask.targetProgress !== undefined) {
+          document.getElementById('task-target-progress').value = existingTask.targetProgress;
+        }
+      } else {
+        document.getElementById('task-area').value = 'fertigung';
+        document.getElementById('task-day').value = 'week';
+        document.getElementById('task-desc').value = '';
+        document.getElementById('task-planned-qty').value = '';
+        document.getElementById('task-project-preview').style.display = 'none';
+        updateTaskTargetProgress();
+      }
 
-      // Reset preview
-      document.getElementById('task-project-preview').style.display = 'none';
+      // Remove old listeners, add fresh ones
+      const areaEl = document.getElementById('task-area');
+      const newArea = areaEl.cloneNode(true);
+      areaEl.parentNode.replaceChild(newArea, areaEl);
+      newArea.addEventListener('change', updateTaskTargetProgress);
 
       showModal('modal-task');
+    }
+
+    function editTask(planIndex) {
+      const plan = Storage.getWeekPlan(currentYear, currentKW);
+      const task = plan[planIndex];
+      if (!task) return;
+      openTaskModal(task, planIndex);
     }
 
     function onTaskProjectChange() {
@@ -878,27 +940,43 @@
       e.preventDefault();
       const projId = parseInt(document.getElementById('task-project').value);
       if (!projId) { alert('Bitte ein Projekt ausw\u00e4hlen.'); return; }
-      const plan = Storage.getWeekPlan(currentYear, currentKW);
-      plan.push({
+
+      const dayVal = document.getElementById('task-day').value;
+      const taskData = {
         employeeId: document.getElementById('task-employee').value,
         projectId: projId,
         area: document.getElementById('task-area').value,
-        day: parseInt(document.getElementById('task-day').value),
+        day: dayVal === 'week' ? 'week' : parseInt(dayVal),
         description: document.getElementById('task-desc').value,
         plannedQty: parseInt(document.getElementById('task-planned-qty').value) || 0,
         targetProgress: parseFloat(document.getElementById('task-target-progress').value)
-      });
+      };
+
+      const plan = Storage.getWeekPlan(currentYear, currentKW);
+      const editIndex = document.getElementById('task-edit-index').value;
+
+      if (editIndex !== '') {
+        // Bearbeitung: bestehende Aufgabe ersetzen
+        plan[parseInt(editIndex)] = taskData;
+      } else {
+        // Neue Aufgabe
+        plan.push(taskData);
+      }
+
       Storage.saveWeekPlan(currentYear, currentKW, plan);
       closeModal('modal-task');
       renderPlanning();
     }
 
-    function deleteTask(empId, day, projId) {
-      if (!confirm('Aufgabe entfernen?')) return;
-      let plan = Storage.getWeekPlan(currentYear, currentKW);
-      const idx = plan.findIndex(t => t.employeeId === empId && t.day === day && t.projectId === projId);
-      if (idx >= 0) plan.splice(idx, 1);
+    function deleteCurrentTask() {
+      const editIndex = document.getElementById('task-edit-index').value;
+      if (editIndex === '') return;
+      if (!confirm('Aufgabe wirklich l\u00f6schen?')) return;
+
+      const plan = Storage.getWeekPlan(currentYear, currentKW);
+      plan.splice(parseInt(editIndex), 1);
       Storage.saveWeekPlan(currentYear, currentKW, plan);
+      closeModal('modal-task');
       renderPlanning();
     }
 
