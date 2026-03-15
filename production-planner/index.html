@@ -274,6 +274,7 @@
     <div class="tab" data-view="customers">Kunden</div>
     <div class="tab" data-view="projects">Projekte</div>
     <div class="tab" data-view="planning">Wochenplanung</div>
+    <div class="tab" data-view="worksteps">Arbeitsschritte</div>
     <div class="tab" data-view="employees">Mitarbeiter</div>
     <div class="tab" data-view="reports">Berichte</div>
   </div>
@@ -358,6 +359,33 @@
       <div id="projects-list"></div>
     </div>
 
+    <!-- WORK STEPS -->
+    <div class="view" id="view-worksteps">
+      <div class="toolbar">
+        <h2 style="font-size: 18px;">Arbeitsschritte &amp; Vorlagen</h2>
+        <div class="spacer"></div>
+        <button class="btn btn-outline" onclick="openOrderTemplateModal()">+ Auftragsvorlage</button>
+        <button class="btn btn-primary" onclick="openWorkStepModal()">+ Arbeitsschritt</button>
+      </div>
+
+      <!-- Arbeitsschritt-Vorlagen -->
+      <div class="card">
+        <div class="card-title">Arbeitsschritt-Stammdaten</div>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Bezeichnung</th><th>Beschreibung</th><th>Dauer (Min)</th><th>Trockenzeit</th><th>Bereich</th><th>Aktionen</th></tr>
+          </thead>
+          <tbody id="worksteps-table"></tbody>
+        </table>
+      </div>
+
+      <!-- Auftragsvorlagen -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Auftragsvorlagen</div>
+        <div id="order-templates-list"></div>
+      </div>
+    </div>
+
     <!-- PLANNING -->
     <div class="view" id="view-planning">
       <div class="toolbar">
@@ -406,28 +434,33 @@
 
   <!-- MODALS -->
   <div class="modal-overlay" id="modal-project">
-    <div class="modal">
+    <div class="modal" style="max-width: 900px;">
       <div class="modal-header">
         <h2 id="project-modal-title">Neues Projekt</h2>
         <button class="modal-close" onclick="closeModal('modal-project')">&times;</button>
       </div>
       <form onsubmit="saveProject(event)">
         <input type="hidden" id="proj-edit-id">
-        <div class="form-group">
-          <label>Kunde</label>
-          <select class="form-control" id="proj-customer" required>
-            <option value="">-- Kunde w&auml;hlen --</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Auftragsnummer</label>
-          <input type="text" class="form-control" id="proj-order">
+
+        <!-- Abschnitt: Auftragsdaten -->
+        <div class="fw-600 mb-8" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Auftragsdaten</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Kunde</label>
+            <select class="form-control" id="proj-customer" required>
+              <option value="">-- Kunde w&auml;hlen --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Auftragsnummer</label>
+            <input type="text" class="form-control" id="proj-order">
+          </div>
         </div>
         <div class="form-group">
           <label>Artikelbezeichnung</label>
           <input type="text" class="form-control" id="proj-article" required>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Menge</label>
             <input type="number" class="form-control" id="proj-qty" required>
@@ -436,7 +469,76 @@
             <label>Einheit</label>
             <input type="text" class="form-control" id="proj-unit" value="St&uuml;ck">
           </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" id="proj-status"></select>
+          </div>
         </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Priorit&auml;t</label>
+            <select class="form-control" id="proj-priority"></select>
+          </div>
+          <div class="form-group">
+            <label>Zeichnungsnummer</label>
+            <input type="text" class="form-control" id="proj-drawing" placeholder="z.B. ZNR-2026-001">
+          </div>
+        </div>
+
+        <!-- Abschnitt: Termine -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Termine</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Auftragseingang</label>
+            <input type="date" class="form-control" id="proj-order-date">
+          </div>
+          <div class="form-group">
+            <label>Produktionsstart</label>
+            <input type="date" class="form-control" id="proj-start">
+          </div>
+          <div class="form-group">
+            <label>Ziel-Fertigstellung</label>
+            <input type="date" class="form-control" id="proj-deadline">
+          </div>
+          <div class="form-group">
+            <label>Liefertermin</label>
+            <input type="date" class="form-control" id="proj-delivery-date">
+          </div>
+        </div>
+
+        <!-- Abschnitt: Fertigung -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Fertigung &amp; Material</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Material / Werkstoff</label>
+            <input type="text" class="form-control" id="proj-material" placeholder="z.B. Alu 7075, Stahl S235">
+          </div>
+          <div class="form-group">
+            <label>Oberfl&auml;chenbehandlung</label>
+            <input type="text" class="form-control" id="proj-surface" placeholder="z.B. Eloxiert, Verzinkt">
+          </div>
+          <div class="form-group">
+            <label>Toleranzklasse</label>
+            <input type="text" class="form-control" id="proj-tolerance" placeholder="z.B. ISO 2768-m">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Gewicht pro St&uuml;ck (kg)</label>
+            <input type="text" class="form-control" id="proj-weight" placeholder="z.B. 0.5">
+          </div>
+          <div class="form-group">
+            <label>Pr&uuml;fvorschrift</label>
+            <input type="text" class="form-control" id="proj-inspection" placeholder="z.B. 100% Sichtpr\u00fcfung">
+          </div>
+          <div class="form-group">
+            <label>Verpackungsvorschrift</label>
+            <input type="text" class="form-control" id="proj-packaging" placeholder="z.B. Einzelverpackt">
+          </div>
+        </div>
+
+        <!-- Abschnitt: Fortschritt -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Fortschritt</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Konstruktion</label>
@@ -451,20 +553,35 @@
             <select class="form-control" id="proj-mont"></select>
           </div>
         </div>
+
+        <!-- Abschnitt: Kaufmännisch -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Kaufm&auml;nnisch</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
-            <label>Startdatum</label>
-            <input type="date" class="form-control" id="proj-start">
+            <label>St&uuml;ckpreis (&euro;)</label>
+            <input type="number" class="form-control" id="proj-unit-price" step="0.01" min="0">
           </div>
           <div class="form-group">
-            <label>Ziel-Fertigstellung</label>
-            <input type="date" class="form-control" id="proj-deadline">
+            <label>Auftragswert (&euro;)</label>
+            <input type="number" class="form-control" id="proj-order-value" step="0.01" min="0">
           </div>
+        </div>
+        <div class="form-group">
+          <label>Lieferadresse</label>
+          <input type="text" class="form-control" id="proj-delivery-addr" placeholder="Falls abweichend von Kundenadresse">
+        </div>
+
+        <!-- Abschnitt: Notizen -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Notizen</div>
+        <div class="form-group">
+          <label>Interne Notiz</label>
+          <textarea class="form-control" id="proj-internal-note" rows="2" placeholder="Nur intern sichtbar"></textarea>
         </div>
         <div class="form-group">
           <label>Bemerkungen</label>
           <textarea class="form-control" id="proj-remarks" rows="2"></textarea>
         </div>
+
         <div class="flex gap-8" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-project')">Abbrechen</button>
           <button type="submit" class="btn btn-primary">Speichern</button>
@@ -540,13 +657,23 @@
           </select>
         </div>
         <div class="form-group">
+          <label>Arbeitsschritt (optional)</label>
+          <select class="form-control" id="task-workstep" onchange="onTaskWorkStepChange()">
+            <option value="">-- Kein spezifischer Arbeitsschritt --</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>Beschreibung der Aufgabe</label>
           <textarea class="form-control" id="task-desc" rows="3" required placeholder="Was soll der Mitarbeiter an diesem Tag erledigen?"></textarea>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Geplante St&uuml;ckzahl</label>
             <input type="number" class="form-control" id="task-planned-qty" min="0">
+          </div>
+          <div class="form-group">
+            <label>Soll-Zeit (Min)</label>
+            <input type="number" class="form-control" id="task-planned-minutes" min="0" placeholder="z.B. 480">
           </div>
           <div class="form-group">
             <label>Ziel-Fortschritt</label>
@@ -712,6 +839,107 @@
     </div>
   </div>
 
+  <!-- Modal: Arbeitsschritt-Vorlage -->
+  <div class="modal-overlay" id="modal-workstep">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="workstep-modal-title">Neuer Arbeitsschritt</h2>
+        <button class="modal-close" onclick="closeModal('modal-workstep')">&times;</button>
+      </div>
+      <form onsubmit="saveWorkStep(event)">
+        <input type="hidden" id="ws-edit-id">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>ID (eindeutig)</label>
+            <input type="text" class="form-control" id="ws-id" required placeholder="z.B. WS011">
+          </div>
+          <div class="form-group">
+            <label>Bereich</label>
+            <select class="form-control" id="ws-category">
+              <option>Konstruktion</option>
+              <option>Fertigung</option>
+              <option>Montage</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Bezeichnung</label>
+          <input type="text" class="form-control" id="ws-name" required placeholder="z.B. CNC-Fr&auml;sen">
+        </div>
+        <div class="form-group">
+          <label>Beschreibung</label>
+          <textarea class="form-control" id="ws-description" rows="2" placeholder="Detaillierte Beschreibung des Arbeitsschritts"></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Bearbeitungsdauer (Min. pro St&uuml;ck)</label>
+            <input type="number" class="form-control" id="ws-duration" min="0" required value="30">
+          </div>
+          <div class="form-group">
+            <label>Trockenzeit (Min., optional)</label>
+            <input type="number" class="form-control" id="ws-drying" min="0" value="0">
+          </div>
+        </div>
+        <div class="flex gap-8" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-workstep')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Auftragsvorlage -->
+  <div class="modal-overlay" id="modal-order-template">
+    <div class="modal" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2 id="ot-modal-title">Neue Auftragsvorlage</h2>
+        <button class="modal-close" onclick="closeModal('modal-order-template')">&times;</button>
+      </div>
+      <form onsubmit="saveOrderTemplate(event)">
+        <input type="hidden" id="ot-edit-id">
+        <div class="form-group">
+          <label>Vorlagenname</label>
+          <input type="text" class="form-control" id="ot-name" required placeholder="z.B. Standard Drehteil">
+        </div>
+        <div class="form-group">
+          <label>Beschreibung</label>
+          <textarea class="form-control" id="ot-description" rows="2"></textarea>
+        </div>
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">
+          Arbeitsschritte in dieser Vorlage
+          <button type="button" class="btn btn-outline" style="float:right; padding:2px 10px; font-size:12px;" onclick="addOTStep()">+ Schritt</button>
+        </div>
+        <div id="ot-steps-list"></div>
+        <div class="flex gap-8 mt-16" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-order-template')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Projekt-Arbeitsschritte -->
+  <div class="modal-overlay" id="modal-project-steps">
+    <div class="modal" style="max-width: 950px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 id="ps-modal-title">Arbeitsschritte</h2>
+        <button class="modal-close" onclick="closeModal('modal-project-steps')">&times;</button>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <select class="form-control" id="ps-template-select" style="flex:1;">
+          <option value="">-- Aus Vorlage &uuml;bernehmen --</option>
+        </select>
+        <button type="button" class="btn btn-outline" onclick="applyTemplateToProject()">Vorlage anwenden</button>
+        <button type="button" class="btn btn-primary" onclick="addProjectStep()">+ Schritt</button>
+      </div>
+      <div id="project-steps-content"></div>
+      <div class="flex gap-8 mt-16" style="justify-content: flex-end;">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modal-project-steps')">Schlie&szlig;en</button>
+        <button type="button" class="btn btn-primary" onclick="saveProjectStepsFromModal()">Speichern</button>
+      </div>
+    </div>
+  </div>
+
   <script src="data.js"></script>
   <script>
     // State
@@ -739,6 +967,7 @@
         case 'projects': renderProjects(); break;
         case 'planning': renderPlanning(); break;
         case 'employees': renderEmployees(); break;
+        case 'worksteps': renderWorkSteps(); break;
         case 'reports': loadReports(); break;
       }
     }
@@ -1068,113 +1297,202 @@
       return reports;
     }
 
+    function getPriorityBadge(priority) {
+      const colors = { 'Dringend': 'badge-danger', 'Hoch': 'badge-warning', 'Normal': 'badge-info', 'Niedrig': 'badge-success' };
+      return '<span class="badge ' + (colors[priority] || 'badge-info') + '">' + escapeHtml(priority || 'Normal') + '</span>';
+    }
+
     function renderProjects() {
       const projects = Storage.getProjects();
       let html = '';
       projects.forEach(p => {
         const recentReports = getRecentProjectReports(p.id, 7);
         const hasDeviations = recentReports.some(r => r.deviation);
-        const lastReport = recentReports.length > 0 ? recentReports[0] : null;
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
+        const status = Schedule.getStatus(avg, expected);
+        const deadlineStr = p.deadline ? new Date(p.deadline).toLocaleDateString('de-DE') : '';
+        const deliveryStr = p.deliveryDate ? new Date(p.deliveryDate).toLocaleDateString('de-DE') : '';
 
-        html += `<div class="card" style="cursor: pointer;" onclick="editProject(${p.id})">
-          <div class="flex justify-between items-center mb-8">
-            <div>
-              <div class="fw-600">Pos. ${p.id}: ${escapeHtml(p.article)}</div>
-              <div class="text-sm text-muted">${getCustomerName(p.customerId)} ${p.orderNumber ? '| Auftrag: ' + escapeHtml(p.orderNumber) : ''}</div>
-            </div>
-            <div class="text-right">
-              <div class="fw-600">${p.quantity} ${p.unit}</div>
-              ${p.remarks ? '<div class="text-sm text-muted">' + escapeHtml(p.remarks) + '</div>' : ''}
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-            <div>
-              <div class="text-sm text-muted mb-8">Konstruktion</div>
-              ${renderMiniProgress(p.konstruktion)}
-              <div class="text-sm mt-8">${getProgressLabel('konstruktion', p.konstruktion)}</div>
-            </div>
-            <div>
-              <div class="text-sm text-muted mb-8">Fertigung</div>
-              ${renderMiniProgress(p.fertigung)}
-              <div class="text-sm mt-8">${getProgressLabel('fertigung', p.fertigung)}</div>
-            </div>
-            <div>
-              <div class="text-sm text-muted mb-8">Montage</div>
-              ${renderMiniProgress(p.montage)}
-              <div class="text-sm mt-8">${getProgressLabel('montage', p.montage)}</div>
-            </div>
-          </div>
-          ${recentReports.length > 0 ? `
-            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-              <div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">
-                Letzte Berichte (7 Tage)
-                ${hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>'}
-              </div>
-              ${recentReports.slice(0, 3).map(r => `
-                <div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
-                  <div>
-                    <span class="text-muted">${formatDate(r.date)}</span> -
-                    <strong>${escapeHtml(r.employeeName)}</strong>:
-                    ${escapeHtml((r.completedWork || '').substring(0, 60))}${(r.completedWork || '').length > 60 ? '...' : ''}
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    ${r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : ''}
-                    ${r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>'}
-                  </div>
-                </div>
-              `).join('')}
-              ${recentReports.length > 3 ? '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>' : ''}
-            </div>
-          ` : ''}
-        </div>`;
+        html += '<div class="card" style="cursor: pointer;" onclick="editProject(' + p.id + ')">'
+          + '<div class="flex justify-between items-center mb-8">'
+          + '  <div>'
+          + '    <div class="flex items-center gap-8">'
+          + '      <span class="status-dot status-' + status + '"></span>'
+          + '      <span class="fw-600">Pos. ' + p.id + ': ' + escapeHtml(p.article) + '</span>'
+          + '      ' + getPriorityBadge(p.priority)
+          + '      <span class="badge badge-info">' + escapeHtml(p.status || 'Auftragseingang') + '</span>'
+          + '    </div>'
+          + '    <div class="text-sm text-muted" style="margin-top:4px;">' + getCustomerName(p.customerId)
+          +        (p.orderNumber ? ' | Auftrag: ' + escapeHtml(p.orderNumber) : '')
+          +        (p.drawingNumber ? ' | Zeichnung: ' + escapeHtml(p.drawingNumber) : '')
+          + '    </div>'
+          + '  </div>'
+          + '  <div class="text-right">'
+          + '    <div class="fw-600">' + p.quantity + ' ' + p.unit + '</div>'
+          + (p.unitPrice ? '<div class="text-sm text-muted">' + p.unitPrice.toFixed(2) + ' \u20ac/Stk.</div>' : '')
+          + (p.orderValue ? '<div class="text-sm fw-600" style="color:var(--accent);">' + p.orderValue.toFixed(2) + ' \u20ac</div>' : '')
+          + '  </div>'
+          + '</div>';
+
+        // Details-Zeile
+        const details = [];
+        if (p.material) details.push('Material: ' + escapeHtml(p.material));
+        if (p.surfaceTreatment) details.push('Oberfl\u00e4che: ' + escapeHtml(p.surfaceTreatment));
+        if (p.toleranceClass) details.push('Toleranz: ' + escapeHtml(p.toleranceClass));
+        if (p.weight) details.push('Gewicht: ' + escapeHtml(p.weight) + ' kg');
+        if (details.length > 0) {
+          html += '<div class="text-sm text-muted mb-8" style="display:flex; gap:16px; flex-wrap:wrap;">'
+            + details.map(d => '<span>' + d + '</span>').join('')
+            + '</div>';
+        }
+
+        // Termine-Zeile
+        const dates = [];
+        if (p.orderDate) dates.push('Auftragseingang: ' + new Date(p.orderDate).toLocaleDateString('de-DE'));
+        if (p.startDate) dates.push('Start: ' + new Date(p.startDate).toLocaleDateString('de-DE'));
+        if (deadlineStr) dates.push('Fertigstellung: ' + deadlineStr);
+        if (deliveryStr) dates.push('Liefertermin: ' + deliveryStr);
+        if (dates.length > 0) {
+          html += '<div class="text-sm mb-8" style="display:flex; gap:16px; flex-wrap:wrap; color:var(--primary-light);">'
+            + dates.map(d => '<span>' + d + '</span>').join('')
+            + '</div>';
+        }
+
+        // Fortschritt
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">'
+          + '<div><div class="text-sm text-muted mb-8">Konstruktion</div>' + renderMiniProgress(p.konstruktion) + '<div class="text-sm mt-8">' + getProgressLabel('konstruktion', p.konstruktion) + '</div></div>'
+          + '<div><div class="text-sm text-muted mb-8">Fertigung</div>' + renderMiniProgress(p.fertigung) + '<div class="text-sm mt-8">' + getProgressLabel('fertigung', p.fertigung) + '</div></div>'
+          + '<div><div class="text-sm text-muted mb-8">Montage</div>' + renderMiniProgress(p.montage) + '<div class="text-sm mt-8">' + getProgressLabel('montage', p.montage) + '</div></div>'
+          + '</div>';
+
+        // Zusatzinfos
+        if (p.inspectionReq || p.packagingReq) {
+          html += '<div class="text-sm mt-8 text-muted">'
+            + (p.inspectionReq ? 'Pr\u00fcfung: ' + escapeHtml(p.inspectionReq) + ' ' : '')
+            + (p.packagingReq ? '| Verpackung: ' + escapeHtml(p.packagingReq) : '')
+            + '</div>';
+        }
+        if (p.remarks) {
+          html += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
+        }
+        if (p.internalNote) {
+          html += '<div class="text-sm mt-8" style="color:var(--text-light); font-style:italic;">Intern: ' + escapeHtml(p.internalNote) + '</div>';
+        }
+
+        // Berichte
+        if (recentReports.length > 0) {
+          html += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">'
+            + '<div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">'
+            + 'Letzte Berichte (7 Tage) '
+            + (hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>')
+            + '</div>';
+          recentReports.slice(0, 3).forEach(r => {
+            html += '<div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">'
+              + '<div><span class="text-muted">' + formatDate(r.date) + '</span> - <strong>' + escapeHtml(r.employeeName) + '</strong>: '
+              + escapeHtml((r.completedWork || '').substring(0, 60)) + ((r.completedWork || '').length > 60 ? '...' : '') + '</div>'
+              + '<div style="display: flex; align-items: center; gap: 6px;">'
+              + (r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : '')
+              + (r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>')
+              + '</div></div>';
+          });
+          if (recentReports.length > 3) html += '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>';
+          html += '</div>';
+        }
+
+        // Arbeitsschritte-Zusammenfassung
+        var pSteps = Storage.getProjectSteps(p.id);
+        if (pSteps.length > 0) {
+          var doneSteps = pSteps.filter(function(s) { return s.status === 'abgeschlossen'; }).length;
+          var inProgSteps = pSteps.filter(function(s) { return s.status === 'in_bearbeitung'; }).length;
+          var totalSoll = pSteps.reduce(function(s, st) { return s + (st.plannedDuration * st.totalQty); }, 0);
+          var totalIst = pSteps.reduce(function(s, st) { return s + st.actualDuration; }, 0);
+          html += '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">'
+            + '<div class="text-sm">'
+            + '<span class="fw-600">Arbeitsschritte:</span> '
+            + '<span class="badge badge-success">' + doneSteps + ' fertig</span> '
+            + (inProgSteps > 0 ? '<span class="badge badge-warning">' + inProgSteps + ' in Bearb.</span> ' : '')
+            + '<span class="badge badge-info">' + pSteps.length + ' gesamt</span> '
+            + '<span class="text-muted">| Soll: ' + (totalSoll / 60).toFixed(1) + 'h | Ist: ' + (totalIst / 60).toFixed(1) + 'h</span>'
+            + '</div>'
+            + '<button class="btn btn-outline" style="padding:4px 12px;font-size:12px;" onclick="event.stopPropagation();openProjectSteps(' + p.id + ')">Schritte bearbeiten</button>'
+            + '</div>';
+        } else {
+          html += '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">'
+            + '<div class="text-sm text-muted">Keine Arbeitsschritte definiert</div>'
+            + '<button class="btn btn-primary" style="padding:4px 12px;font-size:12px;" onclick="event.stopPropagation();openProjectSteps(' + p.id + ')">+ Arbeitsschritte</button>'
+            + '</div>';
+        }
+
+        html += '</div>';
       });
       document.getElementById('projects-list').innerHTML = html;
     }
 
     function openProjectModal(project) {
+      // Kunden-Dropdown
       const sel = document.getElementById('proj-customer');
       sel.innerHTML = '<option value="">-- Kunde w&auml;hlen --</option>';
       getCustomers().forEach(c => {
-        sel.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)} (${c.id})</option>`;
+        sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.name) + ' (' + c.id + ')</option>';
       });
 
+      // Fortschritts-Dropdowns
       ['konstruktion', 'fertigung', 'montage'].forEach((type, i) => {
         const selId = ['proj-konstr', 'proj-fert', 'proj-mont'][i];
         const s = document.getElementById(selId);
         s.innerHTML = '';
         ATC_DATA.progressScales[type].forEach(step => {
-          s.innerHTML += `<option value="${step.value}">${Math.round(step.value * 100)}% - ${escapeHtml(step.label)}</option>`;
+          s.innerHTML += '<option value="' + step.value + '">' + Math.round(step.value * 100) + '% - ' + escapeHtml(step.label) + '</option>';
         });
       });
 
+      // Status-Dropdown
+      const statusSel = document.getElementById('proj-status');
+      statusSel.innerHTML = ATC_DATA.projectStatuses.map(s =>
+        '<option value="' + s + '">' + escapeHtml(s) + '</option>'
+      ).join('');
+
+      // Priorität-Dropdown
+      const prioSel = document.getElementById('proj-priority');
+      prioSel.innerHTML = ATC_DATA.priorities.map(p =>
+        '<option value="' + p + '">' + escapeHtml(p) + '</option>'
+      ).join('');
+
+      const fields = {
+        'proj-edit-id': 'id', 'proj-customer': 'customerId', 'proj-order': 'orderNumber',
+        'proj-article': 'article', 'proj-qty': 'quantity', 'proj-unit': 'unit',
+        'proj-status': 'status', 'proj-priority': 'priority', 'proj-drawing': 'drawingNumber',
+        'proj-order-date': 'orderDate', 'proj-start': 'startDate', 'proj-deadline': 'deadline',
+        'proj-delivery-date': 'deliveryDate', 'proj-material': 'material',
+        'proj-surface': 'surfaceTreatment', 'proj-tolerance': 'toleranceClass',
+        'proj-weight': 'weight', 'proj-inspection': 'inspectionReq',
+        'proj-packaging': 'packagingReq', 'proj-unit-price': 'unitPrice',
+        'proj-order-value': 'orderValue', 'proj-delivery-addr': 'deliveryAddress',
+        'proj-internal-note': 'internalNote', 'proj-remarks': 'remarks',
+        'proj-konstr': 'konstruktion', 'proj-fert': 'fertigung', 'proj-mont': 'montage'
+      };
+
       if (project) {
         document.getElementById('project-modal-title').textContent = 'Projekt bearbeiten';
-        document.getElementById('proj-edit-id').value = project.id;
-        document.getElementById('proj-customer').value = project.customerId;
-        document.getElementById('proj-order').value = project.orderNumber || '';
-        document.getElementById('proj-article').value = project.article;
-        document.getElementById('proj-qty').value = project.quantity;
-        document.getElementById('proj-unit').value = project.unit;
-        document.getElementById('proj-konstr').value = project.konstruktion;
-        document.getElementById('proj-fert').value = project.fertigung;
-        document.getElementById('proj-mont').value = project.montage;
-        document.getElementById('proj-start').value = project.startDate || '';
-        document.getElementById('proj-deadline').value = project.deadline || '';
-        document.getElementById('proj-remarks').value = project.remarks || '';
+        Object.keys(fields).forEach(elId => {
+          const el = document.getElementById(elId);
+          if (el) el.value = project[fields[elId]] !== undefined ? project[fields[elId]] : '';
+        });
       } else {
         document.getElementById('project-modal-title').textContent = 'Neues Projekt';
-        document.getElementById('proj-edit-id').value = '';
-        document.getElementById('proj-customer').value = '';
-        document.getElementById('proj-order').value = '';
-        document.getElementById('proj-article').value = '';
-        document.getElementById('proj-qty').value = '';
+        Object.keys(fields).forEach(elId => {
+          const el = document.getElementById(elId);
+          if (el) el.value = '';
+        });
         document.getElementById('proj-unit').value = 'St\u00fcck';
+        document.getElementById('proj-status').value = 'Auftragseingang';
+        document.getElementById('proj-priority').value = 'Normal';
         document.getElementById('proj-konstr').value = '0';
         document.getElementById('proj-fert').value = '0';
         document.getElementById('proj-mont').value = '0';
-        document.getElementById('proj-start').value = '';
-        document.getElementById('proj-deadline').value = '';
-        document.getElementById('proj-remarks').value = '';
+        document.getElementById('proj-unit-price').value = '0';
+        document.getElementById('proj-order-value').value = '0';
       }
       showModal('modal-project');
     }
@@ -1196,11 +1514,26 @@
         article: document.getElementById('proj-article').value,
         quantity: parseInt(document.getElementById('proj-qty').value),
         unit: document.getElementById('proj-unit').value,
+        status: document.getElementById('proj-status').value,
+        priority: document.getElementById('proj-priority').value,
+        drawingNumber: document.getElementById('proj-drawing').value,
+        orderDate: document.getElementById('proj-order-date').value || '',
+        startDate: document.getElementById('proj-start').value || '',
+        deadline: document.getElementById('proj-deadline').value || '',
+        deliveryDate: document.getElementById('proj-delivery-date').value || '',
+        material: document.getElementById('proj-material').value,
+        surfaceTreatment: document.getElementById('proj-surface').value,
+        toleranceClass: document.getElementById('proj-tolerance').value,
+        weight: document.getElementById('proj-weight').value,
+        inspectionReq: document.getElementById('proj-inspection').value,
+        packagingReq: document.getElementById('proj-packaging').value,
         konstruktion: parseFloat(document.getElementById('proj-konstr').value),
         fertigung: parseFloat(document.getElementById('proj-fert').value),
         montage: parseFloat(document.getElementById('proj-mont').value),
-        startDate: document.getElementById('proj-start').value || '',
-        deadline: document.getElementById('proj-deadline').value || '',
+        unitPrice: parseFloat(document.getElementById('proj-unit-price').value) || 0,
+        orderValue: parseFloat(document.getElementById('proj-order-value').value) || 0,
+        deliveryAddress: document.getElementById('proj-delivery-addr').value,
+        internalNote: document.getElementById('proj-internal-note').value,
         remarks: document.getElementById('proj-remarks').value
       };
 
@@ -1214,6 +1547,463 @@
 
       Storage.saveProjects(projects);
       closeModal('modal-project');
+      refreshView();
+    }
+
+    // ---- ARBEITSSCHRITTE ----
+    function renderWorkSteps() {
+      // Arbeitsschritt-Stammdaten Tabelle
+      var templates = Storage.getWorkStepTemplates();
+      var html = '';
+      templates.forEach(function(ws) {
+        html += '<tr>'
+          + '<td><code>' + escapeHtml(ws.id) + '</code></td>'
+          + '<td class="fw-600">' + escapeHtml(ws.name) + '</td>'
+          + '<td class="text-sm">' + escapeHtml(ws.description || '') + '</td>'
+          + '<td>' + ws.duration + ' Min</td>'
+          + '<td>' + (ws.dryingTime > 0 ? ws.dryingTime + ' Min' : '-') + '</td>'
+          + '<td><span class="badge badge-info">' + escapeHtml(ws.category) + '</span></td>'
+          + '<td>'
+          + '  <button class="btn btn-outline" style="padding:2px 8px;font-size:12px;" onclick="editWorkStep(\'' + ws.id + '\')">Bearbeiten</button> '
+          + '  <button class="btn btn-outline" style="padding:2px 8px;font-size:12px;color:var(--danger);" onclick="deleteWorkStep(\'' + ws.id + '\')">L\u00f6schen</button>'
+          + '</td></tr>';
+      });
+      document.getElementById('worksteps-table').innerHTML = html;
+
+      // Auftragsvorlagen
+      var ots = Storage.getOrderTemplates();
+      var otHtml = '';
+      if (ots.length === 0) {
+        otHtml = '<div class="text-muted text-sm">Keine Auftragsvorlagen vorhanden.</div>';
+      }
+      ots.forEach(function(ot) {
+        otHtml += '<div class="card" style="margin-bottom:12px; border-left:4px solid var(--primary);">'
+          + '<div class="flex justify-between items-center mb-8">'
+          + '  <div>'
+          + '    <span class="fw-600">' + escapeHtml(ot.name) + '</span>'
+          + '    <span class="text-sm text-muted"> (' + ot.steps.length + ' Schritte)</span>'
+          + '  </div>'
+          + '  <div>'
+          + '    <button class="btn btn-outline" style="padding:2px 8px;font-size:12px;" onclick="editOrderTemplate(\'' + ot.id + '\')">Bearbeiten</button> '
+          + '    <button class="btn btn-outline" style="padding:2px 8px;font-size:12px;color:var(--danger);" onclick="deleteOrderTemplate(\'' + ot.id + '\')">L\u00f6schen</button>'
+          + '  </div>'
+          + '</div>';
+        if (ot.description) {
+          otHtml += '<div class="text-sm text-muted mb-8">' + escapeHtml(ot.description) + '</div>';
+        }
+        otHtml += '<table style="font-size:13px;"><thead><tr><th>Nr.</th><th>Schritt</th><th>Dauer</th><th>Trockenzeit</th><th>Abh\u00e4ngig von</th></tr></thead><tbody>';
+        ot.steps.forEach(function(s, i) {
+          var ws = templates.find(function(t) { return t.id === s.stepId; });
+          var depNames = (s.dependsOn || []).map(function(depId) {
+            var depWs = templates.find(function(t) { return t.id === depId; });
+            return depWs ? depWs.name : depId;
+          });
+          otHtml += '<tr>'
+            + '<td>' + s.order + '</td>'
+            + '<td>' + (ws ? escapeHtml(ws.name) : escapeHtml(s.stepId)) + '</td>'
+            + '<td>' + (ws ? ws.duration + ' Min' : '-') + '</td>'
+            + '<td>' + (ws && ws.dryingTime > 0 ? ws.dryingTime + ' Min' : '-') + '</td>'
+            + '<td>' + (depNames.length > 0 ? depNames.join(', ') : '-') + '</td>'
+            + '</tr>';
+        });
+        otHtml += '</tbody></table>';
+        otHtml += '</div>';
+      });
+      document.getElementById('order-templates-list').innerHTML = otHtml;
+    }
+
+    function openWorkStepModal(ws) {
+      if (ws) {
+        document.getElementById('workstep-modal-title').textContent = 'Arbeitsschritt bearbeiten';
+        document.getElementById('ws-edit-id').value = ws.id;
+        document.getElementById('ws-id').value = ws.id;
+        document.getElementById('ws-id').readOnly = true;
+        document.getElementById('ws-name').value = ws.name;
+        document.getElementById('ws-description').value = ws.description || '';
+        document.getElementById('ws-duration').value = ws.duration;
+        document.getElementById('ws-drying').value = ws.dryingTime || 0;
+        document.getElementById('ws-category').value = ws.category || 'Fertigung';
+      } else {
+        document.getElementById('workstep-modal-title').textContent = 'Neuer Arbeitsschritt';
+        document.getElementById('ws-edit-id').value = '';
+        document.getElementById('ws-id').value = '';
+        document.getElementById('ws-id').readOnly = false;
+        document.getElementById('ws-name').value = '';
+        document.getElementById('ws-description').value = '';
+        document.getElementById('ws-duration').value = 30;
+        document.getElementById('ws-drying').value = 0;
+        document.getElementById('ws-category').value = 'Fertigung';
+      }
+      showModal('modal-workstep');
+    }
+
+    function editWorkStep(id) {
+      var templates = Storage.getWorkStepTemplates();
+      var ws = templates.find(function(t) { return t.id === id; });
+      if (ws) openWorkStepModal(ws);
+    }
+
+    function saveWorkStep(e) {
+      e.preventDefault();
+      var templates = Storage.getWorkStepTemplates();
+      var editId = document.getElementById('ws-edit-id').value;
+      var data = {
+        id: document.getElementById('ws-id').value.trim(),
+        name: document.getElementById('ws-name').value.trim(),
+        description: document.getElementById('ws-description').value.trim(),
+        duration: parseInt(document.getElementById('ws-duration').value) || 0,
+        dryingTime: parseInt(document.getElementById('ws-drying').value) || 0,
+        category: document.getElementById('ws-category').value
+      };
+      if (editId) {
+        var idx = templates.findIndex(function(t) { return t.id === editId; });
+        if (idx >= 0) templates[idx] = data;
+      } else {
+        if (templates.find(function(t) { return t.id === data.id; })) {
+          alert('ID "' + data.id + '" existiert bereits!');
+          return;
+        }
+        templates.push(data);
+      }
+      Storage.saveWorkStepTemplates(templates);
+      closeModal('modal-workstep');
+      refreshView();
+    }
+
+    function deleteWorkStep(id) {
+      if (!confirm('Arbeitsschritt "' + id + '" wirklich l\u00f6schen?')) return;
+      var templates = Storage.getWorkStepTemplates();
+      Storage.saveWorkStepTemplates(templates.filter(function(t) { return t.id !== id; }));
+      refreshView();
+    }
+
+    // ---- Auftragsvorlagen ----
+    var otStepsTemp = [];
+
+    function openOrderTemplateModal(ot) {
+      otStepsTemp = [];
+      if (ot) {
+        document.getElementById('ot-modal-title').textContent = 'Auftragsvorlage bearbeiten';
+        document.getElementById('ot-edit-id').value = ot.id;
+        document.getElementById('ot-name').value = ot.name;
+        document.getElementById('ot-description').value = ot.description || '';
+        otStepsTemp = JSON.parse(JSON.stringify(ot.steps || []));
+      } else {
+        document.getElementById('ot-modal-title').textContent = 'Neue Auftragsvorlage';
+        document.getElementById('ot-edit-id').value = '';
+        document.getElementById('ot-name').value = '';
+        document.getElementById('ot-description').value = '';
+      }
+      renderOTSteps();
+      showModal('modal-order-template');
+    }
+
+    function editOrderTemplate(id) {
+      var ots = Storage.getOrderTemplates();
+      var ot = ots.find(function(t) { return t.id === id; });
+      if (ot) openOrderTemplateModal(ot);
+    }
+
+    function deleteOrderTemplate(id) {
+      if (!confirm('Auftragsvorlage wirklich l\u00f6schen?')) return;
+      var ots = Storage.getOrderTemplates();
+      Storage.saveOrderTemplates(ots.filter(function(t) { return t.id !== id; }));
+      refreshView();
+    }
+
+    function addOTStep() {
+      var maxOrder = otStepsTemp.reduce(function(m, s) { return Math.max(m, s.order); }, 0);
+      otStepsTemp.push({ stepId: '', order: maxOrder + 1, dependsOn: [] });
+      renderOTSteps();
+    }
+
+    function removeOTStep(index) {
+      otStepsTemp.splice(index, 1);
+      renderOTSteps();
+    }
+
+    function renderOTSteps() {
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var html = '';
+      if (otStepsTemp.length === 0) {
+        html = '<div class="text-muted text-sm mb-8">Keine Schritte. Klicken Sie "+ Schritt" um einen hinzuzuf\u00fcgen.</div>';
+      }
+      otStepsTemp.forEach(function(step, i) {
+        html += '<div style="display:grid; grid-template-columns: 50px 1fr 1fr 40px; gap:8px; align-items:center; margin-bottom:8px; padding:8px; background:var(--bg); border-radius:6px;">'
+          + '<div class="text-sm fw-600 text-center">#' + step.order + '</div>'
+          + '<div><select class="form-control" style="font-size:13px;" onchange="otStepsTemp[' + i + '].stepId=this.value">'
+          + '<option value="">-- Schritt w\u00e4hlen --</option>';
+        wsTemplates.forEach(function(ws) {
+          html += '<option value="' + ws.id + '"' + (step.stepId === ws.id ? ' selected' : '') + '>'
+            + escapeHtml(ws.name) + ' (' + ws.duration + ' Min)</option>';
+        });
+        html += '</select></div>'
+          + '<div><select class="form-control" style="font-size:13px;" multiple onchange="updateOTDeps(' + i + ', this)">';
+        wsTemplates.forEach(function(ws) {
+          var sel = (step.dependsOn || []).indexOf(ws.id) >= 0 ? ' selected' : '';
+          html += '<option value="' + ws.id + '"' + sel + '>' + escapeHtml(ws.name) + '</option>';
+        });
+        html += '</select><div class="text-sm text-muted">Abh\u00e4ngig von (Ctrl+Klick)</div></div>'
+          + '<div><button type="button" class="btn btn-outline" style="padding:2px 6px;color:var(--danger);" onclick="removeOTStep(' + i + ')">&times;</button></div>'
+          + '</div>';
+      });
+      document.getElementById('ot-steps-list').innerHTML = html;
+    }
+
+    function updateOTDeps(index, selectEl) {
+      var deps = [];
+      for (var j = 0; j < selectEl.options.length; j++) {
+        if (selectEl.options[j].selected) deps.push(selectEl.options[j].value);
+      }
+      otStepsTemp[index].dependsOn = deps;
+    }
+
+    function saveOrderTemplate(e) {
+      e.preventDefault();
+      var ots = Storage.getOrderTemplates();
+      var editId = document.getElementById('ot-edit-id').value;
+      var data = {
+        name: document.getElementById('ot-name').value.trim(),
+        description: document.getElementById('ot-description').value.trim(),
+        steps: otStepsTemp
+      };
+      if (editId) {
+        var idx = ots.findIndex(function(t) { return t.id === editId; });
+        if (idx >= 0) { data.id = editId; ots[idx] = data; }
+      } else {
+        data.id = 'OT' + String(Date.now()).slice(-6);
+        ots.push(data);
+      }
+      Storage.saveOrderTemplates(ots);
+      closeModal('modal-order-template');
+      refreshView();
+    }
+
+    // ---- Projekt-Arbeitsschritte ----
+    var currentProjectSteps = [];
+    var currentProjectStepsId = null;
+
+    function openProjectSteps(projectId) {
+      currentProjectStepsId = projectId;
+      currentProjectSteps = Storage.getProjectSteps(projectId);
+      var projects = Storage.getProjects();
+      var p = projects.find(function(pr) { return pr.id === projectId; });
+      document.getElementById('ps-modal-title').textContent = 'Arbeitsschritte - ' + (p ? escapeHtml(p.article) : 'Projekt ' + projectId);
+
+      // Template-Dropdown
+      var ots = Storage.getOrderTemplates();
+      var sel = document.getElementById('ps-template-select');
+      sel.innerHTML = '<option value="">-- Aus Vorlage \u00fcbernehmen --</option>';
+      ots.forEach(function(ot) {
+        sel.innerHTML += '<option value="' + ot.id + '">' + escapeHtml(ot.name) + ' (' + ot.steps.length + ' Schritte)</option>';
+      });
+
+      renderProjectSteps();
+      showModal('modal-project-steps');
+    }
+
+    function applyTemplateToProject() {
+      var templateId = document.getElementById('ps-template-select').value;
+      if (!templateId) return;
+      var ots = Storage.getOrderTemplates();
+      var ot = ots.find(function(t) { return t.id === templateId; });
+      if (!ot) return;
+
+      if (currentProjectSteps.length > 0 && !confirm('Vorhandene Schritte werden ersetzt. Fortfahren?')) return;
+
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var projects = Storage.getProjects();
+      var proj = projects.find(function(pr) { return pr.id === currentProjectStepsId; });
+      var totalQty = proj ? proj.quantity : 1;
+
+      currentProjectSteps = ot.steps.map(function(s) {
+        var ws = wsTemplates.find(function(t) { return t.id === s.stepId; });
+        return {
+          id: 'PS' + String(Date.now()).slice(-4) + '_' + s.order,
+          stepTemplateId: s.stepId,
+          name: ws ? ws.name : s.stepId,
+          description: ws ? ws.description : '',
+          order: s.order,
+          dependsOn: s.dependsOn || [],
+          plannedDuration: ws ? ws.duration : 0,
+          actualDuration: 0,
+          dryingTime: ws ? ws.dryingTime : 0,
+          status: 'offen',
+          assignedTo: '',
+          completedQty: 0,
+          totalQty: totalQty,
+          notes: ''
+        };
+      });
+      renderProjectSteps();
+    }
+
+    function addProjectStep() {
+      var maxOrder = currentProjectSteps.reduce(function(m, s) { return Math.max(m, s.order || 0); }, 0);
+      var projects = Storage.getProjects();
+      var proj = projects.find(function(pr) { return pr.id === currentProjectStepsId; });
+      currentProjectSteps.push({
+        id: 'PS' + String(Date.now()).slice(-6),
+        stepTemplateId: '',
+        name: '',
+        description: '',
+        order: maxOrder + 1,
+        dependsOn: [],
+        plannedDuration: 0,
+        actualDuration: 0,
+        dryingTime: 0,
+        status: 'offen',
+        assignedTo: '',
+        completedQty: 0,
+        totalQty: proj ? proj.quantity : 1,
+        notes: ''
+      });
+      renderProjectSteps();
+    }
+
+    function removeProjectStep(index) {
+      currentProjectSteps.splice(index, 1);
+      renderProjectSteps();
+    }
+
+    function renderProjectSteps() {
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var employees = Storage.getEmployees();
+      var html = '';
+      if (currentProjectSteps.length === 0) {
+        html = '<div class="text-muted text-sm">Keine Arbeitsschritte. W\u00e4hlen Sie eine Vorlage oder f\u00fcgen Sie manuell hinzu.</div>';
+      }
+      var statusColors = { 'offen': '#95a5a6', 'in_bearbeitung': 'var(--warning)', 'abgeschlossen': 'var(--success)' };
+      var statusLabels = { 'offen': 'Offen', 'in_bearbeitung': 'In Bearbeitung', 'abgeschlossen': 'Abgeschlossen' };
+
+      currentProjectSteps.forEach(function(step, i) {
+        var depCheck = checkDependencies(step, currentProjectSteps);
+        var canStart = depCheck.canStart;
+        var depNames = depCheck.depNames;
+        var pctDone = step.totalQty > 0 ? Math.round(step.completedQty / step.totalQty * 100) : 0;
+        var totalPlanned = step.plannedDuration * step.totalQty;
+        var borderColor = statusColors[step.status] || '#95a5a6';
+
+        html += '<div class="card" style="margin-bottom:8px; border-left:4px solid ' + borderColor + '; padding:12px;">'
+          + '<div style="display:grid; grid-template-columns: 40px 1fr 1fr 120px 40px; gap:8px; align-items:start;">'
+          // Order number
+          + '<div class="fw-600 text-center" style="padding-top:8px;">#' + step.order + '</div>'
+          // Left column: name, description, template
+          + '<div>'
+          + '<div class="form-group mb-8"><label class="text-sm">Arbeitsschritt</label>'
+          + '<select class="form-control" style="font-size:13px;" onchange="onPSTemplateChange(' + i + ', this.value)">'
+          + '<option value="">-- Frei definiert --</option>';
+        wsTemplates.forEach(function(ws) {
+          html += '<option value="' + ws.id + '"' + (step.stepTemplateId === ws.id ? ' selected' : '') + '>' + escapeHtml(ws.name) + '</option>';
+        });
+        html += '</select></div>'
+          + '<input type="text" class="form-control mb-8" placeholder="Bezeichnung" value="' + escapeHtml(step.name) + '" onchange="currentProjectSteps[' + i + '].name=this.value" style="font-size:13px;">'
+          + '<input type="text" class="form-control" placeholder="Beschreibung" value="' + escapeHtml(step.description) + '" onchange="currentProjectSteps[' + i + '].description=this.value" style="font-size:13px;">'
+          + '</div>'
+          // Right column: times, dependencies
+          + '<div>'
+          + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">'
+          + '<div class="form-group mb-8"><label class="text-sm">Soll (Min/Stk)</label>'
+          + '<input type="number" class="form-control" value="' + step.plannedDuration + '" onchange="currentProjectSteps[' + i + '].plannedDuration=parseInt(this.value)||0" style="font-size:13px;"></div>'
+          + '<div class="form-group mb-8"><label class="text-sm">Trockenzeit</label>'
+          + '<input type="number" class="form-control" value="' + step.dryingTime + '" onchange="currentProjectSteps[' + i + '].dryingTime=parseInt(this.value)||0" style="font-size:13px;"></div>'
+          + '</div>'
+          + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">'
+          + '<div class="form-group mb-8"><label class="text-sm">Ist (Min gesamt)</label>'
+          + '<input type="number" class="form-control" value="' + step.actualDuration + '" onchange="currentProjectSteps[' + i + '].actualDuration=parseInt(this.value)||0" style="font-size:13px;"></div>'
+          + '<div class="form-group mb-8"><label class="text-sm">Fertig / Gesamt</label>'
+          + '<div style="display:flex;gap:4px;"><input type="number" class="form-control" value="' + step.completedQty + '" onchange="currentProjectSteps[' + i + '].completedQty=parseInt(this.value)||0" style="font-size:13px;width:60px;">'
+          + '<span style="padding-top:6px;">/ ' + step.totalQty + '</span></div></div>'
+          + '</div>'
+          + '<div class="form-group"><label class="text-sm">Abh\u00e4ngig von</label>'
+          + '<select class="form-control" style="font-size:12px;" multiple onchange="updatePSDeps(' + i + ', this)">';
+        currentProjectSteps.forEach(function(other) {
+          if (other.id !== step.id) {
+            var sel = (step.dependsOn || []).indexOf(other.id) >= 0 ? ' selected' : '';
+            html += '<option value="' + other.id + '"' + sel + '>#' + other.order + ' ' + escapeHtml(other.name) + '</option>';
+          }
+        });
+        html += '</select></div></div>'
+          // Status
+          + '<div>'
+          + '<select class="form-control mb-8" style="font-size:12px;" onchange="currentProjectSteps[' + i + '].status=this.value; renderProjectSteps();">'
+          + '<option value="offen"' + (step.status === 'offen' ? ' selected' : '') + '>Offen</option>'
+          + '<option value="in_bearbeitung"' + (step.status === 'in_bearbeitung' ? ' selected' : '') + '>In Bearb.</option>'
+          + '<option value="abgeschlossen"' + (step.status === 'abgeschlossen' ? ' selected' : '') + '>Fertig</option>'
+          + '</select>'
+          + '<select class="form-control" style="font-size:12px;" onchange="currentProjectSteps[' + i + '].assignedTo=this.value">'
+          + '<option value="">Nicht zugew.</option>';
+        employees.forEach(function(emp) {
+          html += '<option value="' + emp.id + '"' + (step.assignedTo === emp.id ? ' selected' : '') + '>' + escapeHtml(emp.name) + '</option>';
+        });
+        html += '</select>'
+          + (totalPlanned > 0 ? '<div class="text-sm mt-8">Soll: ' + totalPlanned + ' Min</div>' : '')
+          + (step.actualDuration > 0 ? '<div class="text-sm" style="color:' + (step.actualDuration > totalPlanned ? 'var(--danger)' : 'var(--success)') + '">Ist: ' + step.actualDuration + ' Min</div>' : '')
+          + (pctDone > 0 ? '<div class="text-sm mt-8">' + pctDone + '% St\u00fcck</div>' : '')
+          + (!canStart ? '<div class="text-sm mt-8" style="color:var(--warning);">Warte auf: ' + depNames.join(', ') + '</div>' : '')
+          + '</div>'
+          // Delete
+          + '<div style="padding-top:8px;"><button type="button" class="btn btn-outline" style="padding:2px 6px;color:var(--danger);" onclick="removeProjectStep(' + i + ')">&times;</button></div>'
+          + '</div></div>';
+      });
+
+      // Summary
+      if (currentProjectSteps.length > 0) {
+        var totalSoll = currentProjectSteps.reduce(function(s, st) { return s + (st.plannedDuration * st.totalQty); }, 0);
+        var totalIst = currentProjectSteps.reduce(function(s, st) { return s + st.actualDuration; }, 0);
+        var doneSteps = currentProjectSteps.filter(function(s) { return s.status === 'abgeschlossen'; }).length;
+        html += '<div class="card" style="background:var(--primary); color:#fff; padding:12px; margin-top:8px;">'
+          + '<div style="display:flex; justify-content:space-between;">'
+          + '<span>Schritte: ' + doneSteps + '/' + currentProjectSteps.length + ' fertig</span>'
+          + '<span>Soll gesamt: ' + totalSoll + ' Min (' + (totalSoll / 60).toFixed(1) + ' Std)</span>'
+          + '<span>Ist gesamt: ' + totalIst + ' Min (' + (totalIst / 60).toFixed(1) + ' Std)</span>'
+          + '<span>Differenz: ' + (totalIst - totalSoll) + ' Min</span>'
+          + '</div></div>';
+      }
+      document.getElementById('project-steps-content').innerHTML = html;
+    }
+
+    function checkDependencies(step, allSteps) {
+      var canStart = true;
+      var depNames = [];
+      (step.dependsOn || []).forEach(function(depId) {
+        var dep = allSteps.find(function(s) { return s.id === depId; });
+        if (dep && dep.status !== 'abgeschlossen') {
+          canStart = false;
+          depNames.push(dep.name || ('#' + dep.order));
+        }
+      });
+      return { canStart: canStart, depNames: depNames };
+    }
+
+    function onPSTemplateChange(index, templateId) {
+      if (templateId) {
+        var wsTemplates = Storage.getWorkStepTemplates();
+        var ws = wsTemplates.find(function(t) { return t.id === templateId; });
+        if (ws) {
+          currentProjectSteps[index].stepTemplateId = ws.id;
+          currentProjectSteps[index].name = ws.name;
+          currentProjectSteps[index].description = ws.description;
+          currentProjectSteps[index].plannedDuration = ws.duration;
+          currentProjectSteps[index].dryingTime = ws.dryingTime;
+        }
+      } else {
+        currentProjectSteps[index].stepTemplateId = '';
+      }
+      renderProjectSteps();
+    }
+
+    function updatePSDeps(index, selectEl) {
+      var deps = [];
+      for (var j = 0; j < selectEl.options.length; j++) {
+        if (selectEl.options[j].selected) deps.push(selectEl.options[j].value);
+      }
+      currentProjectSteps[index].dependsOn = deps;
+    }
+
+    function saveProjectStepsFromModal() {
+      Storage.saveProjectSteps(currentProjectStepsId, currentProjectSteps);
+      closeModal('modal-project-steps');
       refreshView();
     }
 
@@ -1326,6 +2116,9 @@
           return `<option value="${p.id}">[Pos. ${p.id}] ${escapeHtml(p.article)} - ${getCustomerName(p.customerId)} (${avg}%)</option>`;
         }).join('');
 
+      // Work step dropdown initially empty
+      document.getElementById('task-workstep').innerHTML = '<option value="">-- Kein spezifischer Arbeitsschritt --</option>';
+
       // Fill values if editing
       if (isEdit) {
         empSel.value = existingTask.employeeId;
@@ -1334,12 +2127,16 @@
         document.getElementById('task-day').value = String(existingTask.day);
         document.getElementById('task-desc').value = existingTask.description || '';
         document.getElementById('task-planned-qty').value = existingTask.plannedQty || '';
+        document.getElementById('task-planned-minutes').value = existingTask.plannedMinutes || '';
         onTaskProjectChange();
         updateTaskTargetProgress();
-        // Set target progress after options are populated
+        // Set target progress and work step after options are populated
         setTimeout(function() {
           if (existingTask.targetProgress !== undefined) {
             document.getElementById('task-target-progress').value = String(existingTask.targetProgress);
+          }
+          if (existingTask.workStepId) {
+            document.getElementById('task-workstep').value = existingTask.workStepId;
           }
         }, 0);
       } else {
@@ -1347,6 +2144,7 @@
         document.getElementById('task-day').value = 'week';
         document.getElementById('task-desc').value = '';
         document.getElementById('task-planned-qty').value = '';
+        document.getElementById('task-planned-minutes').value = '';
         document.getElementById('task-project-preview').style.display = 'none';
         updateTaskTargetProgress();
       }
@@ -1389,6 +2187,31 @@
         document.getElementById('task-prev-' + key + '-bar').style.cssText = 'width:' + pct + '%; background:' + getProgressColor(val);
         document.getElementById('task-prev-' + key + '-label').textContent = pct + '% - ' + getProgressLabel(area, val);
       });
+
+      // Populate work steps dropdown
+      var wsSel = document.getElementById('task-workstep');
+      var pSteps = Storage.getProjectSteps(projId);
+      wsSel.innerHTML = '<option value="">-- Kein spezifischer Arbeitsschritt --</option>';
+      pSteps.forEach(function(s) {
+        var statusLabel = s.status === 'abgeschlossen' ? ' [FERTIG]' : (s.status === 'in_bearbeitung' ? ' [IN BEARB.]' : '');
+        wsSel.innerHTML += '<option value="' + s.id + '">#' + s.order + ' ' + escapeHtml(s.name) + ' (' + s.plannedDuration + ' Min/Stk)' + statusLabel + '</option>';
+      });
+    }
+
+    function onTaskWorkStepChange() {
+      var wsId = document.getElementById('task-workstep').value;
+      if (!wsId) return;
+      var projId = parseInt(document.getElementById('task-project').value);
+      if (!projId) return;
+      var pSteps = Storage.getProjectSteps(projId);
+      var step = pSteps.find(function(s) { return s.id === wsId; });
+      if (!step) return;
+      // Auto-fill description and planned minutes
+      if (!document.getElementById('task-desc').value) {
+        document.getElementById('task-desc').value = step.name + (step.description ? ': ' + step.description : '');
+      }
+      var qty = parseInt(document.getElementById('task-planned-qty').value) || step.totalQty;
+      document.getElementById('task-planned-minutes').value = step.plannedDuration * qty;
     }
 
     function updateTaskTargetProgress() {
@@ -1425,8 +2248,11 @@
         projectId: projId,
         area: document.getElementById('task-area').value,
         day: dayVal === 'week' ? 'week' : parseInt(dayVal),
+        workStepId: document.getElementById('task-workstep').value || '',
         description: document.getElementById('task-desc').value,
         plannedQty: parseInt(document.getElementById('task-planned-qty').value) || 0,
+        plannedMinutes: parseInt(document.getElementById('task-planned-minutes').value) || 0,
+        actualMinutes: 0,
         targetProgress: parseFloat(document.getElementById('task-target-progress').value)
       };
 

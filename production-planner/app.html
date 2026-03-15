@@ -430,8 +430,22 @@
               <span class="task-meta-item">${escapeHtml(task.area)}</span>
               ${task.day === 'week' ? '<span class="task-meta-item" style="background:#d6eaf8; color:#2980b9;">Wochenaufgabe Mo-Fr</span>' : ''}
               ${task.plannedQty ? `<span class="task-meta-item">${task.plannedQty} Stk. geplant</span>` : ''}
+              ${task.plannedMinutes ? `<span class="task-meta-item" style="background:#fdebd0;">Soll: ${task.plannedMinutes} Min</span>` : ''}
               ${task.targetProgress !== undefined ? `<span class="task-meta-item">Ziel: ${Math.round(task.targetProgress * 100)}%</span>` : ''}
             </div>
+            ${task.workStepId ? (() => {
+              const pSteps = Storage.getProjectSteps(task.projectId);
+              const ws = pSteps.find(s => s.id === task.workStepId);
+              return ws ? `<div class="mt-8" style="background:#eaf2f8; border-radius:6px; padding:8px 10px;">
+                <div class="fw-600 text-sm" style="color:var(--primary);">Arbeitsschritt #${ws.order}: ${escapeHtml(ws.name)}</div>
+                ${ws.description ? `<div class="text-sm text-muted">${escapeHtml(ws.description)}</div>` : ''}
+                <div class="text-sm mt-8">
+                  <span>Soll: ${ws.plannedDuration} Min/Stk</span>
+                  ${ws.dryingTime > 0 ? ` | <span style="color:var(--warning);">Trockenzeit: ${ws.dryingTime} Min</span>` : ''}
+                  | <span>Fertig: ${ws.completedQty}/${ws.totalQty} Stk</span>
+                </div>
+              </div>` : '';
+            })() : ''}
             <div class="mt-8">
               <div class="fw-600 text-sm">Aufgabe:</div>
               <div class="text-sm">${escapeHtml(task.description)}</div>
@@ -578,9 +592,15 @@
               <textarea class="form-control" id="rpt-completed" rows="3" placeholder="Beschreiben Sie, was Sie heute erledigt haben...">${escapeHtml(existingReport?.completedWork || '')}</textarea>
             </div>
 
-            <div class="form-group">
-              <label>Erledigte St&uuml;ckzahl</label>
-              <input type="number" class="form-control" id="rpt-qty" value="${existingReport?.completedQty ?? plannedQty ?? ''}" min="0">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label>Erledigte St&uuml;ckzahl</label>
+                <input type="number" class="form-control" id="rpt-qty" value="${existingReport?.completedQty ?? plannedQty ?? ''}" min="0">
+              </div>
+              <div class="form-group">
+                <label>Ist-Zeit (Minuten)</label>
+                <input type="number" class="form-control" id="rpt-actual-minutes" value="${existingReport?.actualMinutes ?? ''}" min="0" placeholder="z.B. 120">
+              </div>
             </div>
 
             <div class="form-group">
@@ -719,12 +739,14 @@
       }
 
       const today = getISODate(new Date());
+      const actualMinutes = parseInt(document.getElementById('rpt-actual-minutes').value) || 0;
       const report = {
         projectId: parseInt(document.getElementById('rpt-project').value),
         area: document.getElementById('rpt-area').value,
         taskDescription: document.getElementById('rpt-task').value,
         completedWork: completed,
         completedQty: parseInt(document.getElementById('rpt-qty').value) || 0,
+        actualMinutes: actualMinutes,
         achievedProgress: parseFloat(document.getElementById('rpt-progress').value),
         deviation: hasDeviation,
         deviationReason: hasDeviation ? document.getElementById('rpt-deviation').value : '',
@@ -740,6 +762,33 @@
       if (proj && report.achievedProgress > proj[report.area]) {
         proj[report.area] = report.achievedProgress;
         Storage.saveProjects(projects);
+      }
+
+      // Update work step actual time and completed qty
+      const kw = getKW(new Date());
+      const year = new Date().getFullYear();
+      const dayOfWeek = (new Date().getDay() + 6) % 7;
+      const weekPlan = Storage.getWeekPlan(year, kw);
+      const myTask = weekPlan.find(t => t.employeeId === currentEmployee.id
+        && t.projectId === report.projectId
+        && (t.day === dayOfWeek || t.day === 'week')
+        && t.workStepId);
+      if (myTask && myTask.workStepId) {
+        const pSteps = Storage.getProjectSteps(report.projectId);
+        const step = pSteps.find(s => s.id === myTask.workStepId);
+        if (step) {
+          step.actualDuration = (step.actualDuration || 0) + actualMinutes;
+          step.completedQty = Math.max(step.completedQty || 0, report.completedQty);
+          if (step.completedQty >= step.totalQty) {
+            step.status = 'abgeschlossen';
+          } else if (step.completedQty > 0 || actualMinutes > 0) {
+            step.status = 'in_bearbeitung';
+          }
+          Storage.saveProjectSteps(report.projectId, pSteps);
+        }
+        // Update task actual minutes
+        myTask.actualMinutes = (myTask.actualMinutes || 0) + actualMinutes;
+        Storage.saveWeekPlan(year, kw, weekPlan);
       }
 
       // Email-Benachrichtigung bei Abweichung an Admin

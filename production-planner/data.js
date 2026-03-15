@@ -4,13 +4,13 @@
 
 const ATC_DATA = {
   customers: [
-    { id: '10024', name: 'Menze Kunststofftechnik GmbH' },
-    { id: '10023', name: 'MAM Electronic' },
-    { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH' },
-    { id: '10021', name: 'BA Clearance GmbH' },
-    { id: '10016', name: 'EP Arms GmbH' },
-    { id: '10002', name: 'ATC SiPro GmbH' },
-    { id: '10001', name: '1 MOA GmbH' }
+    { id: '10024', name: 'Menze Kunststofftechnik GmbH', contact: '', email: '', phone: '' },
+    { id: '10023', name: 'MAM Electronic', contact: '', email: '', phone: '' },
+    { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH', contact: '', email: '', phone: '' },
+    { id: '10021', name: 'BA Clearance GmbH', contact: '', email: '', phone: '' },
+    { id: '10016', name: 'EP Arms GmbH', contact: '', email: '', phone: '' },
+    { id: '10002', name: 'ATC SiPro GmbH', contact: '', email: '', phone: '' },
+    { id: '10001', name: '1 MOA GmbH', contact: '', email: '', phone: '' }
   ],
 
   progressScales: {
@@ -40,6 +40,20 @@ const ATC_DATA = {
     ]
   },
 
+  // Projekt-Status-Optionen
+  projectStatuses: [
+    'Angebot',
+    'Auftragseingang',
+    'In Produktion',
+    'Qualit\u00e4tspr\u00fcfung',
+    'Versandbereit',
+    'Ausgeliefert',
+    'Abgeschlossen'
+  ],
+
+  // Prioritäten
+  priorities: ['Niedrig', 'Normal', 'Hoch', 'Dringend'],
+
   projects: [
     {
       id: 1,
@@ -47,23 +61,46 @@ const ATC_DATA = {
       customerId: '10024',
       article: 'Eintaucharmatur Flasch PP',
       quantity: 50,
-      unit: 'Stück',
+      unit: 'St\u00fcck',
       konstruktion: 0.00,
       fertigung: 0.25,
       montage: 0.00,
+      // Erweiterte Felder
+      status: 'In Produktion',
+      priority: 'Normal',
+      startDate: '',
+      deadline: '',
+      orderDate: '',
+      deliveryDate: '',
+      drawingNumber: '',
+      material: 'PP (Polypropylen)',
+      surfaceTreatment: '',
+      toleranceClass: '',
+      weight: '',
+      unitPrice: 0,
+      orderValue: 0,
+      inspectionReq: '',
+      packagingReq: '',
+      deliveryAddress: '',
+      internalNote: '',
       remarks: 'Material Beigestellt'
     },
     {
       id: 2,
       orderNumber: '2026010003',
       customerId: '10021',
-      article: '100 Stck. TM-62 inkl. je 50 Stck. Zünder MVCH-62 und MVP-62',
+      article: '100 Stck. TM-62 inkl. je 50 Stck. Z\u00fcnder MVCH-62 und MVP-62',
       quantity: 100,
-      unit: 'Stück',
+      unit: 'St\u00fcck',
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
-      remarks: ''
+      status: 'Auftragseingang',
+      priority: 'Hoch',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
       id: 3,
@@ -71,11 +108,16 @@ const ATC_DATA = {
       customerId: '10023',
       article: '1.450 Stck. Ringe klein',
       quantity: 1450,
-      unit: 'Stück',
+      unit: 'St\u00fcck',
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
-      remarks: ''
+      status: 'Auftragseingang',
+      priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
       id: 4,
@@ -83,11 +125,16 @@ const ATC_DATA = {
       customerId: '10016',
       article: 'ProLock Konterringe',
       quantity: 500,
-      unit: 'Stück',
+      unit: 'St\u00fcck',
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
-      remarks: ''
+      status: 'Auftragseingang',
+      priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
       id: 5,
@@ -95,155 +142,124 @@ const ATC_DATA = {
       customerId: '10016',
       article: 'Spannhebel DD Sight Mag',
       quantity: 55,
-      unit: 'Stück',
+      unit: 'St\u00fcck',
       konstruktion: 0.00,
       fertigung: 0.00,
       montage: 0.00,
-      remarks: ''
+      status: 'Auftragseingang',
+      priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 6,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'Klemmstein DD Sight Mag',
-      quantity: 55,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 6, orderNumber: '', customerId: '10016', article: 'Klemmstein DD Sight Mag',
+      quantity: 55, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 7,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'Spannschieber DD Sight Mag',
-      quantity: 55,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 7, orderNumber: '', customerId: '10016', article: 'Spannschieber DD Sight Mag',
+      quantity: 55, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 8,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 51',
-      quantity: 10,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 8, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 51',
+      quantity: 10, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 9,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 64',
-      quantity: 10,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 9, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 64',
+      quantity: 10, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 10,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 61',
-      quantity: 5,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 10, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 61',
+      quantity: 5, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 11,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 60',
-      quantity: 5,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 11, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 60',
+      quantity: 5, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 12,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 56',
-      quantity: 10,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 12, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 56',
+      quantity: 10, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 13,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 54',
-      quantity: 2,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 13, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 54',
+      quantity: 2, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 14,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock ZFH 49',
-      quantity: 10,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 14, orderNumber: '', customerId: '10016', article: 'ProLock ZFH 49',
+      quantity: 10, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 15,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'RotoClip ZFHL 62 + Halbschalen',
-      quantity: 50,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 15, orderNumber: '', customerId: '10016', article: 'RotoClip ZFHL 62 + Halbschalen',
+      quantity: 50, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 16,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'ProLock Ringe',
-      quantity: 300,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 16, orderNumber: '', customerId: '10016', article: 'ProLock Ringe',
+      quantity: 300, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     },
     {
-      id: 17,
-      orderNumber: '',
-      customerId: '10016',
-      article: 'Roto 50 Pro Rohre',
-      quantity: 50,
-      unit: 'Stück',
-      konstruktion: 0.00,
-      fertigung: 0.00,
-      montage: 0.00,
-      remarks: ''
+      id: 17, orderNumber: '', customerId: '10016', article: 'Roto 50 Pro Rohre',
+      quantity: 50, unit: 'St\u00fcck', konstruktion: 0.00, fertigung: 0.00, montage: 0.00,
+      status: 'Auftragseingang', priority: 'Normal',
+      startDate: '', deadline: '', orderDate: '', deliveryDate: '',
+      drawingNumber: '', material: '', surfaceTreatment: '', toleranceClass: '',
+      weight: '', unitPrice: 0, orderValue: 0, inspectionReq: '', packagingReq: '',
+      deliveryAddress: '', internalNote: '', remarks: ''
     }
   ],
 
@@ -255,7 +271,55 @@ const ATC_DATA = {
   ],
 
   // Admin-Passwort für Planer-Zugang (Standard: "atc2026")
-  adminPassword: 'atc2026'
+  adminPassword: 'atc2026',
+
+  // Beispiel-Arbeitsschritt-Vorlagen
+  workStepTemplates: [
+    { id: 'WS001', name: 'Materialzuschnitt', description: 'Zuschnitt des Rohmaterials nach Zeichnung', duration: 30, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS002', name: 'CNC-Fr\u00e4sen', description: 'Fr\u00e4sbearbeitung nach CAM-Programm', duration: 60, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS003', name: 'CNC-Drehen', description: 'Drehbearbeitung nach Zeichnung', duration: 45, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS004', name: 'Entgraten', description: 'Entgraten und S\u00e4ubern der Werkst\u00fccke', duration: 15, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS005', name: 'Oberfl\u00e4chenbehandlung', description: 'Oberfl\u00e4chenbehandlung (Eloxieren, Verzinken etc.)', duration: 20, dryingTime: 120, category: 'Fertigung' },
+    { id: 'WS006', name: 'Qualit\u00e4tspr\u00fcfung', description: 'Ma\u00dfliche Pr\u00fcfung und Dokumentation', duration: 15, dryingTime: 0, category: 'Fertigung' },
+    { id: 'WS007', name: 'Montage Baugruppe', description: 'Zusammenbau der Einzelteile zur Baugruppe', duration: 45, dryingTime: 0, category: 'Montage' },
+    { id: 'WS008', name: 'Verpacken', description: 'Verpackung gem\u00e4\u00df Verpackungsvorschrift', duration: 10, dryingTime: 0, category: 'Montage' },
+    { id: 'WS009', name: 'CAD-Konstruktion', description: 'Erstellung der 3D-CAD-Daten', duration: 120, dryingTime: 0, category: 'Konstruktion' },
+    { id: 'WS010', name: 'Zeichnungserstellung', description: 'Fertigungszeichnungen aus CAD ableiten', duration: 60, dryingTime: 0, category: 'Konstruktion' }
+  ],
+
+  // Beispiel-Auftragsvorlagen
+  orderTemplates: [
+    {
+      id: 'OT001',
+      name: 'Standard Drehteil',
+      description: 'Vorlage f\u00fcr einfache Drehteile mit Oberfl\u00e4chenbehandlung',
+      steps: [
+        { stepId: 'WS009', order: 1, dependsOn: [] },
+        { stepId: 'WS010', order: 2, dependsOn: ['WS009'] },
+        { stepId: 'WS001', order: 3, dependsOn: ['WS010'] },
+        { stepId: 'WS003', order: 4, dependsOn: ['WS001'] },
+        { stepId: 'WS004', order: 5, dependsOn: ['WS003'] },
+        { stepId: 'WS005', order: 6, dependsOn: ['WS004'] },
+        { stepId: 'WS006', order: 7, dependsOn: ['WS005'] },
+        { stepId: 'WS008', order: 8, dependsOn: ['WS006'] }
+      ]
+    },
+    {
+      id: 'OT002',
+      name: 'Fr\u00e4steil mit Montage',
+      description: 'Fr\u00e4steil inkl. Baugruppenmontage',
+      steps: [
+        { stepId: 'WS009', order: 1, dependsOn: [] },
+        { stepId: 'WS010', order: 2, dependsOn: ['WS009'] },
+        { stepId: 'WS001', order: 3, dependsOn: ['WS010'] },
+        { stepId: 'WS002', order: 4, dependsOn: ['WS001'] },
+        { stepId: 'WS004', order: 5, dependsOn: ['WS002'] },
+        { stepId: 'WS006', order: 6, dependsOn: ['WS004'] },
+        { stepId: 'WS007', order: 7, dependsOn: ['WS006'] },
+        { stepId: 'WS008', order: 8, dependsOn: ['WS007'] }
+      ]
+    }
+  ]
 };
 
 // Storage-Helfer
@@ -329,6 +393,42 @@ const Storage = {
 
   saveWeekPlan(year, kw, plan) {
     this.save('weekplan_' + year + '_' + kw, plan);
+  },
+
+  // Arbeitsschritt-Vorlagen
+  getWorkStepTemplates() {
+    return this.load('workstep_templates', ATC_DATA.workStepTemplates);
+  },
+
+  saveWorkStepTemplates(templates) {
+    this.save('workstep_templates', templates);
+  },
+
+  // Auftragsvorlagen
+  getOrderTemplates() {
+    return this.load('order_templates', ATC_DATA.orderTemplates);
+  },
+
+  saveOrderTemplates(templates) {
+    this.save('order_templates', templates);
+  },
+
+  // Arbeitsschritte pro Projekt
+  getProjectSteps(projectId) {
+    return this.load('project_steps_' + projectId, []);
+  },
+
+  saveProjectSteps(projectId, steps) {
+    this.save('project_steps_' + projectId, steps);
+  },
+
+  // Kunden laden/speichern
+  getCustomers() {
+    return this.load('customers', ATC_DATA.customers);
+  },
+
+  saveCustomers(customers) {
+    this.save('customers', customers);
   }
 };
 
