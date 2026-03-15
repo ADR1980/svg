@@ -334,7 +334,8 @@ const Storage = {
 
 // Hilfsfunktionen
 function getCustomerName(customerId) {
-  const c = ATC_DATA.customers.find(c => c.id === customerId);
+  const stored = Storage.load('customers', ATC_DATA.customers);
+  const c = stored.find(c => c.id === customerId);
   return c ? c.name : 'Unbekannt';
 }
 
@@ -530,6 +531,57 @@ const Notify = {
       + '&body=' + encodeURIComponent(body);
     window.open(mailto, '_blank');
     return true;
+  }
+};
+
+// ---- Zeitplan-Helfer ----
+const Schedule = {
+  // Berechnet den Soll-Fortschritt basierend auf Start/Ende-Datum
+  getExpectedProgress(startDate, endDate, today) {
+    if (!startDate || !endDate) return null;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const now = today ? new Date(today) : new Date();
+    if (now <= start) return 0;
+    if (now >= end) return 1;
+    const total = end - start;
+    const elapsed = now - start;
+    return elapsed / total;
+  },
+
+  // Ampelstatus: vergleicht tatsächlichen mit geplantem Fortschritt
+  getStatus(actualProgress, expectedProgress) {
+    if (expectedProgress === null || expectedProgress === undefined) return 'unknown';
+    const diff = actualProgress - expectedProgress;
+    if (diff >= -0.05) return 'green';    // im Plan oder voraus
+    if (diff >= -0.20) return 'yellow';   // leichte Verzögerung
+    return 'red';                          // kritische Verzögerung
+  },
+
+  // Prognose: Hochrechnung Fertigstellungsdatum
+  estimateCompletion(startDate, actualProgress, today) {
+    if (!startDate || actualProgress <= 0) return null;
+    const start = new Date(startDate);
+    const now = today ? new Date(today) : new Date();
+    const elapsed = now - start;
+    if (elapsed <= 0) return null;
+    const totalEstimated = elapsed / actualProgress;
+    return new Date(start.getTime() + totalEstimated);
+  },
+
+  // Verbleibende Arbeitstage bis Deadline
+  getRemainingWorkdays(endDate, today) {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    const now = today ? new Date(today) : new Date();
+    let count = 0;
+    const d = new Date(now);
+    while (d < end) {
+      d.setDate(d.getDate() + 1);
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) count++;
+    }
+    return count;
   }
 };
 

@@ -191,6 +191,47 @@
     .login-box .login-btn:hover { background: var(--primary-light); }
     .login-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none; }
 
+    /* Charts */
+    .chart-container { position: relative; margin: 16px 0; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding: 0 8px; border-bottom: 2px solid var(--border); }
+    .bar-group { flex: 1; display: flex; gap: 2px; align-items: flex-end; height: 100%; min-width: 0; }
+    .bar {
+      flex: 1; border-radius: 4px 4px 0 0; transition: height 0.5s ease; min-width: 8px; position: relative;
+      cursor: pointer;
+    }
+    .bar:hover { opacity: 0.85; }
+    .bar-label { text-align: center; font-size: 10px; color: var(--text-light); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chart-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    /* Ampel / Status */
+    .status-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+    .status-green { background: #27ae60; }
+    .status-yellow { background: #f39c12; }
+    .status-red { background: #e74c3c; }
+    .status-unknown { background: #bdc3c7; }
+
+    /* Recommendations */
+    .recommendation { padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; }
+    .recommendation.critical { background: #fadbd8; border-left: 4px solid #e74c3c; }
+    .recommendation.warning { background: #fef9e7; border-left: 4px solid #f39c12; }
+    .recommendation.info { background: #d6eaf8; border-left: 4px solid #3498db; }
+    .recommendation.success { background: #d5f5e3; border-left: 4px solid #27ae60; }
+    .rec-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    /* Timeline bar */
+    .timeline-bar { position: relative; height: 24px; background: #ecf0f1; border-radius: 12px; overflow: visible; margin: 8px 0; }
+    .timeline-progress { height: 100%; border-radius: 12px; position: absolute; left: 0; top: 0; }
+    .timeline-expected { height: 100%; border-radius: 12px; position: absolute; left: 0; top: 0; background: rgba(0,0,0,0.12); }
+    .timeline-today { position: absolute; top: -4px; bottom: -4px; width: 3px; background: #e74c3c; border-radius: 2px; z-index: 2; }
+    .timeline-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-light); }
+
+    /* Donut chart (CSS-only) */
+    .donut { width: 100px; height: 100px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+    .donut-label { font-size: 22px; font-weight: 700; color: var(--primary); z-index: 1; }
+    .donut-sub { font-size: 10px; color: var(--text-light); text-align: center; margin-top: 4px; }
+
     @media (max-width: 768px) {
       .content { padding: 12px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -230,6 +271,7 @@
 
   <div class="tabs">
     <div class="tab active" data-view="dashboard">Dashboard</div>
+    <div class="tab" data-view="customers">Kunden</div>
     <div class="tab" data-view="projects">Projekte</div>
     <div class="tab" data-view="planning">Wochenplanung</div>
     <div class="tab" data-view="employees">Mitarbeiter</div>
@@ -240,28 +282,70 @@
     <!-- DASHBOARD -->
     <div class="view active" id="view-dashboard">
       <div class="stats-grid" id="stats-grid"></div>
-      <div class="card">
-        <div class="card-title">Projekt&uuml;bersicht - Fortschritt</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Pos.</th>
-              <th>Kunde</th>
-              <th>Artikel</th>
-              <th>Menge</th>
-              <th>Konstruktion</th>
-              <th>Fertigung</th>
-              <th>Montage</th>
-              <th>Gesamt</th>
-            </tr>
-          </thead>
-          <tbody id="dashboard-table"></tbody>
-        </table>
+
+      <!-- Handlungsempfehlungen -->
+      <div class="card" id="recommendations-card">
+        <div class="card-title">Handlungsempfehlungen</div>
+        <div id="recommendations"></div>
       </div>
+
+      <!-- Fortschrittsdiagramm -->
+      <div class="card">
+        <div class="card-title">Projektfortschritt - Grafische &Uuml;bersicht</div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#3498db"></div> Konstruktion</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div> Fertigung</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div> Montage</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(0,0,0,0.12)"></div> Soll (Zeitplan)</div>
+        </div>
+        <div class="bar-chart" id="progress-chart"></div>
+        <div id="progress-chart-labels" style="display:flex; gap:6px; padding:0 8px;"></div>
+      </div>
+
+      <!-- Zeitplan-Status -->
+      <div class="card">
+        <div class="card-title">Zeitplan&uuml;bersicht</div>
+        <div id="timeline-overview"></div>
+      </div>
+
+      <!-- Projekttabelle -->
+      <div class="card">
+        <div class="card-title">Projekt&uuml;bersicht - Details</div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Pos.</th>
+                <th>Kunde</th>
+                <th>Artikel</th>
+                <th>Menge</th>
+                <th>Konstruktion</th>
+                <th>Fertigung</th>
+                <th>Montage</th>
+                <th>Gesamt</th>
+                <th>Status</th>
+                <th>Deadline</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-table"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">Heutige Berichte</div>
         <div id="dashboard-reports"></div>
       </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="view" id="view-customers">
+      <div class="toolbar">
+        <h2 style="font-size: 18px;">Kundenverwaltung</h2>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="openCustomerModal()">+ Neuer Kunde</button>
+      </div>
+      <div id="customers-list"></div>
     </div>
 
     <!-- PROJECTS -->
@@ -365,6 +449,16 @@
           <div class="form-group">
             <label>Montage</label>
             <select class="form-control" id="proj-mont"></select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Startdatum</label>
+            <input type="date" class="form-control" id="proj-start">
+          </div>
+          <div class="form-group">
+            <label>Ziel-Fertigstellung</label>
+            <input type="date" class="form-control" id="proj-deadline">
           </div>
         </div>
         <div class="form-group">
@@ -570,6 +664,43 @@
     </div>
   </div>
 
+  <!-- Customer Modal -->
+  <div class="modal-overlay" id="modal-customer">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 id="customer-modal-title">Neuer Kunde</h2>
+        <button class="modal-close" onclick="closeModal('modal-customer')">&times;</button>
+      </div>
+      <form onsubmit="saveCustomer(event)">
+        <input type="hidden" id="cust-edit-id">
+        <div class="form-group">
+          <label>Kundennummer</label>
+          <input type="text" class="form-control" id="cust-id" required placeholder="z.B. 10025">
+        </div>
+        <div class="form-group">
+          <label>Firmenname</label>
+          <input type="text" class="form-control" id="cust-name" required>
+        </div>
+        <div class="form-group">
+          <label>Kontaktperson</label>
+          <input type="text" class="form-control" id="cust-contact" placeholder="optional">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" class="form-control" id="cust-email" placeholder="optional">
+        </div>
+        <div class="form-group">
+          <label>Telefon</label>
+          <input type="text" class="form-control" id="cust-phone" placeholder="optional">
+        </div>
+        <div class="flex gap-8" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-customer')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Report Detail Modal -->
   <div class="modal-overlay" id="modal-report-detail">
     <div class="modal">
@@ -604,6 +735,7 @@
     function refreshView() {
       switch (currentView) {
         case 'dashboard': renderDashboard(); break;
+        case 'customers': renderCustomers(); break;
         case 'projects': renderProjects(); break;
         case 'planning': renderPlanning(); break;
         case 'employees': renderEmployees(); break;
@@ -615,24 +747,44 @@
     function renderDashboard() {
       const projects = Storage.getProjects();
       const today = getISODate(new Date());
+      const todayDate = new Date();
 
       // Stats
       const totalProjects = projects.length;
-      const avgProgress = projects.reduce((sum, p) => sum + (p.konstruktion + p.fertigung + p.montage) / 3, 0) / projects.length;
+      const avgProgress = projects.length > 0 ? projects.reduce((sum, p) => sum + (p.konstruktion + p.fertigung + p.montage) / 3, 0) / projects.length : 0;
       const completed = projects.filter(p => p.konstruktion >= 1 && p.fertigung >= 1 && p.montage >= 1).length;
       const todayReports = Storage.getAllReports(today);
+      const criticalCount = projects.filter(p => {
+        if (!p.startDate || !p.deadline) return false;
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        const expected = Schedule.getExpectedProgress(p.startDate, p.deadline);
+        return Schedule.getStatus(avg, expected) === 'red';
+      }).length;
 
       document.getElementById('stats-grid').innerHTML = `
         <div class="stat-card"><div class="stat-value">${totalProjects}</div><div class="stat-label">Aktive Projekte</div></div>
         <div class="stat-card"><div class="stat-value">${Math.round(avgProgress * 100)}%</div><div class="stat-label">Durchschn. Fortschritt</div></div>
         <div class="stat-card"><div class="stat-value">${completed}</div><div class="stat-label">Abgeschlossen</div></div>
         <div class="stat-card"><div class="stat-value">${todayReports.length}</div><div class="stat-label">Berichte Heute</div></div>
+        <div class="stat-card" style="${criticalCount > 0 ? 'border: 2px solid var(--danger);' : ''}"><div class="stat-value" style="${criticalCount > 0 ? 'color: var(--danger);' : ''}">${criticalCount}</div><div class="stat-label">Kritische Projekte</div></div>
       `;
 
-      // Project table
+      // ---- Recommendations ----
+      renderRecommendations(projects, todayReports);
+
+      // ---- Bar Chart ----
+      renderProgressChart(projects);
+
+      // ---- Timeline Overview ----
+      renderTimelineOverview(projects);
+
+      // ---- Project Table with Status ----
       let rows = '';
       projects.forEach(p => {
         const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
+        const status = Schedule.getStatus(avg, expected);
+        const deadlineStr = p.deadline ? new Date(p.deadline).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'2-digit'}) : '-';
         rows += `<tr>
           <td>${p.id}</td>
           <td>${getCustomerName(p.customerId)}</td>
@@ -642,11 +794,13 @@
           <td>${renderMiniProgress(p.fertigung)}</td>
           <td>${renderMiniProgress(p.montage)}</td>
           <td>${renderMiniProgress(avg)}</td>
+          <td style="text-align:center;"><span class="status-dot status-${status}" title="${getStatusText(status)}"></span></td>
+          <td>${deadlineStr}</td>
         </tr>`;
       });
       document.getElementById('dashboard-table').innerHTML = rows;
 
-      // Today reports with project progress impact
+      // Today reports
       if (todayReports.length === 0) {
         document.getElementById('dashboard-reports').innerHTML = '<p class="text-muted text-sm">Noch keine Berichte f&uuml;r heute eingereicht.</p>';
       } else {
@@ -669,13 +823,220 @@
                   <div class="progress-fill" style="width:${Math.round(r.achievedProgress * 100)}%; background:${getProgressColor(r.achievedProgress)}"></div>
                 </div>
                 <span>${Math.round(r.achievedProgress * 100)}%</span>
-                ${proj ? '<span class="text-muted">(Projekt: ' + getProgressLabel(r.area, r.achievedProgress) + ')</span>' : ''}
               </div>
             ` : ''}
-            ${r.completedQty ? `<div class="mt-8 text-sm"><strong>St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
-            ${r.deviation ? `<div class="mt-8 text-sm" style="color: var(--danger);">Grund: ${escapeHtml(r.deviationReason || '')}</div>` : ''}
+            ${r.completedQty ? '<div class="mt-8 text-sm"><strong>St\u00fcckzahl:</strong> ' + r.completedQty + '</div>' : ''}
+            ${r.deviation ? '<div class="mt-8 text-sm" style="color: var(--danger);">Grund: ' + escapeHtml(r.deviationReason || '') + '</div>' : ''}
           </div>
         `}).join('');
+      }
+    }
+
+    function getStatusText(status) {
+      switch(status) {
+        case 'green': return 'Im Zeitplan';
+        case 'yellow': return 'Leichte Verz\u00f6gerung';
+        case 'red': return 'Kritische Verz\u00f6gerung';
+        default: return 'Kein Zeitplan hinterlegt';
+      }
+    }
+
+    function renderProgressChart(projects) {
+      const chart = document.getElementById('progress-chart');
+      const labels = document.getElementById('progress-chart-labels');
+      if (projects.length === 0) { chart.innerHTML = '<p class="text-muted">Keine Projekte vorhanden.</p>'; return; }
+
+      let barsHtml = '';
+      let labelsHtml = '';
+      projects.forEach(p => {
+        const kPct = Math.max(p.konstruktion * 100, 2);
+        const fPct = Math.max(p.fertigung * 100, 2);
+        const mPct = Math.max(p.montage * 100, 2);
+        const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
+        const ePct = expected !== null ? Math.max(expected * 100, 2) : 0;
+        barsHtml += `<div class="bar-group" title="Pos. ${p.id}: ${escapeHtml(p.article)}">
+          <div class="bar" style="height:${kPct}%; background:#3498db;" title="Konstruktion: ${Math.round(p.konstruktion*100)}%"></div>
+          <div class="bar" style="height:${fPct}%; background:#e67e22;" title="Fertigung: ${Math.round(p.fertigung*100)}%"></div>
+          <div class="bar" style="height:${mPct}%; background:#27ae60;" title="Montage: ${Math.round(p.montage*100)}%"></div>
+          ${expected !== null ? '<div class="bar" style="height:' + ePct + '%; background:rgba(0,0,0,0.12); border: 1px dashed #999;" title="Soll: ' + Math.round(expected*100) + '%"></div>' : ''}
+        </div>`;
+        labelsHtml += '<div class="bar-label" style="flex:1;">Pos.' + p.id + '</div>';
+      });
+      chart.innerHTML = barsHtml;
+      labels.innerHTML = labelsHtml;
+    }
+
+    function renderTimelineOverview(projects) {
+      const container = document.getElementById('timeline-overview');
+      const withSchedule = projects.filter(p => p.startDate && p.deadline);
+      if (withSchedule.length === 0) {
+        container.innerHTML = '<p class="text-muted text-sm">Kein Projekt hat einen Zeitplan hinterlegt. Bearbeiten Sie ein Projekt, um Start- und Zieldatum festzulegen.</p>';
+        return;
+      }
+
+      let html = '';
+      withSchedule.forEach(p => {
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+        const expected = Schedule.getExpectedProgress(p.startDate, p.deadline);
+        const status = Schedule.getStatus(avg, expected);
+        const remaining = Schedule.getRemainingWorkdays(p.deadline);
+        const estimated = Schedule.estimateCompletion(p.startDate, avg);
+        const estStr = estimated ? estimated.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'2-digit'}) : '-';
+        const deadlineDate = new Date(p.deadline);
+        const isLate = estimated && estimated > deadlineDate;
+
+        const actualPct = Math.round(avg * 100);
+        const expectedPct = expected !== null ? Math.round(expected * 100) : 0;
+        const todayPct = expected !== null ? Math.min(Math.round(expected * 100), 100) : 0;
+
+        html += `<div style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+          <div class="flex justify-between items-center mb-8">
+            <div>
+              <span class="status-dot status-${status}"></span>
+              <strong style="margin-left: 6px;">Pos. ${p.id}: ${escapeHtml(p.article)}</strong>
+            </div>
+            <div class="text-sm">
+              ${remaining !== null ? '<span class="text-muted">' + remaining + ' Arbeitstage verbleibend</span>' : ''}
+              ${isLate ? ' <span class="badge badge-danger">Verz&ouml;gert</span>' : ''}
+            </div>
+          </div>
+          <div class="timeline-bar">
+            <div class="timeline-expected" style="width:${expectedPct}%"></div>
+            <div class="timeline-progress" style="width:${actualPct}%; background:${status === 'red' ? '#e74c3c' : status === 'yellow' ? '#f39c12' : '#27ae60'};"></div>
+            ${expected !== null ? '<div class="timeline-today" style="left:' + todayPct + '%" title="Heute (Soll: ' + expectedPct + '%)"></div>' : ''}
+          </div>
+          <div class="timeline-labels">
+            <span>${new Date(p.startDate).toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'})}</span>
+            <span class="fw-600">${actualPct}% erledigt ${expected !== null ? '(Soll: ' + expectedPct + '%)' : ''}</span>
+            <span>${deadlineDate.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'})}</span>
+          </div>
+          <div class="text-sm mt-8 text-muted">
+            Prognose Fertigstellung: <strong style="color: ${isLate ? 'var(--danger)' : 'var(--success)'};">${estStr}</strong>
+            | Deadline: ${deadlineDate.toLocaleDateString('de-DE')}
+          </div>
+        </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderRecommendations(projects, todayReports) {
+      const recs = [];
+      const today = new Date();
+
+      projects.forEach(p => {
+        const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+
+        // 1. Kritische Verzögerung
+        if (p.startDate && p.deadline) {
+          const expected = Schedule.getExpectedProgress(p.startDate, p.deadline);
+          const status = Schedule.getStatus(avg, expected);
+          const remaining = Schedule.getRemainingWorkdays(p.deadline);
+
+          if (status === 'red') {
+            recs.push({
+              type: 'critical',
+              icon: '!!',
+              text: 'Pos. ' + p.id + ' (' + p.article + '): Kritische Verz\u00f6gerung! Ist: ' + Math.round(avg*100) + '%, Soll: ' + Math.round(expected*100) + '%. Sofortige Ma\u00dfnahmen erforderlich.'
+            });
+          } else if (status === 'yellow') {
+            recs.push({
+              type: 'warning',
+              icon: '!',
+              text: 'Pos. ' + p.id + ' (' + p.article + '): Leichte Verz\u00f6gerung. Ist: ' + Math.round(avg*100) + '%, Soll: ' + Math.round(expected*100) + '%. Priorisierung empfohlen.'
+            });
+          }
+
+          // Deadline in < 5 Arbeitstagen und nicht fertig
+          if (remaining !== null && remaining <= 5 && avg < 1) {
+            recs.push({
+              type: 'critical',
+              icon: '!!',
+              text: 'Pos. ' + p.id + ': Nur noch ' + remaining + ' Arbeitstage bis zur Deadline! Aktueller Fortschritt: ' + Math.round(avg*100) + '%.'
+            });
+          }
+        }
+
+        // 2. Sequenz-Abhängigkeiten
+        if (p.konstruktion < 1 && p.fertigung > 0.25) {
+          recs.push({
+            type: 'warning',
+            icon: '!',
+            text: 'Pos. ' + p.id + ': Fertigung (' + Math.round(p.fertigung*100) + '%) l\u00e4uft vor Konstruktionsabschluss (' + Math.round(p.konstruktion*100) + '%). Blockierungsgefahr!'
+          });
+        }
+        if (p.fertigung < 1 && p.montage > 0.25) {
+          recs.push({
+            type: 'warning',
+            icon: '!',
+            text: 'Pos. ' + p.id + ': Montage (' + Math.round(p.montage*100) + '%) l\u00e4uft vor Fertigungsabschluss (' + Math.round(p.fertigung*100) + '%). Blockierungsgefahr!'
+          });
+        }
+
+        // 3. Projekt ohne Zeitplan
+        if (!p.startDate || !p.deadline) {
+          if (avg > 0 && avg < 1) {
+            recs.push({
+              type: 'info',
+              icon: 'i',
+              text: 'Pos. ' + p.id + ' (' + p.article + '): Kein Zeitplan hinterlegt. Bitte Start- und Zieldatum festlegen.'
+            });
+          }
+        }
+
+        // 4. Kein Fortschritt trotz Startdatum in der Vergangenheit
+        if (p.startDate && avg === 0) {
+          const start = new Date(p.startDate);
+          if (today > start) {
+            const daysSinceStart = Math.round((today - start) / 86400000);
+            if (daysSinceStart > 3) {
+              recs.push({
+                type: 'warning',
+                icon: '!',
+                text: 'Pos. ' + p.id + ': Projektstart war vor ' + daysSinceStart + ' Tagen, aber kein Fortschritt gemeldet.'
+              });
+            }
+          }
+        }
+
+        // 5. Fertige Projekte
+        if (avg >= 1) {
+          recs.push({
+            type: 'success',
+            icon: '\u2713',
+            text: 'Pos. ' + p.id + ' (' + p.article + '): Projekt vollst\u00e4ndig abgeschlossen.'
+          });
+        }
+      });
+
+      // 6. Fehlende Tagesberichte
+      const employees = Storage.getEmployees();
+      const reportedIds = todayReports.map(r => r.employeeId);
+      const kw = getKW(today);
+      const year = today.getFullYear();
+      const weekPlan = Storage.getWeekPlan(year, kw);
+      const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mo, 4=Fr
+
+      employees.forEach(emp => {
+        const hasTasks = weekPlan.some(t => t.employeeId === emp.id && (t.day === 'week' || t.day === dayOfWeek));
+        if (hasTasks && !reportedIds.includes(emp.id)) {
+          recs.push({
+            type: 'info',
+            icon: 'i',
+            text: emp.name + ': Hat heute zugewiesene Aufgaben, aber noch keinen Bericht eingereicht.'
+          });
+        }
+      });
+
+      const container = document.getElementById('recommendations');
+      if (recs.length === 0) {
+        container.innerHTML = '<div class="recommendation success"><span class="rec-icon">\u2713</span><div>Alle Projekte laufen planm\u00e4\u00dfig. Keine Handlungsempfehlungen.</div></div>';
+      } else {
+        // Sort: critical first, then warning, info, success
+        const order = { critical: 0, warning: 1, info: 2, success: 3 };
+        recs.sort((a, b) => order[a.type] - order[b.type]);
+        container.innerHTML = recs.map(r =>
+          '<div class="recommendation ' + r.type + '"><span class="rec-icon">' + r.icon + '</span><div>' + escapeHtml(r.text) + '</div></div>'
+        ).join('');
       }
     }
 
@@ -773,7 +1134,7 @@
     function openProjectModal(project) {
       const sel = document.getElementById('proj-customer');
       sel.innerHTML = '<option value="">-- Kunde w&auml;hlen --</option>';
-      ATC_DATA.customers.forEach(c => {
+      getCustomers().forEach(c => {
         sel.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)} (${c.id})</option>`;
       });
 
@@ -797,6 +1158,8 @@
         document.getElementById('proj-konstr').value = project.konstruktion;
         document.getElementById('proj-fert').value = project.fertigung;
         document.getElementById('proj-mont').value = project.montage;
+        document.getElementById('proj-start').value = project.startDate || '';
+        document.getElementById('proj-deadline').value = project.deadline || '';
         document.getElementById('proj-remarks').value = project.remarks || '';
       } else {
         document.getElementById('project-modal-title').textContent = 'Neues Projekt';
@@ -805,10 +1168,12 @@
         document.getElementById('proj-order').value = '';
         document.getElementById('proj-article').value = '';
         document.getElementById('proj-qty').value = '';
-        document.getElementById('proj-unit').value = 'Stück';
+        document.getElementById('proj-unit').value = 'St\u00fcck';
         document.getElementById('proj-konstr').value = '0';
         document.getElementById('proj-fert').value = '0';
         document.getElementById('proj-mont').value = '0';
+        document.getElementById('proj-start').value = '';
+        document.getElementById('proj-deadline').value = '';
         document.getElementById('proj-remarks').value = '';
       }
       showModal('modal-project');
@@ -834,6 +1199,8 @@
         konstruktion: parseFloat(document.getElementById('proj-konstr').value),
         fertigung: parseFloat(document.getElementById('proj-fert').value),
         montage: parseFloat(document.getElementById('proj-mont').value),
+        startDate: document.getElementById('proj-start').value || '',
+        deadline: document.getElementById('proj-deadline').value || '',
         remarks: document.getElementById('proj-remarks').value
       };
 
@@ -1095,6 +1462,121 @@
       Storage.saveWeekPlan(currentYear, currentKW, plan);
       closeModal('modal-task');
       renderPlanning();
+    }
+
+    // ---- CUSTOMERS ----
+    function getCustomers() {
+      return Storage.load('customers', ATC_DATA.customers);
+    }
+    function saveCustomers(list) {
+      Storage.save('customers', list);
+    }
+
+    function renderCustomers() {
+      const customers = getCustomers();
+      const projects = Storage.getProjects();
+      let html = '';
+      customers.forEach(c => {
+        const custProjects = projects.filter(p => p.customerId === c.id);
+        const totalAvg = custProjects.length > 0
+          ? custProjects.reduce((s, p) => s + (p.konstruktion + p.fertigung + p.montage) / 3, 0) / custProjects.length
+          : 0;
+        html += `<div class="card">
+          <div class="flex justify-between items-center mb-8">
+            <div>
+              <div class="fw-600">${escapeHtml(c.name)}</div>
+              <div class="text-sm text-muted">Kd.-Nr.: ${escapeHtml(c.id)}
+                ${c.contact ? ' | Kontakt: ' + escapeHtml(c.contact) : ''}
+                ${c.email ? ' | ' + escapeHtml(c.email) : ''}
+                ${c.phone ? ' | ' + escapeHtml(c.phone) : ''}
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-sm btn-outline" onclick="editCustomer('${escapeHtml(c.id)}')">Bearbeiten</button>
+              ${custProjects.length === 0 ? '<button class="btn btn-sm btn-danger" onclick="deleteCustomer(\'' + escapeHtml(c.id) + '\')">L\u00f6schen</button>' : ''}
+            </div>
+          </div>
+          ${custProjects.length > 0 ? `
+            <div style="margin-top:8px;">
+              <div class="text-sm fw-600 mb-8">${custProjects.length} Projekt${custProjects.length !== 1 ? 'e' : ''} (Durchschnitt: ${Math.round(totalAvg*100)}%)</div>
+              <table>
+                <thead><tr><th>Pos.</th><th>Artikel</th><th>Menge</th><th>K</th><th>F</th><th>M</th><th>Gesamt</th><th>Status</th></tr></thead>
+                <tbody>
+                  ${custProjects.map(p => {
+                    const avg = (p.konstruktion + p.fertigung + p.montage) / 3;
+                    const expected = (p.startDate && p.deadline) ? Schedule.getExpectedProgress(p.startDate, p.deadline) : null;
+                    const status = Schedule.getStatus(avg, expected);
+                    return '<tr style="cursor:pointer;" onclick="editProject(' + p.id + ')">' +
+                      '<td>' + p.id + '</td>' +
+                      '<td>' + escapeHtml(p.article) + '</td>' +
+                      '<td>' + p.quantity + ' ' + p.unit + '</td>' +
+                      '<td>' + renderMiniProgress(p.konstruktion) + '</td>' +
+                      '<td>' + renderMiniProgress(p.fertigung) + '</td>' +
+                      '<td>' + renderMiniProgress(p.montage) + '</td>' +
+                      '<td>' + renderMiniProgress(avg) + '</td>' +
+                      '<td style="text-align:center;"><span class="status-dot status-' + status + '"></span></td>' +
+                      '</tr>';
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : '<div class="text-sm text-muted mt-8">Noch keine Projekte f\u00fcr diesen Kunden.</div>'}
+        </div>`;
+      });
+      document.getElementById('customers-list').innerHTML = html;
+    }
+
+    function openCustomerModal(customer) {
+      document.getElementById('customer-modal-title').textContent = customer ? 'Kunde bearbeiten' : 'Neuer Kunde';
+      document.getElementById('cust-edit-id').value = customer ? customer.id : '';
+      document.getElementById('cust-id').value = customer ? customer.id : '';
+      document.getElementById('cust-id').disabled = !!customer;
+      document.getElementById('cust-name').value = customer ? customer.name : '';
+      document.getElementById('cust-contact').value = customer ? (customer.contact || '') : '';
+      document.getElementById('cust-email').value = customer ? (customer.email || '') : '';
+      document.getElementById('cust-phone').value = customer ? (customer.phone || '') : '';
+      showModal('modal-customer');
+    }
+
+    function editCustomer(id) {
+      const customers = getCustomers();
+      const c = customers.find(c => c.id === id);
+      if (c) openCustomerModal(c);
+    }
+
+    function saveCustomer(e) {
+      e.preventDefault();
+      const customers = getCustomers();
+      const editId = document.getElementById('cust-edit-id').value;
+      const data = {
+        id: document.getElementById('cust-id').value,
+        name: document.getElementById('cust-name').value,
+        contact: document.getElementById('cust-contact').value,
+        email: document.getElementById('cust-email').value,
+        phone: document.getElementById('cust-phone').value
+      };
+
+      if (editId) {
+        const idx = customers.findIndex(c => c.id === editId);
+        if (idx >= 0) customers[idx] = { ...customers[idx], ...data };
+      } else {
+        if (customers.find(c => c.id === data.id)) {
+          alert('Kundennummer bereits vergeben!');
+          return;
+        }
+        customers.push(data);
+      }
+      saveCustomers(customers);
+      closeModal('modal-customer');
+      renderCustomers();
+    }
+
+    function deleteCustomer(id) {
+      if (!confirm('Kunde wirklich l\u00f6schen?')) return;
+      let customers = getCustomers();
+      customers = customers.filter(c => c.id !== id);
+      saveCustomers(customers);
+      renderCustomers();
     }
 
     // ---- EMPLOYEES ----
