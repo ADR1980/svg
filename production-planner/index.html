@@ -165,6 +165,32 @@
     .text-right { text-align: right; }
     .fw-600 { font-weight: 600; }
 
+    /* Login Screen */
+    .login-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: white; border-radius: 16px; padding: 40px; width: 100%; max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); text-align: center;
+    }
+    .login-box h2 { font-size: 22px; color: var(--primary); margin-bottom: 4px; }
+    .login-box .login-sub { font-size: 13px; color: var(--text-light); margin-bottom: 24px; }
+    .login-box .form-group { text-align: left; }
+    .login-box input[type="password"] {
+      width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px;
+      font-size: 16px; margin-bottom: 16px; text-align: center; letter-spacing: 4px;
+    }
+    .login-box input[type="password"]:focus { outline: none; border-color: var(--primary); }
+    .login-box .login-btn {
+      width: 100%; padding: 14px; background: var(--primary); color: white; border: none;
+      border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+    .login-box .login-btn:hover { background: var(--primary-light); }
+    .login-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none; }
+
     @media (max-width: 768px) {
       .content { padding: 12px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -175,6 +201,22 @@
   </style>
 </head>
 <body>
+  <!-- LOGIN SCREEN -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-box">
+      <div style="font-size: 40px; margin-bottom: 12px;">&#128274;</div>
+      <h2>ATC Produktionsplanung</h2>
+      <div class="login-sub">Bitte Passwort eingeben</div>
+      <div class="login-error" id="login-error">Falsches Passwort. Bitte erneut versuchen.</div>
+      <form onsubmit="doAdminLogin(event)">
+        <input type="password" id="admin-password" placeholder="Passwort" autofocus>
+        <button type="submit" class="login-btn">Anmelden</button>
+      </form>
+      <div style="margin-top: 16px; font-size: 12px; color: var(--text-light);">
+        <a href="app.html" style="color: var(--primary-light);">Zur Mitarbeiter-App</a>
+      </div>
+    </div>
+  </div>
   <div class="header">
     <div>
       <h1>ATC Produktionsplanung</h1>
@@ -182,6 +224,7 @@
     </div>
     <div class="header-right">
       <a href="app.html">Mitarbeiter-App</a>
+      <a href="#" onclick="doAdminLogout()" style="background: rgba(255,255,255,0.1);">Abmelden</a>
     </div>
   </div>
 
@@ -450,6 +493,10 @@
             <option value="Montage">Montage</option>
             <option value="Alle">Alle Bereiche</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Login-PIN (f&uuml;r Mitarbeiter-App)</label>
+          <input type="text" class="form-control" id="emp-pin" inputmode="numeric" maxlength="10" placeholder="z.B. 1234" required>
         </div>
         <div class="flex gap-8" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-employee')">Abbrechen</button>
@@ -983,11 +1030,14 @@
     // ---- EMPLOYEES ----
     function renderEmployees() {
       const employees = Storage.getEmployees();
-      document.getElementById('employees-table').innerHTML = employees.map(e => `
+      document.getElementById('employees-table').innerHTML = `
+        <tr><th>ID</th><th>Name</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
+      ` + employees.map(e => `
         <tr>
           <td><strong>${escapeHtml(e.id)}</strong></td>
           <td>${escapeHtml(e.name)}</td>
           <td><span class="badge badge-info">${escapeHtml(e.role)}</span></td>
+          <td><code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">${e.pin ? '****' : 'nicht gesetzt'}</code></td>
           <td>
             <button class="btn btn-sm btn-outline" onclick="editEmployee('${e.id}')">Bearbeiten</button>
             <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${e.id}')">L&ouml;schen</button>
@@ -1002,6 +1052,7 @@
       document.getElementById('emp-id').disabled = !!emp;
       document.getElementById('emp-name').value = emp ? emp.name : '';
       document.getElementById('emp-role').value = emp ? emp.role : 'Fertigung';
+      document.getElementById('emp-pin').value = emp ? (emp.pin || '') : '';
       showModal('modal-employee');
     }
 
@@ -1018,7 +1069,8 @@
       const data = {
         id: document.getElementById('emp-id').value.toUpperCase(),
         name: document.getElementById('emp-name').value,
-        role: document.getElementById('emp-role').value
+        role: document.getElementById('emp-role').value,
+        pin: document.getElementById('emp-pin').value
       };
 
       if (editId) {
@@ -1171,8 +1223,33 @@
       });
     });
 
-    // Init
-    renderDashboard();
+    // ---- AUTH ----
+    function doAdminLogin(e) {
+      e.preventDefault();
+      const pw = document.getElementById('admin-password').value;
+      if (Auth.loginAdmin(pw)) {
+        document.getElementById('login-overlay').classList.add('hidden');
+        document.getElementById('login-error').style.display = 'none';
+        renderDashboard();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+        document.getElementById('admin-password').value = '';
+        document.getElementById('admin-password').focus();
+      }
+    }
+
+    function doAdminLogout() {
+      Auth.logoutAdmin();
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.getElementById('admin-password').value = '';
+      document.getElementById('login-error').style.display = 'none';
+    }
+
+    // Init - check auth
+    if (Auth.isAdminLoggedIn()) {
+      document.getElementById('login-overlay').classList.add('hidden');
+      renderDashboard();
+    }
   </script>
 </body>
 </html>

@@ -202,13 +202,19 @@
 
   <!-- LOGIN SCREEN -->
   <div id="login-screen" class="login-screen">
-    <div class="login-logo">&#9881;</div>
+    <div class="login-logo">&#128274;</div>
     <div class="login-title">ATC Produktion</div>
     <div class="login-subtitle">Mitarbeiter-App</div>
     <div class="login-card">
-      <label>Mitarbeiter ausw&auml;hlen</label>
+      <label>Mitarbeiter</label>
       <select id="login-employee"></select>
+      <label>PIN</label>
+      <input type="password" id="login-pin" placeholder="PIN eingeben" inputmode="numeric" maxlength="10" style="text-align: center; letter-spacing: 6px;">
+      <div id="login-error" style="color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none;">Falscher PIN. Bitte erneut versuchen.</div>
       <button class="login-btn" onclick="doLogin()">Anmelden</button>
+      <div style="margin-top: 16px; font-size: 12px; color: #7f8c8d;">
+        <a href="index.html" style="color: #2c5f8a;">Zur Planer-Ansicht</a>
+      </div>
     </div>
   </div>
 
@@ -276,33 +282,47 @@
       const sel = document.getElementById('login-employee');
       sel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
 
-      // Check if already logged in
-      const saved = localStorage.getItem('atc_current_employee');
-      if (saved) {
-        const emp = employees.find(e => e.id === saved);
-        if (emp) {
-          currentEmployee = emp;
-          showApp();
-          return;
-        }
+      // Check if already logged in (session-based)
+      const emp = Auth.getLoggedInEmployee();
+      if (emp) {
+        currentEmployee = emp;
+        showApp();
+        return;
       }
       document.getElementById('login-screen').style.display = 'flex';
     }
 
     function doLogin() {
       const empId = document.getElementById('login-employee').value;
-      const employees = Storage.getEmployees();
-      currentEmployee = employees.find(e => e.id === empId);
-      if (!currentEmployee) return;
-      localStorage.setItem('atc_current_employee', currentEmployee.id);
-      showApp();
+      const pin = document.getElementById('login-pin').value;
+      const errorEl = document.getElementById('login-error');
+
+      if (!pin) {
+        errorEl.textContent = 'Bitte PIN eingeben.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const result = Auth.loginEmployee(empId, pin);
+      if (result) {
+        currentEmployee = result;
+        errorEl.style.display = 'none';
+        showApp();
+      } else {
+        errorEl.textContent = 'Falscher PIN. Bitte erneut versuchen.';
+        errorEl.style.display = 'block';
+        document.getElementById('login-pin').value = '';
+        document.getElementById('login-pin').focus();
+      }
     }
 
     function doLogout() {
-      localStorage.removeItem('atc_current_employee');
+      Auth.logoutEmployee();
       currentEmployee = null;
       document.getElementById('main-app').style.display = 'none';
       document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-pin').value = '';
+      document.getElementById('login-error').style.display = 'none';
     }
 
     function showApp() {
