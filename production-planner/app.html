@@ -190,6 +190,84 @@
     .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
 
+    /* Weekly View */
+    .week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .week-nav-btn {
+      background: var(--primary); color: white; border: none; border-radius: 8px;
+      padding: 8px 14px; cursor: pointer; font-size: 14px; font-weight: 500;
+    }
+    .week-nav-btn:hover { background: var(--primary-light); }
+    .week-nav-label { font-size: 15px; font-weight: 600; color: var(--text); }
+    .week-days { display: flex; flex-direction: column; gap: 12px; }
+    .week-day-card {
+      background: var(--card); border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .week-day-header {
+      padding: 10px 16px; font-weight: 600; font-size: 14px;
+      background: var(--primary); color: white; display: flex;
+      justify-content: space-between; align-items: center; cursor: pointer;
+    }
+    .week-day-header.today-highlight { background: var(--accent); }
+    .week-day-header .day-badge {
+      font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .week-day-body { padding: 0; }
+    .week-day-body.collapsed { display: none; }
+    .week-task-item {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .week-task-item:last-child { border-bottom: none; }
+    .week-task-info { flex: 1; }
+    .week-task-title { font-size: 13px; font-weight: 600; }
+    .week-task-desc { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+    .week-task-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+
+    /* Daily Report Quick Button */
+    .daily-report-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), #d35400);
+      color: white; border: none; border-radius: 12px; font-size: 15px;
+      font-weight: 600; cursor: pointer; margin-bottom: 16px;
+      box-shadow: 0 3px 12px rgba(230, 126, 34, 0.3);
+    }
+    .daily-report-btn:hover { opacity: 0.9; }
+    .daily-report-btn .report-icon { font-size: 20px; }
+
+    /* Daily Report Modal */
+    .report-modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 200; display: flex;
+      align-items: flex-end; justify-content: center;
+    }
+    .report-modal {
+      background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto; padding: 20px;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .report-modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .report-modal-close {
+      background: none; border: none; font-size: 24px; cursor: pointer;
+      color: var(--text-light); padding: 4px;
+    }
+    .report-task-list { margin-bottom: 16px; }
+    .report-task-entry {
+      background: var(--bg); border-radius: 8px; padding: 12px;
+      margin-bottom: 8px; border-left: 3px solid var(--primary);
+    }
+    .report-task-entry .task-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+    }
+
     .text-sm { font-size: 13px; }
     .text-muted { color: var(--text-light); }
     .mt-8 { margin-top: 8px; }
@@ -237,7 +315,15 @@
     <!-- Pages -->
     <div class="page active" id="page-today">
       <div class="date-header" id="today-date"></div>
+      <button class="daily-report-btn" onclick="openDailyReportModal()">
+        <span class="report-icon">&#128221;</span> Tagesbericht erstellen
+      </button>
       <div id="today-tasks"></div>
+    </div>
+
+    <div class="page" id="page-week">
+      <div class="date-header">Wochenansicht</div>
+      <div id="week-view-container"></div>
     </div>
 
     <div class="page" id="page-overview">
@@ -284,11 +370,11 @@
       <div class="nav-item active" data-page="today">
         <span class="nav-icon">&#128197;</span>Heute
       </div>
+      <div class="nav-item" data-page="week">
+        <span class="nav-icon">&#128198;</span>Woche
+      </div>
       <div class="nav-item" data-page="overview">
         <span class="nav-icon">&#128202;</span>&Uuml;bersicht
-      </div>
-      <div class="nav-item" data-page="report">
-        <span class="nav-icon">&#128221;</span>Bericht
       </div>
       <div class="nav-item" data-page="history">
         <span class="nav-icon">&#128214;</span>Verlauf
@@ -376,6 +462,7 @@
 
         switch (page) {
           case 'today': renderToday(); break;
+          case 'week': renderWeekView(); break;
           case 'overview': renderOverview(); break;
           case 'report': renderReportForm(); break;
           case 'history': renderHistory(); break;
@@ -864,6 +951,206 @@
       }
 
       document.getElementById('history-list').innerHTML = html;
+    }
+
+    // ---- WOCHENANSICHT ----
+    let weekViewOffset = 0; // 0 = aktuelle Woche, -1 = letzte Woche, etc.
+
+    function renderWeekView() {
+      const today = new Date();
+      const refDate = new Date(today);
+      refDate.setDate(refDate.getDate() + weekViewOffset * 7);
+
+      const kw = getKW(refDate);
+      const year = refDate.getFullYear();
+      const plan = Storage.getWeekPlan(year, kw);
+      const projects = Storage.getProjects();
+      const todayDayOfWeek = (today.getDay() + 6) % 7;
+      const todayISO = getISODate(today);
+
+      // Montag der Referenzwoche berechnen
+      const monday = new Date(refDate);
+      const currentDay = (monday.getDay() + 6) % 7;
+      monday.setDate(monday.getDate() - currentDay);
+
+      const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
+
+      // Wochenaufgaben (day === 'week') sammeln
+      const weekTasks = plan.filter(t => t.employeeId === currentEmployee.id && t.day === 'week');
+
+      let html = `
+        <div class="week-nav">
+          <button class="week-nav-btn" onclick="weekViewOffset--; renderWeekView();">&larr;</button>
+          <div class="week-nav-label">KW ${kw} / ${year}</div>
+          <button class="week-nav-btn" onclick="weekViewOffset++; renderWeekView();">&rarr;</button>
+        </div>
+      `;
+
+      // Wochenaufgaben-Block
+      if (weekTasks.length > 0) {
+        html += `<div class="week-day-card" style="margin-bottom:12px;">
+          <div class="week-day-header" style="background: var(--primary-light);" onclick="toggleWeekDay(this)">
+            <span>Wochenaufgaben (Mo-Fr)</span>
+            <span class="day-badge">${weekTasks.length} Aufgabe${weekTasks.length > 1 ? 'n' : ''}</span>
+          </div>
+          <div class="week-day-body">`;
+        weekTasks.forEach(task => {
+          const proj = projects.find(p => p.id === task.projectId);
+          html += renderWeekTaskItem(task, proj);
+        });
+        html += `</div></div>`;
+      }
+
+      html += '<div class="week-days">';
+
+      for (let d = 0; d < 5; d++) {
+        const dayDate = new Date(monday);
+        dayDate.setDate(monday.getDate() + d);
+        const dayISO = getISODate(dayDate);
+        const isToday = weekViewOffset === 0 && d === todayDayOfWeek;
+        const dayTasks = plan.filter(t => t.employeeId === currentEmployee.id && t.day === d);
+        const report = Storage.getDailyReport(dayISO, currentEmployee.id);
+
+        html += `
+          <div class="week-day-card">
+            <div class="week-day-header ${isToday ? 'today-highlight' : ''}" onclick="toggleWeekDay(this)">
+              <span>${dayNames[d]}, ${dayDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
+              <span class="day-badge">
+                ${dayTasks.length} Aufgabe${dayTasks.length !== 1 ? 'n' : ''}
+                ${report ? ' &#9989;' : ''}
+              </span>
+            </div>
+            <div class="week-day-body ${!isToday ? 'collapsed' : ''}">
+        `;
+
+        if (dayTasks.length === 0) {
+          html += '<div style="padding: 12px 16px; color: var(--text-light); font-size: 13px;">Keine Aufgaben geplant.</div>';
+        } else {
+          dayTasks.forEach(task => {
+            const proj = projects.find(p => p.id === task.projectId);
+            html += renderWeekTaskItem(task, proj);
+          });
+        }
+
+        html += '</div></div>';
+      }
+
+      html += '</div>';
+
+      // Heute-Button wenn nicht aktuelle Woche
+      if (weekViewOffset !== 0) {
+        html += `<div style="text-align:center; margin-top:16px;">
+          <button class="btn btn-outline" onclick="weekViewOffset=0; renderWeekView();">Zur aktuellen Woche</button>
+        </div>`;
+      }
+
+      document.getElementById('week-view-container').innerHTML = html;
+    }
+
+    function renderWeekTaskItem(task, proj) {
+      return `
+        <div class="week-task-item">
+          <div class="week-task-info">
+            <div class="week-task-title">${proj ? escapeHtml(proj.article) : 'Unbekanntes Projekt'}</div>
+            <div class="week-task-desc">${escapeHtml(task.description)}</div>
+            <div class="week-task-badges">
+              <span class="badge badge-info">${escapeHtml(task.area)}</span>
+              ${task.plannedQty ? `<span class="badge badge-neutral">${task.plannedQty} Stk.</span>` : ''}
+              ${task.plannedMinutes ? `<span class="badge badge-warning">Soll: ${task.plannedMinutes} Min</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function toggleWeekDay(headerEl) {
+      const body = headerEl.nextElementSibling;
+      body.classList.toggle('collapsed');
+    }
+
+    // ---- TAGESBERICHT-MODAL ----
+    function openDailyReportModal() {
+      const today = new Date();
+      const isoDate = getISODate(today);
+      const kw = getKW(today);
+      const year = today.getFullYear();
+      const dayOfWeek = (today.getDay() + 6) % 7;
+
+      const plan = Storage.getWeekPlan(year, kw);
+      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week'));
+      const projects = Storage.getProjects();
+      const existingReport = Storage.getDailyReport(isoDate, currentEmployee.id);
+
+      let tasksHtml = '';
+      if (myTasks.length === 0) {
+        tasksHtml = '<div class="text-sm text-muted" style="padding: 12px 0;">Keine Aufgaben f&uuml;r heute geplant.</div>';
+      } else {
+        myTasks.forEach(task => {
+          const proj = projects.find(p => p.id === task.projectId);
+          const taskReport = Storage.getDailyReport(isoDate, currentEmployee.id);
+          const isReported = !!taskReport;
+          tasksHtml += `
+            <div class="report-task-entry">
+              <div class="task-header">
+                <div class="fw-600 text-sm">${proj ? escapeHtml(proj.article) : 'Unbekannt'}</div>
+                ${isReported
+                  ? '<span class="badge badge-success" style="font-size:10px;">Berichtet</span>'
+                  : '<span class="badge badge-warning" style="font-size:10px;">Offen</span>'}
+              </div>
+              <div class="text-sm text-muted">${proj ? getCustomerName(proj.customerId) : ''}</div>
+              <div class="text-sm mt-8"><strong>Aufgabe:</strong> ${escapeHtml(task.description)}</div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+                <span class="badge badge-info">${escapeHtml(task.area)}</span>
+                ${task.plannedQty ? `<span class="badge badge-neutral">${task.plannedQty} Stk.</span>` : ''}
+                ${task.plannedMinutes ? `<span class="badge badge-warning">Soll: ${task.plannedMinutes} Min</span>` : ''}
+              </div>
+              ${!isReported ? `
+                <div style="margin-top:8px;">
+                  <button class="btn btn-accent btn-sm" style="width:100%;" onclick="closeDailyReportModal(); goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description).replace(/'/g, "\\'")}', ${task.plannedQty || 0});">
+                    Bericht f&uuml;r diese Aufgabe
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        });
+      }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'report-modal-overlay';
+      overlay.id = 'daily-report-modal';
+      overlay.onclick = function(e) { if (e.target === overlay) closeDailyReportModal(); };
+
+      overlay.innerHTML = `
+        <div class="report-modal">
+          <div class="report-modal-header">
+            <div>
+              <div class="fw-600" style="font-size:17px;">Tagesbericht</div>
+              <div class="text-sm text-muted">${formatDate(today)}</div>
+            </div>
+            <button class="report-modal-close" onclick="closeDailyReportModal()">&times;</button>
+          </div>
+          <div class="text-sm fw-600 mb-8" style="color: var(--primary);">Heutige Aufgaben (${myTasks.length})</div>
+          <div class="report-task-list">${tasksHtml}</div>
+          ${existingReport ? `
+            <div class="card" style="background: #d5f5e3; border: 1px solid #27ae60;">
+              <div class="fw-600 text-sm" style="color: #27ae60;">Tagesbericht bereits eingereicht</div>
+              <div class="text-sm mt-8"><strong>Erledigt:</strong> ${escapeHtml(existingReport.completedWork || '-')}</div>
+              <div class="text-sm mt-8">
+                <button class="btn btn-outline btn-sm" onclick="closeDailyReportModal(); goToReport(${existingReport.projectId}, '${existingReport.area}', '', 0);">
+                  Bericht bearbeiten
+                </button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+    }
+
+    function closeDailyReportModal() {
+      const modal = document.getElementById('daily-report-modal');
+      if (modal) modal.remove();
     }
 
     // ---- AUFGABEN-FOTOS ----
