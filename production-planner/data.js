@@ -4,13 +4,13 @@
 
 const ATC_DATA = {
   customers: [
-    { id: '10024', name: 'Menze Kunststofftechnik GmbH', contact: '', email: '', phone: '' },
-    { id: '10023', name: 'MAM Electronic', contact: '', email: '', phone: '' },
-    { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH', contact: '', email: '', phone: '' },
-    { id: '10021', name: 'BA Clearance GmbH', contact: '', email: '', phone: '' },
-    { id: '10016', name: 'EP Arms GmbH', contact: '', email: '', phone: '' },
-    { id: '10002', name: 'ATC SiPro GmbH', contact: '', email: '', phone: '' },
-    { id: '10001', name: '1 MOA GmbH', contact: '', email: '', phone: '' }
+    { id: '10024', name: 'Menze Kunststofftechnik GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10023', name: 'MAM Electronic', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10021', name: 'BA Clearance GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10016', name: 'EP Arms GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10002', name: 'ATC SiPro GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' },
+    { id: '10001', name: '1 MOA GmbH', contact: '', email: '', phone: '', contactEmail: '', password: '' }
   ],
 
   progressScales: {
@@ -570,6 +570,40 @@ const Auth = {
     emp.pin = newPin;
     Storage.saveEmployees(employees);
     return true;
+  },
+
+  // Kunden-Login (Kundenportal) - per contactEmail + Passwort
+  loginCustomer(email, password) {
+    const customers = Storage.getCustomers();
+    const cust = customers.find(c => c.contactEmail && c.contactEmail.toLowerCase() === email.toLowerCase());
+    if (!cust || !cust.password) return false;
+    if (password === cust.password) {
+      const session = {
+        type: 'customer',
+        customerId: cust.id,
+        loginAt: Date.now(),
+        expiresAt: Date.now() + this._sessionTimeout
+      };
+      localStorage.setItem(this._sessionKey + '_customer', JSON.stringify(session));
+      return cust;
+    }
+    return false;
+  },
+
+  getLoggedInCustomer() {
+    const raw = localStorage.getItem(this._sessionKey + '_customer');
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (Date.now() > session.expiresAt) {
+      this.logoutCustomer();
+      return null;
+    }
+    const customers = Storage.getCustomers();
+    return customers.find(c => c.id === session.customerId) || null;
+  },
+
+  logoutCustomer() {
+    localStorage.removeItem(this._sessionKey + '_customer');
   }
 };
 

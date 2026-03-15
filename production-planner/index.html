@@ -941,6 +941,17 @@
           <label>Telefon</label>
           <input type="text" class="form-control" id="cust-phone" placeholder="optional">
         </div>
+        <div style="border-top: 1px solid #dce1e6; margin: 16px 0; padding-top: 16px;">
+          <div class="fw-600 mb-8" style="font-size: 14px;">Kundenportal-Zugang</div>
+          <div class="form-group">
+            <label>Login-Email (Ansprechpartner)</label>
+            <input type="email" class="form-control" id="cust-contact-email" placeholder="email@kunde.de">
+          </div>
+          <div class="form-group">
+            <label>Passwort f&uuml;r Kundenportal</label>
+            <input type="text" class="form-control" id="cust-password" placeholder="Passwort vergeben">
+          </div>
+        </div>
         <div class="flex gap-8" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-customer')">Abbrechen</button>
           <button type="submit" class="btn btn-primary">Speichern</button>
@@ -3119,6 +3130,7 @@
                 ${c.email ? ' | ' + escapeHtml(c.email) : ''}
                 ${c.phone ? ' | ' + escapeHtml(c.phone) : ''}
               </div>
+              ${c.contactEmail ? '<div class="text-sm" style="color: var(--accent); margin-top: 2px;">Portal: ' + escapeHtml(c.contactEmail) + (c.password ? ' (Zugang aktiv)' : ' (kein Passwort)') + '</div>' : ''}
             </div>
             <div style="display:flex; gap:8px;">
               <button class="btn btn-sm btn-outline" onclick="editCustomer('${escapeHtml(c.id)}')">Bearbeiten</button>
@@ -3164,6 +3176,8 @@
       document.getElementById('cust-contact').value = customer ? (customer.contact || '') : '';
       document.getElementById('cust-email').value = customer ? (customer.email || '') : '';
       document.getElementById('cust-phone').value = customer ? (customer.phone || '') : '';
+      document.getElementById('cust-contact-email').value = customer ? (customer.contactEmail || '') : '';
+      document.getElementById('cust-password').value = customer ? (customer.password || '') : '';
       showModal('modal-customer');
     }
 
@@ -3182,7 +3196,9 @@
         name: document.getElementById('cust-name').value,
         contact: document.getElementById('cust-contact').value,
         email: document.getElementById('cust-email').value,
-        phone: document.getElementById('cust-phone').value
+        phone: document.getElementById('cust-phone').value,
+        contactEmail: document.getElementById('cust-contact-email').value,
+        password: document.getElementById('cust-password').value
       };
 
       if (editId) {
