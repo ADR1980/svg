@@ -838,7 +838,7 @@
 
       document.getElementById('task-modal-title').textContent = isEdit ? 'Aufgabe bearbeiten' : 'Aufgabe zuweisen';
       document.getElementById('task-submit-btn').textContent = isEdit ? 'Speichern' : 'Zuweisen';
-      document.getElementById('task-edit-index').value = isEdit ? editIndex : '';
+      document.getElementById('task-edit-index').value = isEdit ? String(editIndex) : '';
       document.getElementById('task-delete-btn').style.display = isEdit ? 'inline-flex' : 'none';
 
       empSel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
@@ -851,16 +851,19 @@
       // Fill values if editing
       if (isEdit) {
         empSel.value = existingTask.employeeId;
-        projSel.value = existingTask.projectId;
+        projSel.value = String(existingTask.projectId);
         document.getElementById('task-area').value = existingTask.area;
-        document.getElementById('task-day').value = existingTask.day;
+        document.getElementById('task-day').value = String(existingTask.day);
         document.getElementById('task-desc').value = existingTask.description || '';
         document.getElementById('task-planned-qty').value = existingTask.plannedQty || '';
         onTaskProjectChange();
         updateTaskTargetProgress();
-        if (existingTask.targetProgress !== undefined) {
-          document.getElementById('task-target-progress').value = existingTask.targetProgress;
-        }
+        // Set target progress after options are populated
+        setTimeout(function() {
+          if (existingTask.targetProgress !== undefined) {
+            document.getElementById('task-target-progress').value = String(existingTask.targetProgress);
+          }
+        }, 0);
       } else {
         document.getElementById('task-area').value = 'fertigung';
         document.getElementById('task-day').value = 'week';
@@ -870,11 +873,8 @@
         updateTaskTargetProgress();
       }
 
-      // Remove old listeners, add fresh ones
-      const areaEl = document.getElementById('task-area');
-      const newArea = areaEl.cloneNode(true);
-      areaEl.parentNode.replaceChild(newArea, areaEl);
-      newArea.addEventListener('change', updateTaskTargetProgress);
+      // Bind area change to update target progress
+      document.getElementById('task-area').onchange = updateTaskTargetProgress;
 
       showModal('modal-task');
     }
