@@ -432,13 +432,14 @@ const Storage = {
   // Kunden laden/speichern (mit Merge neuer Felder aus Defaults)
   getCustomers() {
     const stored = this.load('customers', ATC_DATA.customers);
-    // Merge neue Felder (contactEmail, password) aus Defaults falls im localStorage fehlend
     return stored.map(c => {
-      const def = ATC_DATA.customers.find(d => d.id === c.id);
+      const def = ATC_DATA.customers.find(d => d.id === c.id) || {};
       return {
-        contactEmail: '', password: '',
-        ...(def || {}),
-        ...c
+        ...def,
+        ...c,
+        // Portal-Felder: gespeicherten Wert bevorzugen, sonst Default
+        contactEmail: c.contactEmail || def.contactEmail || '',
+        password: c.password || def.password || ''
       };
     });
   },

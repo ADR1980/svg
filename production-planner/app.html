@@ -448,6 +448,7 @@
   <script>
     let currentEmployee = null;
     let reportPhotos = [];
+    let selectedReportDate = null;
 
     // ---- LOGIN ----
     function initLogin() {
@@ -625,7 +626,7 @@
 
             ${!isReported ? `
               <div class="task-actions">
-                <button class="btn btn-accent btn-sm" onclick="goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description)}', ${task.plannedQty || 0})">
+                <button class="btn btn-accent btn-sm" data-desc="${escapeHtml(task.description)}" onclick="goToReport(${task.projectId}, '${task.area}', this.dataset.desc, ${task.plannedQty || 0})">
                   Bericht erstellen
                 </button>
                 <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" onclick="removeSelfAssignedTask(${task._planIndex})">
@@ -727,7 +728,7 @@
           <div class="fw-600 mb-8">Tagesbericht</div>
           <div class="report-date-picker" style="margin-bottom: 12px;">
             <label>Datum:</label>
-            <input type="date" id="rpt-date" value="${today}" onchange="selectedReportDate = this.value; renderReportForm(${projectId || 'null'}, '${area || ''}', '', ${plannedQty || 0});">
+            <input type="date" id="rpt-date" value="${today}" onchange="selectedReportDate = this.value; renderReportForm(${projectId != null ? projectId : 'null'}, ${area ? "'" + area + "'" : 'null'}, '', ${plannedQty || 0});">
           </div>
           ${existingReport ? '<div class="badge badge-success mb-8">Bericht bereits eingereicht - wird aktualisiert</div>' : ''}
 
@@ -1147,8 +1148,6 @@
     }
 
     // ---- TAGESBERICHT-MODAL ----
-    let selectedReportDate = null;
-
     function openDailyReportModal(dateStr) {
       const selectedDate = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
       selectedReportDate = getISODate(selectedDate);
@@ -1187,7 +1186,7 @@
             </div>
             ${!isReported ? `
               <div style="margin-top:8px;">
-                <button class="btn btn-accent btn-sm" style="width:100%;" onclick="closeDailyReportModal(); goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description).replace(/'/g, "\\'")}', ${task.plannedQty || 0}, '${isoDate}');">
+                <button class="btn btn-accent btn-sm" style="width:100%;" data-desc="${escapeHtml(task.description)}" onclick="closeDailyReportModal(); goToReport(${task.projectId}, '${task.area}', this.dataset.desc, ${task.plannedQty || 0}, '${isoDate}');">
                   Bericht f&uuml;r diese Aufgabe
                 </button>
               </div>
