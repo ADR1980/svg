@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ATC Produktion - Mitarbeiter</title>
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --primary-light: #2c5f8a;
+      --accent: #e67e22;
+      --success: #27ae60;
+      --danger: #e74c3c;
+      --warning: #f39c12;
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --text: #2c3e50;
+      --text-light: #7f8c8d;
+      --border: #dce1e6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); max-width: 600px; margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    /* App Header */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white; padding: 16px 20px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .app-header-top { display: flex; justify-content: space-between; align-items: center; }
+    .app-header h1 { font-size: 18px; font-weight: 600; }
+    .app-header .user-info { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+    .header-link { color: white; text-decoration: none; font-size: 12px; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 6px; }
+
+    /* Login Screen */
+    .login-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 40px 20px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+    }
+    .login-logo { font-size: 48px; margin-bottom: 16px; }
+    .login-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .login-subtitle { font-size: 14px; opacity: 0.8; margin-bottom: 32px; }
+    .login-card {
+      background: white; border-radius: 16px; padding: 32px; width: 100%; max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .login-card label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px; font-weight: 500; }
+    .login-card select, .login-card input {
+      width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px;
+      font-size: 16px; color: var(--text); margin-bottom: 20px; background: white;
+    }
+    .login-card select:focus, .login-card input:focus { outline: none; border-color: var(--primary); }
+    .login-btn {
+      width: 100%; padding: 14px; background: var(--primary); color: white; border: none;
+      border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+    .login-btn:hover { background: var(--primary-light); }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
+      background: white; display: flex; border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.05); z-index: 100;
+    }
+    .nav-item {
+      flex: 1; padding: 10px 0; text-align: center; cursor: pointer;
+      color: var(--text-light); font-size: 11px; transition: color 0.2s;
+    }
+    .nav-item.active { color: var(--primary); }
+    .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+    /* Page Content */
+    .page { display: none; padding: 16px 16px 80px; }
+    .page.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    /* Today Section */
+    .date-header {
+      font-size: 13px; color: var(--text-light); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 12px; font-weight: 600;
+    }
+
+    /* Task Card */
+    .task-card {
+      border-left: 4px solid var(--primary); position: relative;
+    }
+    .task-card.completed { border-left-color: var(--success); opacity: 0.7; }
+    .task-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .task-subtitle { font-size: 12px; color: var(--text-light); }
+    .task-meta { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .task-meta-item {
+      font-size: 11px; color: var(--text-light); background: var(--bg);
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .task-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+    /* Progress Bar */
+    .progress-bar { height: 6px; background: #ecf0f1; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+    /* Badge */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-success { background: #d5f5e3; color: #27ae60; }
+    .badge-warning { background: #fdebd0; color: #e67e22; }
+    .badge-danger { background: #fadbd8; color: #e74c3c; }
+    .badge-info { background: #d6eaf8; color: #2980b9; }
+    .badge-neutral { background: var(--bg); color: var(--text-light); }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 500; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-accent { background: var(--accent); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-block { display: block; width: 100%; }
+    .btn-sm { padding: 7px 14px; font-size: 13px; }
+
+    /* Forms */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-light); }
+    .form-control {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 15px; color: var(--text); background: white;
+    }
+    .form-control:focus { outline: none; border-color: var(--primary); }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+
+    /* Report Form */
+    .report-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+    /* Photo Upload */
+    .photo-upload {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+    }
+    .photo-preview {
+      width: 80px; height: 80px; border-radius: 8px; object-fit: cover;
+      border: 1px solid var(--border);
+    }
+    .photo-add {
+      width: 80px; height: 80px; border-radius: 8px; border: 2px dashed var(--border);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      font-size: 28px; color: var(--text-light); background: var(--bg);
+    }
+    .photo-add:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Project Overview Card */
+    .project-overview-card { margin-bottom: 12px; }
+    .project-progress { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .progress-item { text-align: center; }
+    .progress-item .label { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+    .progress-item .value { font-size: 20px; font-weight: 700; }
+
+    /* Deviation toggle */
+    .toggle-group { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--border); }
+    .toggle-option {
+      flex: 1; padding: 10px; text-align: center; cursor: pointer;
+      font-size: 14px; font-weight: 500; background: white; color: var(--text);
+      border: none; transition: all 0.2s;
+    }
+    .toggle-option.active-yes { background: var(--success); color: white; }
+    .toggle-option.active-no { background: var(--danger); color: white; }
+
+    /* History */
+    .history-item {
+      display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .history-date {
+      font-size: 12px; color: var(--text-light); min-width: 60px; padding-top: 2px;
+    }
+    .history-content { flex: 1; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+    .text-sm { font-size: 13px; }
+    .text-muted { color: var(--text-light); }
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mb-8 { margin-bottom: 8px; }
+    .fw-600 { font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-logo">&#9881;</div>
+    <div class="login-title">ATC Produktion</div>
+    <div class="login-subtitle">Mitarbeiter-App</div>
+    <div class="login-card">
+      <label>Mitarbeiter ausw&auml;hlen</label>
+      <select id="login-employee"></select>
+      <button class="login-btn" onclick="doLogin()">Anmelden</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="main-app" style="display: none;">
+    <div class="app-header">
+      <div class="app-header-top">
+        <div>
+          <h1>ATC Produktion</h1>
+          <div class="user-info" id="user-display"></div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <a href="index.html" class="header-link">Planung</a>
+          <button onclick="doLogout()" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Abmelden</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pages -->
+    <div class="page active" id="page-today">
+      <div class="date-header" id="today-date"></div>
+      <div id="today-tasks"></div>
+    </div>
+
+    <div class="page" id="page-overview">
+      <div class="date-header">Projekt&uuml;bersicht</div>
+      <div id="overview-projects"></div>
+    </div>
+
+    <div class="page" id="page-report">
+      <div class="date-header">Tagesbericht erstellen</div>
+      <div id="report-form-container"></div>
+    </div>
+
+    <div class="page" id="page-history">
+      <div class="date-header">Meine Berichte</div>
+      <div id="history-list"></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+      <div class="nav-item active" data-page="today">
+        <span class="nav-icon">&#128197;</span>Heute
+      </div>
+      <div class="nav-item" data-page="overview">
+        <span class="nav-icon">&#128202;</span>&Uuml;bersicht
+      </div>
+      <div class="nav-item" data-page="report">
+        <span class="nav-icon">&#128221;</span>Bericht
+      </div>
+      <div class="nav-item" data-page="history">
+        <span class="nav-icon">&#128214;</span>Verlauf
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    let currentEmployee = null;
+    let reportPhotos = [];
+
+    // ---- LOGIN ----
+    function initLogin() {
+      const employees = Storage.getEmployees();
+      const sel = document.getElementById('login-employee');
+      sel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
+
+      // Check if already logged in
+      const saved = localStorage.getItem('atc_current_employee');
+      if (saved) {
+        const emp = employees.find(e => e.id === saved);
+        if (emp) {
+          currentEmployee = emp;
+          showApp();
+          return;
+        }
+      }
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+
+    function doLogin() {
+      const empId = document.getElementById('login-employee').value;
+      const employees = Storage.getEmployees();
+      currentEmployee = employees.find(e => e.id === empId);
+      if (!currentEmployee) return;
+      localStorage.setItem('atc_current_employee', currentEmployee.id);
+      showApp();
+    }
+
+    function doLogout() {
+      localStorage.removeItem('atc_current_employee');
+      currentEmployee = null;
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+
+    function showApp() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('user-display').textContent = currentEmployee.name + ' | ' + currentEmployee.role;
+      renderToday();
+    }
+
+    // ---- NAVIGATION ----
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        item.classList.add('active');
+        const page = item.dataset.page;
+        document.getElementById('page-' + page).classList.add('active');
+
+        switch (page) {
+          case 'today': renderToday(); break;
+          case 'overview': renderOverview(); break;
+          case 'report': renderReportForm(); break;
+          case 'history': renderHistory(); break;
+        }
+      });
+    });
+
+    // ---- TODAY ----
+    function renderToday() {
+      const today = new Date();
+      const isoDate = getISODate(today);
+      document.getElementById('today-date').textContent = formatDate(today);
+
+      const kw = getKW(today);
+      const year = today.getFullYear();
+      const dayOfWeek = (today.getDay() + 6) % 7; // 0=Mo, 4=Fr
+
+      const plan = Storage.getWeekPlan(year, kw);
+      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && t.day === dayOfWeek);
+      const report = Storage.getDailyReport(isoDate, currentEmployee.id);
+
+      if (myTasks.length === 0) {
+        document.getElementById('today-tasks').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#9989;</div>
+            <p>Keine Aufgaben f&uuml;r heute geplant.</p>
+            <p class="text-sm text-muted mt-8">Schauen Sie in der &Uuml;bersicht nach aktuellen Projekten.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const projects = Storage.getProjects();
+      let html = '';
+
+      myTasks.forEach(task => {
+        const proj = projects.find(p => p.id === task.projectId);
+        const isReported = !!report;
+        html += `
+          <div class="card task-card ${isReported ? 'completed' : ''}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div class="task-title">${proj ? escapeHtml(proj.article) : 'Unbekanntes Projekt'}</div>
+                <div class="task-subtitle">${proj ? getCustomerName(proj.customerId) : ''}</div>
+              </div>
+              ${isReported
+                ? '<span class="badge badge-success">Berichtet</span>'
+                : '<span class="badge badge-warning">Offen</span>'
+              }
+            </div>
+            <div class="task-meta">
+              <span class="task-meta-item">${escapeHtml(task.area)}</span>
+              ${task.plannedQty ? `<span class="task-meta-item">${task.plannedQty} Stk. geplant</span>` : ''}
+              ${task.targetProgress !== undefined ? `<span class="task-meta-item">Ziel: ${Math.round(task.targetProgress * 100)}%</span>` : ''}
+            </div>
+            <div class="mt-8">
+              <div class="fw-600 text-sm">Aufgabe:</div>
+              <div class="text-sm">${escapeHtml(task.description)}</div>
+            </div>
+            ${proj ? `
+              <div class="mt-8">
+                <div class="text-sm text-muted">Aktueller Fortschritt ${escapeHtml(task.area)}:</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${Math.round((proj[task.area] || 0) * 100)}%; background: ${getProgressColor(proj[task.area] || 0)};"></div>
+                </div>
+                <div class="text-sm text-muted mt-8">${getProgressLabel(task.area, proj[task.area] || 0)}</div>
+              </div>
+            ` : ''}
+            ${!isReported ? `
+              <div class="task-actions">
+                <button class="btn btn-accent btn-sm" onclick="goToReport(${task.projectId}, '${task.area}', '${escapeHtml(task.description)}', ${task.plannedQty || 0})">
+                  Bericht erstellen
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      document.getElementById('today-tasks').innerHTML = html;
+    }
+
+    // ---- OVERVIEW ----
+    function renderOverview() {
+      const projects = Storage.getProjects();
+      let html = '';
+
+      projects.forEach(p => {
+        const avg = ((p.konstruktion + p.fertigung + p.montage) / 3);
+        html += `
+          <div class="card project-overview-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div class="fw-600">${escapeHtml(p.article)}</div>
+                <div class="text-sm text-muted">${getCustomerName(p.customerId)}</div>
+              </div>
+              <div class="text-right">
+                <div class="fw-600">${p.quantity} ${p.unit}</div>
+              </div>
+            </div>
+            <div class="project-progress">
+              <div class="progress-item">
+                <div class="label">Konstruktion</div>
+                <div class="value" style="color: ${getProgressColor(p.konstruktion)}">${Math.round(p.konstruktion * 100)}%</div>
+              </div>
+              <div class="progress-item">
+                <div class="label">Fertigung</div>
+                <div class="value" style="color: ${getProgressColor(p.fertigung)}">${Math.round(p.fertigung * 100)}%</div>
+              </div>
+              <div class="progress-item">
+                <div class="label">Montage</div>
+                <div class="value" style="color: ${getProgressColor(p.montage)}">${Math.round(p.montage * 100)}%</div>
+              </div>
+            </div>
+            <div class="progress-bar mt-8">
+              <div class="progress-fill" style="width: ${Math.round(avg * 100)}%; background: ${getProgressColor(avg)};"></div>
+            </div>
+            <div class="text-sm text-muted mt-8">Gesamt: ${Math.round(avg * 100)}%</div>
+            ${p.remarks ? `<div class="text-sm mt-8" style="color: var(--accent);">${escapeHtml(p.remarks)}</div>` : ''}
+          </div>
+        `;
+      });
+
+      document.getElementById('overview-projects').innerHTML = html;
+    }
+
+    // ---- REPORT ----
+    function goToReport(projectId, area, description, plannedQty) {
+      // Switch to report tab
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-page="report"]').classList.add('active');
+      document.getElementById('page-report').classList.add('active');
+
+      renderReportForm(projectId, area, description, plannedQty);
+    }
+
+    function renderReportForm(projectId, area, description, plannedQty) {
+      const today = getISODate(new Date());
+      const existingReport = Storage.getDailyReport(today, currentEmployee.id);
+      const projects = Storage.getProjects();
+
+      reportPhotos = existingReport ? (existingReport.photos || []) : [];
+
+      const projOptions = projects.map(p =>
+        `<option value="${p.id}" ${projectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
+      ).join('');
+
+      document.getElementById('report-form-container').innerHTML = `
+        <div class="card">
+          <div class="fw-600 mb-8">Tagesbericht f&uuml;r ${formatDate(new Date())}</div>
+          ${existingReport ? '<div class="badge badge-success mb-8">Bericht bereits eingereicht - wird aktualisiert</div>' : ''}
+
+          <div class="form-group">
+            <label>Projekt</label>
+            <select class="form-control" id="rpt-project">${projOptions}</select>
+          </div>
+
+          <div class="form-group">
+            <label>Bereich</label>
+            <select class="form-control" id="rpt-area">
+              <option value="konstruktion" ${area === 'konstruktion' ? 'selected' : ''}>Konstruktion</option>
+              <option value="fertigung" ${area === 'fertigung' ? 'selected' : ''}>Fertigung</option>
+              <option value="montage" ${area === 'montage' ? 'selected' : ''}>Montage</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Geplante Aufgabe</label>
+            <textarea class="form-control" id="rpt-task" rows="2">${escapeHtml(description || existingReport?.taskDescription || '')}</textarea>
+          </div>
+
+          <div class="report-section">
+            <div class="fw-600 mb-8">Was wurde erledigt?</div>
+
+            <div class="form-group">
+              <label>Beschreibung der erledigten Arbeit</label>
+              <textarea class="form-control" id="rpt-completed" rows="3" placeholder="Beschreiben Sie, was Sie heute erledigt haben...">${escapeHtml(existingReport?.completedWork || '')}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Erledigte St&uuml;ckzahl</label>
+              <input type="number" class="form-control" id="rpt-qty" value="${existingReport?.completedQty ?? plannedQty ?? ''}" min="0">
+            </div>
+
+            <div class="form-group">
+              <label>Erreichter Fortschritt</label>
+              <select class="form-control" id="rpt-progress"></select>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <div class="fw-600 mb-8">Stimmt das Ergebnis mit dem Plan &uuml;berein?</div>
+            <div class="toggle-group">
+              <button type="button" class="toggle-option ${!existingReport?.deviation ? 'active-yes' : ''}" onclick="setDeviation(false)">
+                Ja, Plan erf&uuml;llt
+              </button>
+              <button type="button" class="toggle-option ${existingReport?.deviation ? 'active-no' : ''}" onclick="setDeviation(true)">
+                Nein, Abweichung
+              </button>
+            </div>
+            <div id="deviation-section" style="display: ${existingReport?.deviation ? 'block' : 'none'}; margin-top: 12px;">
+              <div class="form-group">
+                <label>Grund der Abweichung</label>
+                <textarea class="form-control" id="rpt-deviation" rows="3" placeholder="Bitte beschreiben Sie, warum die Aufgabe nicht planm&auml;&szlig;ig erledigt werden konnte...">${escapeHtml(existingReport?.deviationReason || '')}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <div class="fw-600 mb-8">Fotos</div>
+            <div class="photo-upload" id="photo-container">
+              ${reportPhotos.map((ph, i) => `<img src="${ph}" class="photo-preview" onclick="removePhoto(${i})">`).join('')}
+              <label class="photo-add" for="photo-input">+</label>
+            </div>
+            <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="handlePhotos(event)">
+            <div class="text-sm text-muted mt-8">Tippen Sie auf + um Fotos hinzuzuf&uuml;gen. Auf Fotos tippen zum Entfernen.</div>
+          </div>
+
+          <div class="mt-12">
+            <button class="btn btn-success btn-block" onclick="submitReport()">
+              ${existingReport ? 'Bericht aktualisieren' : 'Bericht einreichen'}
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Fill progress select
+      updateReportProgress(area || existingReport?.area || 'fertigung');
+      document.getElementById('rpt-area').addEventListener('change', function() {
+        updateReportProgress(this.value);
+      });
+
+      // Set progress value if existing
+      if (existingReport?.achievedProgress !== undefined) {
+        setTimeout(() => {
+          document.getElementById('rpt-progress').value = existingReport.achievedProgress;
+        }, 0);
+      }
+    }
+
+    let hasDeviation = false;
+
+    function setDeviation(val) {
+      hasDeviation = val;
+      document.querySelectorAll('.toggle-option').forEach(o => {
+        o.classList.remove('active-yes', 'active-no');
+      });
+      const toggles = document.querySelectorAll('.toggle-option');
+      if (val) {
+        toggles[1].classList.add('active-no');
+      } else {
+        toggles[0].classList.add('active-yes');
+      }
+      document.getElementById('deviation-section').style.display = val ? 'block' : 'none';
+    }
+
+    function updateReportProgress(area) {
+      const sel = document.getElementById('rpt-progress');
+      if (!sel) return;
+      const scale = ATC_DATA.progressScales[area] || [];
+      sel.innerHTML = scale.map(s =>
+        `<option value="${s.value}">${Math.round(s.value * 100)}% - ${escapeHtml(s.label)}</option>`
+      ).join('');
+    }
+
+    function handlePhotos(event) {
+      const files = event.target.files;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          // Resize image for storage
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxSize = 800;
+            let w = img.width, h = img.height;
+            if (w > maxSize || h > maxSize) {
+              if (w > h) { h = (h / w) * maxSize; w = maxSize; }
+              else { w = (w / h) * maxSize; h = maxSize; }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            reportPhotos.push(canvas.toDataURL('image/jpeg', 0.7));
+            updatePhotoDisplay();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      event.target.value = '';
+    }
+
+    function removePhoto(index) {
+      if (confirm('Foto entfernen?')) {
+        reportPhotos.splice(index, 1);
+        updatePhotoDisplay();
+      }
+    }
+
+    function updatePhotoDisplay() {
+      const container = document.getElementById('photo-container');
+      container.innerHTML = reportPhotos.map((ph, i) =>
+        `<img src="${ph}" class="photo-preview" onclick="removePhoto(${i})">`
+      ).join('') + '<label class="photo-add" for="photo-input">+</label>';
+    }
+
+    function submitReport() {
+      const completed = document.getElementById('rpt-completed').value.trim();
+      if (!completed) {
+        alert('Bitte beschreiben Sie, was Sie erledigt haben.');
+        return;
+      }
+
+      if (hasDeviation && !document.getElementById('rpt-deviation').value.trim()) {
+        alert('Bitte geben Sie den Grund der Abweichung an.');
+        return;
+      }
+
+      const today = getISODate(new Date());
+      const report = {
+        projectId: parseInt(document.getElementById('rpt-project').value),
+        area: document.getElementById('rpt-area').value,
+        taskDescription: document.getElementById('rpt-task').value,
+        completedWork: completed,
+        completedQty: parseInt(document.getElementById('rpt-qty').value) || 0,
+        achievedProgress: parseFloat(document.getElementById('rpt-progress').value),
+        deviation: hasDeviation,
+        deviationReason: hasDeviation ? document.getElementById('rpt-deviation').value : '',
+        photos: reportPhotos,
+        submittedAt: new Date().toISOString()
+      };
+
+      Storage.saveDailyReport(today, currentEmployee.id, report);
+
+      // Update project progress
+      const projects = Storage.getProjects();
+      const proj = projects.find(p => p.id === report.projectId);
+      if (proj && report.achievedProgress > proj[report.area]) {
+        proj[report.area] = report.achievedProgress;
+        Storage.saveProjects(projects);
+      }
+
+      alert('Bericht erfolgreich eingereicht!');
+
+      // Go back to today
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-page="today"]').classList.add('active');
+      document.getElementById('page-today').classList.add('active');
+      renderToday();
+    }
+
+    // ---- HISTORY ----
+    function renderHistory() {
+      const today = new Date();
+      let html = '';
+      let hasAny = false;
+
+      // Show last 30 days
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const iso = getISODate(d);
+        const report = Storage.getDailyReport(iso, currentEmployee.id);
+
+        if (report) {
+          hasAny = true;
+          const projects = Storage.getProjects();
+          const proj = report.projectId ? projects.find(p => p.id === report.projectId) : null;
+
+          html += `
+            <div class="card" style="border-left: 4px solid ${report.deviation ? 'var(--danger)' : 'var(--success)'};">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div class="fw-600">${formatDate(d)}</div>
+                  <div class="text-sm text-muted">${proj ? escapeHtml(proj.article) : 'Kein Projekt'} | ${escapeHtml(report.area || '')}</div>
+                </div>
+                <span class="badge ${report.deviation ? 'badge-danger' : 'badge-success'}">${report.deviation ? 'Abweichung' : 'OK'}</span>
+              </div>
+              <div class="text-sm mt-8"><strong>Aufgabe:</strong> ${escapeHtml(report.taskDescription || '-')}</div>
+              <div class="text-sm mt-8"><strong>Erledigt:</strong> ${escapeHtml(report.completedWork || '-')}</div>
+              ${report.completedQty ? `<div class="text-sm mt-8"><strong>St&uuml;ckzahl:</strong> ${report.completedQty}</div>` : ''}
+              ${report.deviation ? `<div class="text-sm mt-8" style="color: var(--danger);"><strong>Abweichung:</strong> ${escapeHtml(report.deviationReason || '-')}</div>` : ''}
+              ${report.photos && report.photos.length > 0 ? `
+                <div class="photo-upload mt-8">
+                  ${report.photos.map(ph => `<img src="${ph}" class="photo-preview">`).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+      }
+
+      if (!hasAny) {
+        html = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128214;</div>
+            <p>Noch keine Berichte vorhanden.</p>
+            <p class="text-sm text-muted mt-8">Eingereichte Berichte erscheinen hier.</p>
+          </div>
+        `;
+      }
+
+      document.getElementById('history-list').innerHTML = html;
+    }
+
+    // ---- HELPERS ----
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Init
+    initLogin();
+  </script>
+</body>
+</html>
