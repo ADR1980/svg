@@ -254,6 +254,30 @@
       <div id="history-list"></div>
     </div>
 
+    <div class="page" id="page-settings">
+      <div class="date-header">Einstellungen</div>
+      <div class="card">
+        <div class="fw-600 mb-8">PIN &auml;ndern</div>
+        <div class="text-sm text-muted mb-8">Hier k&ouml;nnen Sie Ihre Login-PIN f&uuml;r die Mitarbeiter-App &auml;ndern.</div>
+        <form onsubmit="changeMyPin(event)">
+          <div class="form-group">
+            <label>Aktuelle PIN</label>
+            <input type="password" class="form-control" id="my-pin-old" required inputmode="numeric" maxlength="10" placeholder="Aktuelle PIN" style="letter-spacing: 4px; text-align: center;">
+          </div>
+          <div class="form-group">
+            <label>Neue PIN</label>
+            <input type="password" class="form-control" id="my-pin-new" required inputmode="numeric" maxlength="10" placeholder="Neue PIN" style="letter-spacing: 4px; text-align: center;">
+          </div>
+          <div class="form-group">
+            <label>Neue PIN best&auml;tigen</label>
+            <input type="password" class="form-control" id="my-pin-confirm" required inputmode="numeric" maxlength="10" placeholder="PIN wiederholen" style="letter-spacing: 4px; text-align: center;">
+          </div>
+          <div id="my-pin-msg" class="text-sm mb-8" style="display: none;"></div>
+          <button type="submit" class="btn btn-primary btn-block">PIN &auml;ndern</button>
+        </form>
+      </div>
+    </div>
+
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
       <div class="nav-item active" data-page="today">
@@ -267,6 +291,9 @@
       </div>
       <div class="nav-item" data-page="history">
         <span class="nav-icon">&#128214;</span>Verlauf
+      </div>
+      <div class="nav-item" data-page="settings">
+        <span class="nav-icon">&#9881;</span>PIN
       </div>
     </div>
   </div>
@@ -750,6 +777,44 @@
       }
 
       document.getElementById('history-list').innerHTML = html;
+    }
+
+    // ---- PIN ÄNDERN ----
+    function changeMyPin(e) {
+      e.preventDefault();
+      const oldPin = document.getElementById('my-pin-old').value;
+      const newPin = document.getElementById('my-pin-new').value;
+      const confirmPin = document.getElementById('my-pin-confirm').value;
+      const msgEl = document.getElementById('my-pin-msg');
+
+      if (newPin.length < 4) {
+        msgEl.textContent = 'Neue PIN muss mindestens 4 Zeichen haben.';
+        msgEl.style.color = 'var(--danger)';
+        msgEl.style.display = 'block';
+        return;
+      }
+      if (newPin !== confirmPin) {
+        msgEl.textContent = 'Neue PINs stimmen nicht \u00fcberein.';
+        msgEl.style.color = 'var(--danger)';
+        msgEl.style.display = 'block';
+        document.getElementById('my-pin-confirm').value = '';
+        document.getElementById('my-pin-confirm').focus();
+        return;
+      }
+      if (Auth.changeEmployeePin(currentEmployee.id, oldPin, newPin)) {
+        msgEl.textContent = 'PIN wurde erfolgreich ge\u00e4ndert!';
+        msgEl.style.color = 'var(--success)';
+        msgEl.style.display = 'block';
+        document.getElementById('my-pin-old').value = '';
+        document.getElementById('my-pin-new').value = '';
+        document.getElementById('my-pin-confirm').value = '';
+      } else {
+        msgEl.textContent = 'Aktuelle PIN ist falsch.';
+        msgEl.style.color = 'var(--danger)';
+        msgEl.style.display = 'block';
+        document.getElementById('my-pin-old').value = '';
+        document.getElementById('my-pin-old').focus();
+      }
     }
 
     // ---- HELPERS ----

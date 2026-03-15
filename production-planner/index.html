@@ -294,12 +294,13 @@
       <div class="toolbar">
         <h2 style="font-size: 18px;">Mitarbeiter</h2>
         <div class="spacer"></div>
+        <button class="btn btn-outline" onclick="showModal('modal-change-admin-pw')">Admin-Passwort &auml;ndern</button>
         <button class="btn btn-primary" onclick="openEmployeeModal()">+ Mitarbeiter hinzuf&uuml;gen</button>
       </div>
       <div class="card">
         <table>
           <thead>
-            <tr><th>ID</th><th>Name</th><th>Bereich</th><th>Aktionen</th></tr>
+            <tr><th>ID</th><th>Name</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
           </thead>
           <tbody id="employees-table"></tbody>
         </table>
@@ -501,6 +502,65 @@
         <div class="flex gap-8" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-employee')">Abbrechen</button>
           <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PIN ändern Modal -->
+  <div class="modal-overlay" id="modal-change-pin">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>PIN &auml;ndern</h2>
+        <button class="modal-close" onclick="closeModal('modal-change-pin')">&times;</button>
+      </div>
+      <form onsubmit="saveNewPin(event)">
+        <input type="hidden" id="pin-emp-id">
+        <div class="form-group">
+          <label>Mitarbeiter</label>
+          <input type="text" class="form-control" id="pin-emp-name" disabled>
+        </div>
+        <div class="form-group">
+          <label>Neue PIN</label>
+          <input type="password" class="form-control" id="pin-new" required inputmode="numeric" maxlength="10" placeholder="Neue PIN eingeben" style="letter-spacing: 4px; text-align: center;">
+        </div>
+        <div class="form-group">
+          <label>Neue PIN best&auml;tigen</label>
+          <input type="password" class="form-control" id="pin-confirm" required inputmode="numeric" maxlength="10" placeholder="PIN wiederholen" style="letter-spacing: 4px; text-align: center;">
+        </div>
+        <div id="pin-error" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
+        <div class="flex gap-8" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-pin')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">PIN speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin-Passwort ändern Modal -->
+  <div class="modal-overlay" id="modal-change-admin-pw">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>Admin-Passwort &auml;ndern</h2>
+        <button class="modal-close" onclick="closeModal('modal-change-admin-pw')">&times;</button>
+      </div>
+      <form onsubmit="saveNewAdminPw(event)">
+        <div class="form-group">
+          <label>Aktuelles Passwort</label>
+          <input type="password" class="form-control" id="admin-pw-old" required>
+        </div>
+        <div class="form-group">
+          <label>Neues Passwort</label>
+          <input type="password" class="form-control" id="admin-pw-new" required>
+        </div>
+        <div class="form-group">
+          <label>Neues Passwort best&auml;tigen</label>
+          <input type="password" class="form-control" id="admin-pw-confirm" required>
+        </div>
+        <div id="admin-pw-error" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
+        <div class="flex gap-8" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-admin-pw')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Passwort speichern</button>
         </div>
       </form>
     </div>
@@ -1038,8 +1098,9 @@
           <td>${escapeHtml(e.name)}</td>
           <td><span class="badge badge-info">${escapeHtml(e.role)}</span></td>
           <td><code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">${e.pin ? '****' : 'nicht gesetzt'}</code></td>
-          <td>
+          <td style="white-space: nowrap;">
             <button class="btn btn-sm btn-outline" onclick="editEmployee('${e.id}')">Bearbeiten</button>
+            <button class="btn btn-sm btn-primary" onclick="openChangePinModal('${e.id}')">PIN &auml;ndern</button>
             <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${e.id}')">L&ouml;schen</button>
           </td>
         </tr>
@@ -1095,6 +1156,85 @@
       employees = employees.filter(e => e.id !== id);
       Storage.saveEmployees(employees);
       renderEmployees();
+    }
+
+    // ---- PIN / PASSWORT ÄNDERN ----
+    function openChangePinModal(empId) {
+      const employees = Storage.getEmployees();
+      const emp = employees.find(e => e.id === empId);
+      if (!emp) return;
+      document.getElementById('pin-emp-id').value = empId;
+      document.getElementById('pin-emp-name').value = emp.name + ' (' + emp.id + ')';
+      document.getElementById('pin-new').value = '';
+      document.getElementById('pin-confirm').value = '';
+      document.getElementById('pin-error').style.display = 'none';
+      showModal('modal-change-pin');
+      document.getElementById('pin-new').focus();
+    }
+
+    function saveNewPin(e) {
+      e.preventDefault();
+      const empId = document.getElementById('pin-emp-id').value;
+      const newPin = document.getElementById('pin-new').value;
+      const confirm = document.getElementById('pin-confirm').value;
+      const errorEl = document.getElementById('pin-error');
+
+      if (newPin.length < 4) {
+        errorEl.textContent = 'PIN muss mindestens 4 Zeichen haben.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (newPin !== confirm) {
+        errorEl.textContent = 'PINs stimmen nicht \u00fcberein.';
+        errorEl.style.display = 'block';
+        document.getElementById('pin-confirm').value = '';
+        document.getElementById('pin-confirm').focus();
+        return;
+      }
+
+      const employees = Storage.getEmployees();
+      const emp = employees.find(emp => emp.id === empId);
+      if (emp) {
+        emp.pin = newPin;
+        Storage.saveEmployees(employees);
+        closeModal('modal-change-pin');
+        renderEmployees();
+        alert('PIN f\u00fcr ' + emp.name + ' wurde ge\u00e4ndert.');
+      }
+    }
+
+    function saveNewAdminPw(e) {
+      e.preventDefault();
+      const oldPw = document.getElementById('admin-pw-old').value;
+      const newPw = document.getElementById('admin-pw-new').value;
+      const confirmPw = document.getElementById('admin-pw-confirm').value;
+      const errorEl = document.getElementById('admin-pw-error');
+
+      if (newPw.length < 4) {
+        errorEl.textContent = 'Passwort muss mindestens 4 Zeichen haben.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (newPw !== confirmPw) {
+        errorEl.textContent = 'Passw\u00f6rter stimmen nicht \u00fcberein.';
+        errorEl.style.display = 'block';
+        document.getElementById('admin-pw-confirm').value = '';
+        document.getElementById('admin-pw-confirm').focus();
+        return;
+      }
+      if (Auth.changeAdminPassword(oldPw, newPw)) {
+        closeModal('modal-change-admin-pw');
+        document.getElementById('admin-pw-old').value = '';
+        document.getElementById('admin-pw-new').value = '';
+        document.getElementById('admin-pw-confirm').value = '';
+        errorEl.style.display = 'none';
+        alert('Admin-Passwort wurde ge\u00e4ndert.');
+      } else {
+        errorEl.textContent = 'Aktuelles Passwort ist falsch.';
+        errorEl.style.display = 'block';
+        document.getElementById('admin-pw-old').value = '';
+        document.getElementById('admin-pw-old').focus();
+      }
     }
 
     // ---- REPORTS ----
