@@ -248,11 +248,14 @@ const ATC_DATA = {
   ],
 
   employees: [
-    { id: 'PE', name: 'Philipp Engelbreit', role: 'Fertigung' },
-    { id: 'AT', name: 'Arthur Thaut', role: 'Konstruktion' },
-    { id: 'MA1', name: 'Mitarbeiter 1', role: 'Montage' },
-    { id: 'MA2', name: 'Mitarbeiter 2', role: 'Fertigung' }
-  ]
+    { id: 'PE', name: 'Philipp Engelbreit', role: 'Fertigung', pin: '1234', email: 'p.engelbreit@atc-sipro.de' },
+    { id: 'AT', name: 'Arthur Thaut', role: 'Konstruktion', pin: '5678', email: 'a.thaut@atc-sipro.de' },
+    { id: 'MA1', name: 'Mitarbeiter 1', role: 'Montage', pin: '1111', email: '' },
+    { id: 'MA2', name: 'Mitarbeiter 2', role: 'Fertigung', pin: '2222', email: '' }
+  ],
+
+  // Admin-Passwort für Planer-Zugang (Standard: "atc2026")
+  adminPassword: 'atc2026'
 };
 
 // Storage-Helfer
@@ -368,3 +371,196 @@ function getKW(date) {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
+
+// ---- Authentifizierung ----
+const Auth = {
+  _sessionKey: 'atc_auth_session',
+  _sessionTimeout: 8 * 60 * 60 * 1000, // 8 Stunden
+
+  // Admin-Login (Planer)
+  loginAdmin(password) {
+    const adminPw = Storage.load('admin_password', ATC_DATA.adminPassword);
+    if (password === adminPw) {
+      const session = {
+        type: 'admin',
+        loginAt: Date.now(),
+        expiresAt: Date.now() + this._sessionTimeout
+      };
+      localStorage.setItem(this._sessionKey + '_admin', JSON.stringify(session));
+      return true;
+    }
+    return false;
+  },
+
+  // Mitarbeiter-Login (App) - per Email + PIN
+  loginEmployee(email, pin) {
+    const employees = Storage.getEmployees();
+    const emp = employees.find(e => e.email && e.email.toLowerCase() === email.toLowerCase());
+    if (!emp) return false;
+    const storedPin = emp.pin || ATC_DATA.employees.find(e => e.id === emp.id)?.pin;
+    if (pin === storedPin) {
+      const session = {
+        type: 'employee',
+        employeeId: emp.id,
+        loginAt: Date.now(),
+        expiresAt: Date.now() + this._sessionTimeout
+      };
+      localStorage.setItem(this._sessionKey + '_employee', JSON.stringify(session));
+      return emp;
+    }
+    return false;
+  },
+
+  // Prüfen ob Admin eingeloggt
+  isAdminLoggedIn() {
+    const raw = localStorage.getItem(this._sessionKey + '_admin');
+    if (!raw) return false;
+    const session = JSON.parse(raw);
+    if (Date.now() > session.expiresAt) {
+      this.logoutAdmin();
+      return false;
+    }
+    return true;
+  },
+
+  // Prüfen ob Mitarbeiter eingeloggt
+  getLoggedInEmployee() {
+    const raw = localStorage.getItem(this._sessionKey + '_employee');
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (Date.now() > session.expiresAt) {
+      this.logoutEmployee();
+      return null;
+    }
+    const employees = Storage.getEmployees();
+    return employees.find(e => e.id === session.employeeId) || null;
+  },
+
+  logoutAdmin() {
+    localStorage.removeItem(this._sessionKey + '_admin');
+  },
+
+  logoutEmployee() {
+    localStorage.removeItem(this._sessionKey + '_employee');
+  },
+
+  // Admin-Passwort ändern
+  changeAdminPassword(oldPw, newPw) {
+    const currentPw = Storage.load('admin_password', ATC_DATA.adminPassword);
+    if (oldPw !== currentPw) return false;
+    Storage.save('admin_password', newPw);
+    return true;
+  },
+
+  // Mitarbeiter-PIN ändern
+  changeEmployeePin(employeeId, oldPin, newPin) {
+    const employees = Storage.getEmployees();
+    const emp = employees.find(e => e.id === employeeId);
+    if (!emp) return false;
+    const currentPin = emp.pin || ATC_DATA.employees.find(e => e.id === employeeId)?.pin;
+    if (oldPin !== currentPin) return false;
+    emp.pin = newPin;
+    Storage.saveEmployees(employees);
+    return true;
+  }
+};
+
+// ---- Email-Benachrichtigungen ----
+const Notify = {
+  // Statusmeldung an Mitarbeiter senden (öffnet Email-Client)
+  sendStatus(employeeId, subject, body) {
+    const employees = Storage.getEmployees();
+    const emp = employees.find(e => e.id === employeeId);
+    if (!emp || !emp.email) return false;
+    const mailto = 'mailto:' + encodeURIComponent(emp.email)
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+    window.open(mailto, '_blank');
+    return true;
+  },
+
+  // Aufgabenzuweisung benachrichtigen
+  notifyTaskAssigned(employeeId, taskDesc, projectName, weekLabel) {
+    const subject = 'ATC Produktion - Neue Aufgabe zugewiesen';
+    const body = 'Hallo,\n\n'
+      + 'Ihnen wurde eine neue Aufgabe zugewiesen:\n\n'
+      + 'Projekt: ' + projectName + '\n'
+      + 'Zeitraum: ' + weekLabel + '\n'
+      + 'Aufgabe: ' + taskDesc + '\n\n'
+      + 'Bitte öffnen Sie die Mitarbeiter-App für weitere Details.\n\n'
+      + 'Mit freundlichen Grüßen\nATC Produktionsplanung';
+    return this.sendStatus(employeeId, subject, body);
+  },
+
+  // Tagesbericht-Erinnerung
+  notifyReportReminder(employeeId) {
+    const subject = 'ATC Produktion - Tagesbericht ausstehend';
+    const body = 'Hallo,\n\n'
+      + 'Ihr Tagesbericht für heute steht noch aus.\n'
+      + 'Bitte öffnen Sie die Mitarbeiter-App und reichen Sie Ihren Bericht ein.\n\n'
+      + 'Mit freundlichen Grüßen\nATC Produktionsplanung';
+    return this.sendStatus(employeeId, subject, body);
+  },
+
+  // Bericht eingegangen - Bestätigung an Mitarbeiter
+  notifyReportReceived(employeeId, projectName, date) {
+    const subject = 'ATC Produktion - Bericht eingegangen';
+    const body = 'Hallo,\n\n'
+      + 'Ihr Tagesbericht wurde erfolgreich eingereicht:\n\n'
+      + 'Datum: ' + date + '\n'
+      + 'Projekt: ' + projectName + '\n\n'
+      + 'Vielen Dank!\n\n'
+      + 'Mit freundlichen Grüßen\nATC Produktionsplanung';
+    return this.sendStatus(employeeId, subject, body);
+  },
+
+  // Abweichung melden - an Planer
+  notifyDeviationToAdmin(employeeName, projectName, reason, date) {
+    const adminEmail = Storage.load('admin_email', '');
+    if (!adminEmail) return false;
+    const subject = 'ATC Produktion - Abweichung gemeldet von ' + employeeName;
+    const body = 'Abweichungsmeldung:\n\n'
+      + 'Mitarbeiter: ' + employeeName + '\n'
+      + 'Datum: ' + date + '\n'
+      + 'Projekt: ' + projectName + '\n'
+      + 'Grund: ' + reason + '\n\n'
+      + 'Bitte prüfen Sie die Details in der Planer-Ansicht.';
+    const mailto = 'mailto:' + encodeURIComponent(adminEmail)
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+    window.open(mailto, '_blank');
+    return true;
+  }
+};
+
+// ---- Foto-Storage pro Aufgabe ----
+const TaskPhotos = {
+  _key(employeeId, date, projectId) {
+    return 'task_photos_' + employeeId + '_' + date + '_' + projectId;
+  },
+
+  getPhotos(employeeId, date, projectId) {
+    return Storage.load(this._key(employeeId, date, projectId), []);
+  },
+
+  savePhotos(employeeId, date, projectId, photos) {
+    Storage.save(this._key(employeeId, date, projectId), photos);
+  },
+
+  addPhoto(employeeId, date, projectId, photoDataUrl) {
+    const photos = this.getPhotos(employeeId, date, projectId);
+    photos.push({
+      data: photoDataUrl,
+      timestamp: new Date().toISOString()
+    });
+    this.savePhotos(employeeId, date, projectId, photos);
+    return photos;
+  },
+
+  removePhoto(employeeId, date, projectId, index) {
+    const photos = this.getPhotos(employeeId, date, projectId);
+    photos.splice(index, 1);
+    this.savePhotos(employeeId, date, projectId, photos);
+    return photos;
+  }
+};

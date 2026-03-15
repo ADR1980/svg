@@ -165,6 +165,32 @@
     .text-right { text-align: right; }
     .fw-600 { font-weight: 600; }
 
+    /* Login Screen */
+    .login-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: white; border-radius: 16px; padding: 40px; width: 100%; max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); text-align: center;
+    }
+    .login-box h2 { font-size: 22px; color: var(--primary); margin-bottom: 4px; }
+    .login-box .login-sub { font-size: 13px; color: var(--text-light); margin-bottom: 24px; }
+    .login-box .form-group { text-align: left; }
+    .login-box input[type="password"] {
+      width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 10px;
+      font-size: 16px; margin-bottom: 16px; text-align: center; letter-spacing: 4px;
+    }
+    .login-box input[type="password"]:focus { outline: none; border-color: var(--primary); }
+    .login-box .login-btn {
+      width: 100%; padding: 14px; background: var(--primary); color: white; border: none;
+      border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
+    }
+    .login-box .login-btn:hover { background: var(--primary-light); }
+    .login-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none; }
+
     @media (max-width: 768px) {
       .content { padding: 12px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -175,6 +201,22 @@
   </style>
 </head>
 <body>
+  <!-- LOGIN SCREEN -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-box">
+      <div style="font-size: 40px; margin-bottom: 12px;">&#128274;</div>
+      <h2>ATC Produktionsplanung</h2>
+      <div class="login-sub">Bitte Passwort eingeben</div>
+      <div class="login-error" id="login-error">Falsches Passwort. Bitte erneut versuchen.</div>
+      <form onsubmit="doAdminLogin(event)">
+        <input type="password" id="admin-password" placeholder="Passwort" autofocus>
+        <button type="submit" class="login-btn">Anmelden</button>
+      </form>
+      <div style="margin-top: 16px; font-size: 12px; color: var(--text-light);">
+        <a href="app.html" style="color: var(--primary-light);">Zur Mitarbeiter-App</a>
+      </div>
+    </div>
+  </div>
   <div class="header">
     <div>
       <h1>ATC Produktionsplanung</h1>
@@ -182,6 +224,7 @@
     </div>
     <div class="header-right">
       <a href="app.html">Mitarbeiter-App</a>
+      <a href="#" onclick="doAdminLogout()" style="background: rgba(255,255,255,0.1);">Abmelden</a>
     </div>
   </div>
 
@@ -251,12 +294,13 @@
       <div class="toolbar">
         <h2 style="font-size: 18px;">Mitarbeiter</h2>
         <div class="spacer"></div>
+        <button class="btn btn-outline" onclick="showModal('modal-change-admin-pw')">Admin-Passwort &auml;ndern</button>
         <button class="btn btn-primary" onclick="openEmployeeModal()">+ Mitarbeiter hinzuf&uuml;gen</button>
       </div>
       <div class="card">
         <table>
           <thead>
-            <tr><th>ID</th><th>Name</th><th>Bereich</th><th>Aktionen</th></tr>
+            <tr><th>ID</th><th>Name</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
           </thead>
           <tbody id="employees-table"></tbody>
         </table>
@@ -338,17 +382,49 @@
   <div class="modal-overlay" id="modal-task">
     <div class="modal">
       <div class="modal-header">
-        <h2>Aufgabe zuweisen</h2>
+        <h2 id="task-modal-title">Aufgabe zuweisen</h2>
         <button class="modal-close" onclick="closeModal('modal-task')">&times;</button>
       </div>
       <form onsubmit="saveTask(event)">
+        <input type="hidden" id="task-edit-index" value="">
         <div class="form-group">
           <label>Mitarbeiter</label>
           <select class="form-control" id="task-employee" required></select>
         </div>
         <div class="form-group">
-          <label>Projekt</label>
-          <select class="form-control" id="task-project" required></select>
+          <label>Projekt aus Projekt&uuml;bersicht</label>
+          <select class="form-control" id="task-project" required onchange="onTaskProjectChange()"></select>
+        </div>
+        <!-- Projekt-Details Vorschau -->
+        <div id="task-project-preview" class="card" style="background: var(--bg); padding: 12px; margin-bottom: 16px; display: none;">
+          <div class="flex justify-between items-center mb-8">
+            <div>
+              <div class="fw-600" id="task-prev-article"></div>
+              <div class="text-sm text-muted" id="task-prev-customer"></div>
+            </div>
+            <div class="text-right">
+              <div class="fw-600" id="task-prev-qty"></div>
+              <div class="text-sm text-muted" id="task-prev-order"></div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div>
+              <div class="text-sm text-muted">Konstruktion</div>
+              <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" id="task-prev-konstr-bar"></div></div>
+              <div class="text-sm" id="task-prev-konstr-label"></div>
+            </div>
+            <div>
+              <div class="text-sm text-muted">Fertigung</div>
+              <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" id="task-prev-fert-bar"></div></div>
+              <div class="text-sm" id="task-prev-fert-label"></div>
+            </div>
+            <div>
+              <div class="text-sm text-muted">Montage</div>
+              <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" id="task-prev-mont-bar"></div></div>
+              <div class="text-sm" id="task-prev-mont-label"></div>
+            </div>
+          </div>
+          <div id="task-prev-remarks" class="text-sm mt-8" style="color: var(--accent);"></div>
         </div>
         <div class="form-group">
           <label>Bereich</label>
@@ -359,8 +435,9 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Tag</label>
+          <label>Zeitraum</label>
           <select class="form-control" id="task-day" required>
+            <option value="week">Ganze Woche (Mo-Fr)</option>
             <option value="0">Montag</option>
             <option value="1">Dienstag</option>
             <option value="2">Mittwoch</option>
@@ -382,9 +459,12 @@
             <select class="form-control" id="task-target-progress"></select>
           </div>
         </div>
-        <div class="flex gap-8" style="justify-content: flex-end;">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modal-task')">Abbrechen</button>
-          <button type="submit" class="btn btn-accent">Zuweisen</button>
+        <div class="flex gap-8" style="justify-content: space-between;">
+          <button type="button" class="btn btn-danger" id="task-delete-btn" style="display:none;" onclick="deleteCurrentTask()">L&ouml;schen</button>
+          <div class="flex gap-8">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-task')">Abbrechen</button>
+            <button type="submit" class="btn btn-accent" id="task-submit-btn">Zuweisen</button>
+          </div>
         </div>
       </form>
     </div>
@@ -415,9 +495,76 @@
             <option value="Alle">Alle Bereiche</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>Email-Adresse (= Login-Name)</label>
+          <input type="email" class="form-control" id="emp-email" placeholder="vorname.nachname@firma.de" required>
+        </div>
+        <div class="form-group">
+          <label>Login-PIN (f&uuml;r Mitarbeiter-App)</label>
+          <input type="text" class="form-control" id="emp-pin" inputmode="numeric" maxlength="10" placeholder="z.B. 1234" required>
+        </div>
         <div class="flex gap-8" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-employee')">Abbrechen</button>
           <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PIN ändern Modal -->
+  <div class="modal-overlay" id="modal-change-pin">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>PIN &auml;ndern</h2>
+        <button class="modal-close" onclick="closeModal('modal-change-pin')">&times;</button>
+      </div>
+      <form onsubmit="saveNewPin(event)">
+        <input type="hidden" id="pin-emp-id">
+        <div class="form-group">
+          <label>Mitarbeiter</label>
+          <input type="text" class="form-control" id="pin-emp-name" disabled>
+        </div>
+        <div class="form-group">
+          <label>Neue PIN</label>
+          <input type="password" class="form-control" id="pin-new" required inputmode="numeric" maxlength="10" placeholder="Neue PIN eingeben" style="letter-spacing: 4px; text-align: center;">
+        </div>
+        <div class="form-group">
+          <label>Neue PIN best&auml;tigen</label>
+          <input type="password" class="form-control" id="pin-confirm" required inputmode="numeric" maxlength="10" placeholder="PIN wiederholen" style="letter-spacing: 4px; text-align: center;">
+        </div>
+        <div id="pin-error" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
+        <div class="flex gap-8" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-pin')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">PIN speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin-Passwort ändern Modal -->
+  <div class="modal-overlay" id="modal-change-admin-pw">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>Admin-Passwort &auml;ndern</h2>
+        <button class="modal-close" onclick="closeModal('modal-change-admin-pw')">&times;</button>
+      </div>
+      <form onsubmit="saveNewAdminPw(event)">
+        <div class="form-group">
+          <label>Aktuelles Passwort</label>
+          <input type="password" class="form-control" id="admin-pw-old" required>
+        </div>
+        <div class="form-group">
+          <label>Neues Passwort</label>
+          <input type="password" class="form-control" id="admin-pw-new" required>
+        </div>
+        <div class="form-group">
+          <label>Neues Passwort best&auml;tigen</label>
+          <input type="password" class="form-control" id="admin-pw-confirm" required>
+        </div>
+        <div id="admin-pw-error" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
+        <div class="flex gap-8" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-admin-pw')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Passwort speichern</button>
         </div>
       </form>
     </div>
@@ -499,19 +646,36 @@
       });
       document.getElementById('dashboard-table').innerHTML = rows;
 
-      // Today reports
+      // Today reports with project progress impact
       if (todayReports.length === 0) {
         document.getElementById('dashboard-reports').innerHTML = '<p class="text-muted text-sm">Noch keine Berichte f&uuml;r heute eingereicht.</p>';
       } else {
-        document.getElementById('dashboard-reports').innerHTML = todayReports.map(r => `
+        document.getElementById('dashboard-reports').innerHTML = todayReports.map(r => {
+          const proj = r.projectId ? projects.find(p => p.id === r.projectId) : null;
+          return `
           <div class="card report-card ${r.deviation ? 'deviation' : 'complete'}" style="margin-bottom: 12px; padding: 12px;">
             <div class="flex justify-between items-center">
-              <div><strong>${escapeHtml(r.employeeName)}</strong> <span class="text-muted text-sm">- ${escapeHtml(r.taskDescription || '')}</span></div>
+              <div>
+                <strong>${escapeHtml(r.employeeName)}</strong>
+                ${proj ? '<span class="text-muted text-sm"> - Pos. ' + proj.id + ': ' + escapeHtml(proj.article) + '</span>' : ''}
+              </div>
               <span class="badge ${r.deviation ? 'badge-danger' : 'badge-success'}">${r.deviation ? 'Abweichung' : 'Erledigt'}</span>
             </div>
+            <div class="mt-8 text-sm">${escapeHtml(r.taskDescription || '')}</div>
+            ${r.achievedProgress !== undefined && r.area ? `
+              <div class="mt-8 text-sm flex items-center gap-8">
+                <span class="fw-600">${escapeHtml(r.area)}:</span>
+                <div class="progress-bar" style="flex:1; max-width: 200px;">
+                  <div class="progress-fill" style="width:${Math.round(r.achievedProgress * 100)}%; background:${getProgressColor(r.achievedProgress)}"></div>
+                </div>
+                <span>${Math.round(r.achievedProgress * 100)}%</span>
+                ${proj ? '<span class="text-muted">(Projekt: ' + getProgressLabel(r.area, r.achievedProgress) + ')</span>' : ''}
+              </div>
+            ` : ''}
+            ${r.completedQty ? `<div class="mt-8 text-sm"><strong>St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
             ${r.deviation ? `<div class="mt-8 text-sm" style="color: var(--danger);">Grund: ${escapeHtml(r.deviationReason || '')}</div>` : ''}
           </div>
-        `).join('');
+        `}).join('');
       }
     }
 
@@ -525,14 +689,36 @@
     }
 
     // ---- PROJECTS ----
+    function getRecentProjectReports(projectId, days) {
+      const reports = [];
+      const today = new Date();
+      const employees = Storage.getEmployees();
+      for (let i = 0; i < days; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const iso = getISODate(d);
+        employees.forEach(emp => {
+          const r = Storage.getDailyReport(iso, emp.id);
+          if (r && r.projectId === projectId) {
+            reports.push({ ...r, date: iso, employeeId: emp.id, employeeName: emp.name });
+          }
+        });
+      }
+      return reports;
+    }
+
     function renderProjects() {
       const projects = Storage.getProjects();
       let html = '';
       projects.forEach(p => {
+        const recentReports = getRecentProjectReports(p.id, 7);
+        const hasDeviations = recentReports.some(r => r.deviation);
+        const lastReport = recentReports.length > 0 ? recentReports[0] : null;
+
         html += `<div class="card" style="cursor: pointer;" onclick="editProject(${p.id})">
           <div class="flex justify-between items-center mb-8">
             <div>
-              <div class="fw-600">${escapeHtml(p.article)}</div>
+              <div class="fw-600">Pos. ${p.id}: ${escapeHtml(p.article)}</div>
               <div class="text-sm text-muted">${getCustomerName(p.customerId)} ${p.orderNumber ? '| Auftrag: ' + escapeHtml(p.orderNumber) : ''}</div>
             </div>
             <div class="text-right">
@@ -557,6 +743,28 @@
               <div class="text-sm mt-8">${getProgressLabel('montage', p.montage)}</div>
             </div>
           </div>
+          ${recentReports.length > 0 ? `
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+              <div class="text-sm fw-600 mb-8" style="display: flex; align-items: center; gap: 6px;">
+                Letzte Berichte (7 Tage)
+                ${hasDeviations ? '<span class="badge badge-danger">Abweichungen</span>' : '<span class="badge badge-success">Planm\u00e4\u00dfig</span>'}
+              </div>
+              ${recentReports.slice(0, 3).map(r => `
+                <div class="text-sm" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <span class="text-muted">${formatDate(r.date)}</span> -
+                    <strong>${escapeHtml(r.employeeName)}</strong>:
+                    ${escapeHtml((r.completedWork || '').substring(0, 60))}${(r.completedWork || '').length > 60 ? '...' : ''}
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    ${r.achievedProgress !== undefined ? '<span class="badge badge-info">' + escapeHtml(r.area) + ': ' + Math.round(r.achievedProgress * 100) + '%</span>' : ''}
+                    ${r.deviation ? '<span class="badge badge-danger">Abweichung</span>' : '<span class="badge badge-success">OK</span>'}
+                  </div>
+                </div>
+              `).join('')}
+              ${recentReports.length > 3 ? '<div class="text-sm text-muted mt-8">+ ' + (recentReports.length - 3) + ' weitere Berichte</div>' : ''}
+            </div>
+          ` : ''}
         </div>`;
       });
       document.getElementById('projects-list').innerHTML = html;
@@ -670,18 +878,48 @@
         html += `<div class="kw-header">${dayNames[i]}<br>${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</div>`;
       });
 
+      const allProjects = Storage.getProjects();
       employees.forEach(emp => {
         html += `<div class="kw-cell kw-project">${escapeHtml(emp.name)}<br><span class="text-sm text-muted">${escapeHtml(emp.role)}</span></div>`;
+
+        // Whole-week tasks for this employee
+        const weekTasks = plan.filter(t => t.employeeId === emp.id && t.day === 'week');
+
         for (let day = 0; day < 5; day++) {
           const dayTasks = plan.filter(t => t.employeeId === emp.id && t.day === day);
+          const dayDate = dates[day];
+          const dayIso = getISODate(dayDate);
+          const dayReport = Storage.getDailyReport(dayIso, emp.id);
           html += `<div class="kw-cell">`;
+
+          // Show week tasks in each day cell (visually distinct)
+          weekTasks.forEach(t => {
+            const idx = plan.indexOf(t);
+            const proj = allProjects.find(p => p.id === t.projectId);
+            const reported = dayReport && dayReport.projectId === t.projectId;
+            const hasDeviation = reported && dayReport.deviation;
+            let style = 'background: var(--primary); border-left: 3px solid var(--accent); cursor: pointer;';
+            if (reported) style = 'background:' + (hasDeviation ? '#e74c3c' : '#27ae60') + '; border-left: 3px solid var(--accent); cursor: pointer; color: white;';
+            html += `<div class="kw-task" style="${style}" onclick="editTask(${idx})" title="Wochenaufgabe - Klicken zum Bearbeiten">
+              <strong>${proj ? escapeHtml(proj.article).substring(0, 20) : '?'}</strong>
+              <br><span style="font-size:10px; opacity:0.8;">${escapeHtml(t.description || '').substring(0, 25)}</span>
+              ${day === 0 ? '<br><span style="font-size:9px; opacity:0.7;">Mo-Fr</span>' : ''}
+              ${reported ? '<br><span style="font-size:10px; font-weight:600;">' + (hasDeviation ? 'Abw.!' : 'OK') + '</span>' : ''}
+            </div>`;
+          });
+
+          // Day-specific tasks
           dayTasks.forEach(t => {
-            const projects = Storage.getProjects();
-            const proj = projects.find(p => p.id === t.projectId);
-            html += `<div class="kw-task" onclick="deleteTask('${emp.id}', ${day}, ${t.projectId})" title="Klicken zum Entfernen">
-              ${proj ? escapeHtml(proj.article).substring(0, 25) : '?'}
+            const idx = plan.indexOf(t);
+            const proj = allProjects.find(p => p.id === t.projectId);
+            const reported = dayReport && dayReport.projectId === t.projectId;
+            const hasDeviation = reported && dayReport.deviation;
+            const bgColor = reported ? (hasDeviation ? '#fadbd8' : '#d5f5e3') : '';
+            html += `<div class="kw-task" style="${bgColor ? 'background:' + bgColor + '; color: var(--text);' : ''} cursor: pointer;" onclick="editTask(${idx})" title="Klicken zum Bearbeiten">
+              <strong>${proj ? escapeHtml(proj.article).substring(0, 25) : '?'}</strong>
               <br><span style="font-size:10px; opacity:0.8;">${escapeHtml(t.description || '').substring(0, 30)}</span>
               ${t.plannedQty ? '<br><span style="font-size:10px;">' + t.plannedQty + ' Stk.</span>' : ''}
+              ${reported ? '<br><span style="font-size:10px; font-weight:600;">' + (hasDeviation ? 'Abweichung!' : 'Erledigt') + '</span>' : ''}
             </div>`;
           });
           html += '</div>';
@@ -702,66 +940,179 @@
       renderPlanning();
     }
 
-    function openTaskModal() {
+    function openTaskModal(existingTask, editIndex) {
       const employees = Storage.getEmployees();
       const projects = Storage.getProjects();
       const empSel = document.getElementById('task-employee');
       const projSel = document.getElementById('task-project');
+      const isEdit = existingTask !== undefined && existingTask !== null;
 
-      empSel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
-      projSel.innerHTML = projects.map(p => `<option value="${p.id}">${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`).join('');
+      document.getElementById('task-modal-title').textContent = isEdit ? 'Aufgabe bearbeiten' : 'Aufgabe zuweisen';
+      document.getElementById('task-submit-btn').textContent = isEdit ? 'Speichern' : 'Zuweisen';
+      document.getElementById('task-edit-index').value = isEdit ? String(editIndex) : '';
+      document.getElementById('task-delete-btn').style.display = isEdit ? 'inline-flex' : 'none';
 
-      // Fill target progress
-      updateTaskTargetProgress();
-      document.getElementById('task-area').addEventListener('change', updateTaskTargetProgress);
+      empSel.innerHTML = employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.role)})</option>`).join('');
+      projSel.innerHTML = '<option value="">-- Projekt w\u00e4hlen --</option>' +
+        projects.map(p => {
+          const avg = Math.round(((p.konstruktion + p.fertigung + p.montage) / 3) * 100);
+          return `<option value="${p.id}">[Pos. ${p.id}] ${escapeHtml(p.article)} - ${getCustomerName(p.customerId)} (${avg}%)</option>`;
+        }).join('');
+
+      // Fill values if editing
+      if (isEdit) {
+        empSel.value = existingTask.employeeId;
+        projSel.value = String(existingTask.projectId);
+        document.getElementById('task-area').value = existingTask.area;
+        document.getElementById('task-day').value = String(existingTask.day);
+        document.getElementById('task-desc').value = existingTask.description || '';
+        document.getElementById('task-planned-qty').value = existingTask.plannedQty || '';
+        onTaskProjectChange();
+        updateTaskTargetProgress();
+        // Set target progress after options are populated
+        setTimeout(function() {
+          if (existingTask.targetProgress !== undefined) {
+            document.getElementById('task-target-progress').value = String(existingTask.targetProgress);
+          }
+        }, 0);
+      } else {
+        document.getElementById('task-area').value = 'fertigung';
+        document.getElementById('task-day').value = 'week';
+        document.getElementById('task-desc').value = '';
+        document.getElementById('task-planned-qty').value = '';
+        document.getElementById('task-project-preview').style.display = 'none';
+        updateTaskTargetProgress();
+      }
+
+      // Bind area change to update target progress
+      document.getElementById('task-area').onchange = updateTaskTargetProgress;
 
       showModal('modal-task');
+    }
+
+    function editTask(planIndex) {
+      const plan = Storage.getWeekPlan(currentYear, currentKW);
+      const task = plan[planIndex];
+      if (!task) return;
+      openTaskModal(task, planIndex);
+    }
+
+    function onTaskProjectChange() {
+      const projId = parseInt(document.getElementById('task-project').value);
+      const preview = document.getElementById('task-project-preview');
+      if (!projId) { preview.style.display = 'none'; return; }
+
+      const projects = Storage.getProjects();
+      const p = projects.find(pr => pr.id === projId);
+      if (!p) { preview.style.display = 'none'; return; }
+
+      preview.style.display = 'block';
+      document.getElementById('task-prev-article').textContent = p.article;
+      document.getElementById('task-prev-customer').textContent = getCustomerName(p.customerId);
+      document.getElementById('task-prev-qty').textContent = p.quantity + ' ' + p.unit;
+      document.getElementById('task-prev-order').textContent = p.orderNumber ? 'Auftrag: ' + p.orderNumber : '';
+      document.getElementById('task-prev-remarks').textContent = p.remarks || '';
+      document.getElementById('task-prev-remarks').style.display = p.remarks ? 'block' : 'none';
+
+      // Progress bars
+      ['konstr', 'fert', 'mont'].forEach((key, i) => {
+        const area = ['konstruktion', 'fertigung', 'montage'][i];
+        const val = p[area];
+        const pct = Math.round(val * 100);
+        document.getElementById('task-prev-' + key + '-bar').style.cssText = 'width:' + pct + '%; background:' + getProgressColor(val);
+        document.getElementById('task-prev-' + key + '-label').textContent = pct + '% - ' + getProgressLabel(area, val);
+      });
     }
 
     function updateTaskTargetProgress() {
       const area = document.getElementById('task-area').value;
       const sel = document.getElementById('task-target-progress');
-      sel.innerHTML = ATC_DATA.progressScales[area].map(s =>
-        `<option value="${s.value}">${Math.round(s.value * 100)}% - ${escapeHtml(s.label)}</option>`
-      ).join('');
+
+      // Show current progress of selected project for this area
+      const projId = parseInt(document.getElementById('task-project').value);
+      const projects = Storage.getProjects();
+      const proj = projId ? projects.find(p => p.id === projId) : null;
+      const currentVal = proj ? proj[area] : 0;
+
+      sel.innerHTML = ATC_DATA.progressScales[area].map(s => {
+        const isCurrent = s.value === currentVal;
+        const isPast = s.value < currentVal;
+        let label = Math.round(s.value * 100) + '% - ' + escapeHtml(s.label);
+        if (isCurrent) label += ' [AKTUELL]';
+        return `<option value="${s.value}" ${isPast ? 'style="color:#999"' : ''} ${isCurrent ? 'style="font-weight:bold"' : ''}>${label}</option>`;
+      }).join('');
+
+      // Pre-select next step above current
+      const nextStep = ATC_DATA.progressScales[area].find(s => s.value > currentVal);
+      if (nextStep) sel.value = nextStep.value;
     }
 
     function saveTask(e) {
       e.preventDefault();
-      const plan = Storage.getWeekPlan(currentYear, currentKW);
-      plan.push({
+      const projId = parseInt(document.getElementById('task-project').value);
+      if (!projId) { alert('Bitte ein Projekt ausw\u00e4hlen.'); return; }
+
+      const dayVal = document.getElementById('task-day').value;
+      const taskData = {
         employeeId: document.getElementById('task-employee').value,
-        projectId: parseInt(document.getElementById('task-project').value),
+        projectId: projId,
         area: document.getElementById('task-area').value,
-        day: parseInt(document.getElementById('task-day').value),
+        day: dayVal === 'week' ? 'week' : parseInt(dayVal),
         description: document.getElementById('task-desc').value,
         plannedQty: parseInt(document.getElementById('task-planned-qty').value) || 0,
         targetProgress: parseFloat(document.getElementById('task-target-progress').value)
-      });
+      };
+
+      const plan = Storage.getWeekPlan(currentYear, currentKW);
+      const editIndex = document.getElementById('task-edit-index').value;
+
+      if (editIndex !== '') {
+        // Bearbeitung: bestehende Aufgabe ersetzen
+        plan[parseInt(editIndex)] = taskData;
+      } else {
+        // Neue Aufgabe
+        plan.push(taskData);
+      }
+
       Storage.saveWeekPlan(currentYear, currentKW, plan);
+
+      // Bei neuer Aufgabe: Email-Benachrichtigung an Mitarbeiter
+      if (editIndex === '' && typeof Notify !== 'undefined') {
+        try { Notify.notifyTaskAssigned(taskData.employeeId, taskData.projectId, currentKW); } catch(err) {}
+      }
+
       closeModal('modal-task');
       renderPlanning();
     }
 
-    function deleteTask(empId, day, projId) {
-      if (!confirm('Aufgabe entfernen?')) return;
-      let plan = Storage.getWeekPlan(currentYear, currentKW);
-      const idx = plan.findIndex(t => t.employeeId === empId && t.day === day && t.projectId === projId);
-      if (idx >= 0) plan.splice(idx, 1);
+    function deleteCurrentTask() {
+      const editIndex = document.getElementById('task-edit-index').value;
+      if (editIndex === '') return;
+      if (!confirm('Aufgabe wirklich l\u00f6schen?')) return;
+
+      const plan = Storage.getWeekPlan(currentYear, currentKW);
+      plan.splice(parseInt(editIndex), 1);
       Storage.saveWeekPlan(currentYear, currentKW, plan);
+      closeModal('modal-task');
       renderPlanning();
     }
 
     // ---- EMPLOYEES ----
     function renderEmployees() {
       const employees = Storage.getEmployees();
-      document.getElementById('employees-table').innerHTML = employees.map(e => `
+      document.getElementById('employees-table').innerHTML = `
+        <tr><th>ID</th><th>Name</th><th>Email (Login)</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
+      ` + employees.map(e => `
         <tr>
           <td><strong>${escapeHtml(e.id)}</strong></td>
           <td>${escapeHtml(e.name)}</td>
+          <td>${e.email ? '<a href="mailto:' + escapeHtml(e.email) + '" style="color: var(--primary-light);">' + escapeHtml(e.email) + '</a>' : '<span class="text-muted text-sm">nicht hinterlegt</span>'}</td>
           <td><span class="badge badge-info">${escapeHtml(e.role)}</span></td>
-          <td>
+          <td><code style="background: var(--bg); padding: 2px 6px; border-radius: 4px;">${e.pin ? '****' : 'nicht gesetzt'}</code></td>
+          <td style="white-space: nowrap;">
             <button class="btn btn-sm btn-outline" onclick="editEmployee('${e.id}')">Bearbeiten</button>
+            <button class="btn btn-sm btn-primary" onclick="openChangePinModal('${e.id}')">PIN &auml;ndern</button>
+            ${e.email ? '<button class="btn btn-sm btn-outline" onclick="sendReminderEmail(\'' + e.id + '\')">Erinnerung</button>' : ''}
             <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${e.id}')">L&ouml;schen</button>
           </td>
         </tr>
@@ -774,6 +1125,8 @@
       document.getElementById('emp-id').disabled = !!emp;
       document.getElementById('emp-name').value = emp ? emp.name : '';
       document.getElementById('emp-role').value = emp ? emp.role : 'Fertigung';
+      document.getElementById('emp-pin').value = emp ? (emp.pin || '') : '';
+      document.getElementById('emp-email').value = emp ? (emp.email || '') : '';
       showModal('modal-employee');
     }
 
@@ -790,7 +1143,9 @@
       const data = {
         id: document.getElementById('emp-id').value.toUpperCase(),
         name: document.getElementById('emp-name').value,
-        role: document.getElementById('emp-role').value
+        role: document.getElementById('emp-role').value,
+        pin: document.getElementById('emp-pin').value,
+        email: document.getElementById('emp-email').value
       };
 
       if (editId) {
@@ -809,12 +1164,103 @@
       renderEmployees();
     }
 
+    function sendReminderEmail(empId) {
+      const employees = Storage.getEmployees();
+      const emp = employees.find(e => e.id === empId);
+      if (!emp || !emp.email) {
+        alert('Keine Email-Adresse hinterlegt!');
+        return;
+      }
+      const subject = encodeURIComponent('Erinnerung: Tagesbericht ausstehend');
+      const body = encodeURIComponent('Hallo ' + emp.name + ',\n\nbitte denke daran, deinen Tagesbericht für heute einzureichen.\n\nViele Grüße\nATC Produktionsplanung');
+      window.open('mailto:' + emp.email + '?subject=' + subject + '&body=' + body);
+    }
+
     function deleteEmployee(id) {
       if (!confirm('Mitarbeiter wirklich l\u00f6schen?')) return;
       let employees = Storage.getEmployees();
       employees = employees.filter(e => e.id !== id);
       Storage.saveEmployees(employees);
       renderEmployees();
+    }
+
+    // ---- PIN / PASSWORT ÄNDERN ----
+    function openChangePinModal(empId) {
+      const employees = Storage.getEmployees();
+      const emp = employees.find(e => e.id === empId);
+      if (!emp) return;
+      document.getElementById('pin-emp-id').value = empId;
+      document.getElementById('pin-emp-name').value = emp.name + ' (' + emp.id + ')';
+      document.getElementById('pin-new').value = '';
+      document.getElementById('pin-confirm').value = '';
+      document.getElementById('pin-error').style.display = 'none';
+      showModal('modal-change-pin');
+      document.getElementById('pin-new').focus();
+    }
+
+    function saveNewPin(e) {
+      e.preventDefault();
+      const empId = document.getElementById('pin-emp-id').value;
+      const newPin = document.getElementById('pin-new').value;
+      const confirm = document.getElementById('pin-confirm').value;
+      const errorEl = document.getElementById('pin-error');
+
+      if (newPin.length < 4) {
+        errorEl.textContent = 'PIN muss mindestens 4 Zeichen haben.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (newPin !== confirm) {
+        errorEl.textContent = 'PINs stimmen nicht \u00fcberein.';
+        errorEl.style.display = 'block';
+        document.getElementById('pin-confirm').value = '';
+        document.getElementById('pin-confirm').focus();
+        return;
+      }
+
+      const employees = Storage.getEmployees();
+      const emp = employees.find(emp => emp.id === empId);
+      if (emp) {
+        emp.pin = newPin;
+        Storage.saveEmployees(employees);
+        closeModal('modal-change-pin');
+        renderEmployees();
+        alert('PIN f\u00fcr ' + emp.name + ' wurde ge\u00e4ndert.');
+      }
+    }
+
+    function saveNewAdminPw(e) {
+      e.preventDefault();
+      const oldPw = document.getElementById('admin-pw-old').value;
+      const newPw = document.getElementById('admin-pw-new').value;
+      const confirmPw = document.getElementById('admin-pw-confirm').value;
+      const errorEl = document.getElementById('admin-pw-error');
+
+      if (newPw.length < 4) {
+        errorEl.textContent = 'Passwort muss mindestens 4 Zeichen haben.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (newPw !== confirmPw) {
+        errorEl.textContent = 'Passw\u00f6rter stimmen nicht \u00fcberein.';
+        errorEl.style.display = 'block';
+        document.getElementById('admin-pw-confirm').value = '';
+        document.getElementById('admin-pw-confirm').focus();
+        return;
+      }
+      if (Auth.changeAdminPassword(oldPw, newPw)) {
+        closeModal('modal-change-admin-pw');
+        document.getElementById('admin-pw-old').value = '';
+        document.getElementById('admin-pw-new').value = '';
+        document.getElementById('admin-pw-confirm').value = '';
+        errorEl.style.display = 'none';
+        alert('Admin-Passwort wurde ge\u00e4ndert.');
+      } else {
+        errorEl.textContent = 'Aktuelles Passwort ist falsch.';
+        errorEl.style.display = 'block';
+        document.getElementById('admin-pw-old').value = '';
+        document.getElementById('admin-pw-old').focus();
+      }
     }
 
     // ---- REPORTS ----
@@ -829,16 +1275,33 @@
         return;
       }
 
-      document.getElementById('reports-list').innerHTML = reports.map(r => `
+      const projects = Storage.getProjects();
+      document.getElementById('reports-list').innerHTML = reports.map(r => {
+        const proj = r.projectId ? projects.find(p => p.id === r.projectId) : null;
+        return `
         <div class="card report-card ${r.deviation ? 'deviation' : 'complete'}" style="cursor: pointer;" onclick="showReportDetail('${date}', '${r.employeeId}')">
           <div class="flex justify-between items-center">
             <div>
               <div class="fw-600">${escapeHtml(r.employeeName)}</div>
-              <div class="text-sm text-muted">${escapeHtml(r.taskDescription || 'Kein Aufgabenbezug')}</div>
+              <div class="text-sm text-muted">
+                ${proj ? 'Pos. ' + proj.id + ': ' + escapeHtml(proj.article) + ' (' + getCustomerName(proj.customerId) + ')' : escapeHtml(r.taskDescription || 'Kein Aufgabenbezug')}
+              </div>
             </div>
             <span class="badge ${r.deviation ? 'badge-danger' : 'badge-success'}">${r.deviation ? 'Abweichung' : 'Plan erf\u00fcllt'}</span>
           </div>
           <div class="mt-8 text-sm">${escapeHtml(r.completedWork || '')}</div>
+          ${r.achievedProgress !== undefined && r.area && proj ? `
+            <div class="mt-8" style="background: var(--bg); padding: 8px 12px; border-radius: 6px;">
+              <div class="text-sm flex items-center gap-8">
+                <span class="fw-600">${escapeHtml(r.area)}:</span>
+                <div class="progress-bar" style="flex:1; max-width: 200px;">
+                  <div class="progress-fill" style="width:${Math.round(r.achievedProgress * 100)}%; background:${getProgressColor(r.achievedProgress)}"></div>
+                </div>
+                <span class="fw-600">${Math.round(r.achievedProgress * 100)}%</span>
+              </div>
+              <div class="text-sm text-muted mt-8">Aktueller Projektstatus: K ${Math.round(proj.konstruktion * 100)}% | F ${Math.round(proj.fertigung * 100)}% | M ${Math.round(proj.montage * 100)}%</div>
+            </div>
+          ` : ''}
           ${r.deviation ? `<div class="mt-8 text-sm" style="color: var(--danger);"><strong>Abweichungsgrund:</strong> ${escapeHtml(r.deviationReason || '')}</div>` : ''}
           ${r.photos && r.photos.length > 0 ? `
             <div class="report-photos">
@@ -847,7 +1310,7 @@
           ` : ''}
           ${r.completedQty !== undefined ? `<div class="mt-8 text-sm"><strong>Erledigte St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
         </div>
-      `).join('');
+      `}).join('');
     }
 
     function showReportDetail(date, empId) {
@@ -861,12 +1324,34 @@
       document.getElementById('report-detail-content').innerHTML = `
         <div class="mb-8"><strong>Mitarbeiter:</strong> ${emp ? escapeHtml(emp.name) : empId}</div>
         <div class="mb-8"><strong>Datum:</strong> ${formatDate(date)}</div>
-        ${proj ? `<div class="mb-8"><strong>Projekt:</strong> ${escapeHtml(proj.article)} (${getCustomerName(proj.customerId)})</div>` : ''}
+        ${proj ? `<div class="mb-8"><strong>Projekt:</strong> Pos. ${proj.id}: ${escapeHtml(proj.article)} (${getCustomerName(proj.customerId)})</div>` : ''}
         <div class="mb-8"><strong>Bereich:</strong> ${escapeHtml(r.area || '-')}</div>
         <hr style="margin: 16px 0; border: none; border-top: 1px solid var(--border);">
         <div class="mb-8"><strong>Aufgabe:</strong> ${escapeHtml(r.taskDescription || '-')}</div>
         <div class="mb-8"><strong>Erledigte Arbeit:</strong> ${escapeHtml(r.completedWork || '-')}</div>
         ${r.completedQty !== undefined ? `<div class="mb-8"><strong>Erledigte St\u00fcckzahl:</strong> ${r.completedQty}</div>` : ''}
+        ${r.achievedProgress !== undefined && r.area ? `
+          <div class="mb-8"><strong>Gemeldeter Fortschritt (${escapeHtml(r.area)}):</strong> ${Math.round(r.achievedProgress * 100)}% - ${getProgressLabel(r.area, r.achievedProgress)}</div>
+        ` : ''}
+        ${proj ? `
+          <div class="mb-8" style="background: var(--bg); padding: 12px; border-radius: 8px;">
+            <div class="fw-600 mb-8">Aktueller Projektfortschritt</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+              <div>
+                <div class="text-sm text-muted">Konstruktion</div>
+                ${renderMiniProgress(proj.konstruktion)}
+              </div>
+              <div>
+                <div class="text-sm text-muted">Fertigung</div>
+                ${renderMiniProgress(proj.fertigung)}
+              </div>
+              <div>
+                <div class="text-sm text-muted">Montage</div>
+                ${renderMiniProgress(proj.montage)}
+              </div>
+            </div>
+          </div>
+        ` : ''}
         <div class="mb-8">
           <strong>Status:</strong>
           <span class="badge ${r.deviation ? 'badge-danger' : 'badge-success'}">${r.deviation ? 'Abweichung vom Plan' : 'Plan erf\u00fcllt'}</span>
@@ -904,8 +1389,33 @@
       });
     });
 
-    // Init
-    renderDashboard();
+    // ---- AUTH ----
+    function doAdminLogin(e) {
+      e.preventDefault();
+      const pw = document.getElementById('admin-password').value;
+      if (Auth.loginAdmin(pw)) {
+        document.getElementById('login-overlay').classList.add('hidden');
+        document.getElementById('login-error').style.display = 'none';
+        renderDashboard();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+        document.getElementById('admin-password').value = '';
+        document.getElementById('admin-password').focus();
+      }
+    }
+
+    function doAdminLogout() {
+      Auth.logoutAdmin();
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.getElementById('admin-password').value = '';
+      document.getElementById('login-error').style.display = 'none';
+    }
+
+    // Init - check auth
+    if (Auth.isAdminLoggedIn()) {
+      document.getElementById('login-overlay').classList.add('hidden');
+      renderDashboard();
+    }
   </script>
 </body>
 </html>
