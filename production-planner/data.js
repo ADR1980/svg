@@ -4,13 +4,13 @@
 
 const ATC_DATA = {
   customers: [
-    { id: '10024', name: 'Menze Kunststofftechnik GmbH' },
-    { id: '10023', name: 'MAM Electronic' },
-    { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH' },
-    { id: '10021', name: 'BA Clearance GmbH' },
-    { id: '10016', name: 'EP Arms GmbH' },
-    { id: '10002', name: 'ATC SiPro GmbH' },
-    { id: '10001', name: '1 MOA GmbH' }
+    { id: '10024', name: 'Menze Kunststofftechnik GmbH', contact: '', email: '', phone: '' },
+    { id: '10023', name: 'MAM Electronic', contact: '', email: '', phone: '' },
+    { id: '10022', name: 'Hans Mayer Elektrotechnik GmbH', contact: '', email: '', phone: '' },
+    { id: '10021', name: 'BA Clearance GmbH', contact: '', email: '', phone: '' },
+    { id: '10016', name: 'EP Arms GmbH', contact: '', email: '', phone: '' },
+    { id: '10002', name: 'ATC SiPro GmbH', contact: '', email: '', phone: '' },
+    { id: '10001', name: '1 MOA GmbH', contact: '', email: '', phone: '' }
   ],
 
   progressScales: {
