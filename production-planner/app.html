@@ -708,6 +708,14 @@
       const existingReport = Storage.getDailyReport(today, currentEmployee.id);
       const projects = Storage.getProjects();
 
+      // Use existing report values as fallback
+      if (existingReport) {
+        if (projectId == null) projectId = existingReport.projectId;
+        if (!area) area = existingReport.area;
+        if (!description) description = existingReport.taskDescription;
+        if (!plannedQty) plannedQty = existingReport.completedQty;
+      }
+
       // Merge task photos + existing report photos
       const taskPhotoData = projectId ? TaskPhotos.getPhotos(currentEmployee.id, today, projectId) : [];
       const taskPhotoUrls = taskPhotoData.map(p => p.data || p);
@@ -719,8 +727,9 @@
         reportPhotos = [];
       }
 
+      const selectedProjectId = projectId != null ? parseInt(projectId) : null;
       const projOptions = projects.map(p =>
-        `<option value="${p.id}" ${projectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
+        `<option value="${p.id}" ${selectedProjectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
       ).join('');
 
       document.getElementById('report-form-container').innerHTML = `
@@ -812,6 +821,9 @@
         </div>
       `;
 
+      // Set deviation state from existing report
+      hasDeviation = !!(existingReport?.deviation);
+
       // Fill progress select
       updateReportProgress(area || existingReport?.area || 'fertigung');
       document.getElementById('rpt-area').addEventListener('change', function() {
@@ -821,7 +833,8 @@
       // Set progress value if existing
       if (existingReport?.achievedProgress !== undefined) {
         setTimeout(() => {
-          document.getElementById('rpt-progress').value = existingReport.achievedProgress;
+          const sel = document.getElementById('rpt-progress');
+          if (sel) sel.value = existingReport.achievedProgress;
         }, 0);
       }
     }
