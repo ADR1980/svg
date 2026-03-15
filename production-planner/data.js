@@ -302,13 +302,13 @@ const ATC_DATA = {
       description: 'Vorlage f\u00fcr einfache Drehteile mit Oberfl\u00e4chenbehandlung',
       steps: [
         { stepId: 'WS009', order: 1, dependsOn: [] },
-        { stepId: 'WS010', order: 2, dependsOn: ['WS009'] },
-        { stepId: 'WS001', order: 3, dependsOn: ['WS010'] },
-        { stepId: 'WS003', order: 4, dependsOn: ['WS001'] },
-        { stepId: 'WS004', order: 5, dependsOn: ['WS003'] },
-        { stepId: 'WS005', order: 6, dependsOn: ['WS004'] },
-        { stepId: 'WS006', order: 7, dependsOn: ['WS005'] },
-        { stepId: 'WS008', order: 8, dependsOn: ['WS006'] }
+        { stepId: 'WS010', order: 2, dependsOn: [1] },
+        { stepId: 'WS001', order: 3, dependsOn: [2] },
+        { stepId: 'WS003', order: 4, dependsOn: [3] },
+        { stepId: 'WS004', order: 5, dependsOn: [4] },
+        { stepId: 'WS005', order: 6, dependsOn: [5] },
+        { stepId: 'WS006', order: 7, dependsOn: [6] },
+        { stepId: 'WS008', order: 8, dependsOn: [7] }
       ]
     },
     {
@@ -317,14 +317,49 @@ const ATC_DATA = {
       description: 'Fr\u00e4steil inkl. Baugruppenmontage',
       steps: [
         { stepId: 'WS009', order: 1, dependsOn: [] },
-        { stepId: 'WS010', order: 2, dependsOn: ['WS009'] },
-        { stepId: 'WS001', order: 3, dependsOn: ['WS010'] },
-        { stepId: 'WS002', order: 4, dependsOn: ['WS001'] },
-        { stepId: 'WS004', order: 5, dependsOn: ['WS002'] },
-        { stepId: 'WS006', order: 6, dependsOn: ['WS004'] },
-        { stepId: 'WS007', order: 7, dependsOn: ['WS006'] },
-        { stepId: 'WS008', order: 8, dependsOn: ['WS007'] }
+        { stepId: 'WS010', order: 2, dependsOn: [1] },
+        { stepId: 'WS001', order: 3, dependsOn: [2] },
+        { stepId: 'WS002', order: 4, dependsOn: [3] },
+        { stepId: 'WS004', order: 5, dependsOn: [4] },
+        { stepId: 'WS006', order: 6, dependsOn: [5] },
+        { stepId: 'WS007', order: 7, dependsOn: [6] },
+        { stepId: 'WS008', order: 8, dependsOn: [7] }
       ]
+    }
+  ],
+
+  // Maschinen
+  machines: [
+    {
+      id: 'M001', name: 'HURCO VMX60SRTi', type: '5-Achs CNC-Fr\u00e4szentrum',
+      manufacturer: 'HURCO', model: 'VMX60SRTi',
+      hourlyRate: 95, setupTime: 45, status: 'aktiv',
+      specs: {
+        travelX: 1524, travelY: 660, travelZ: 610,
+        spindleSpeed: 12000, spindlePower: 26,
+        toolChanger: 40, tableSize: '1524x660',
+        weight: 9500, yearBuilt: 2022
+      },
+      location: 'Halle 1', inventoryNumber: 'INV-2022-001',
+      notes: '5-Achs Simultanbearbeitung, WinMax Steuerung'
+    },
+    {
+      id: 'M002', name: 'CNC-Drehmaschine', type: 'CNC-Drehmaschine',
+      manufacturer: '', model: '',
+      hourlyRate: 75, setupTime: 25, status: 'aktiv',
+      specs: {}, location: 'Halle 1', inventoryNumber: '', notes: ''
+    },
+    {
+      id: 'M003', name: 'Bands\u00e4ge', type: 'S\u00e4ge',
+      manufacturer: '', model: '',
+      hourlyRate: 35, setupTime: 10, status: 'aktiv',
+      specs: {}, location: 'Halle 2', inventoryNumber: '', notes: ''
+    },
+    {
+      id: 'M004', name: 'Montageplatz 1', type: 'Montage',
+      manufacturer: '', model: '',
+      hourlyRate: 0, setupTime: 0, status: 'aktiv',
+      specs: {}, location: 'Halle 2', inventoryNumber: '', notes: ''
     }
   ]
 };
@@ -418,6 +453,15 @@ const Storage = {
 
   saveOrderTemplates(templates) {
     this.save('order_templates', templates);
+  },
+
+  // Maschinen
+  getMachines() {
+    return this.load('machines', ATC_DATA.machines);
+  },
+
+  saveMachines(machines) {
+    this.save('machines', machines);
   },
 
   // Arbeitsschritte pro Projekt

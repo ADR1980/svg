@@ -372,7 +372,7 @@
     <div class="tab" data-view="projects">Projekte</div>
     <div class="tab" data-view="planning">Wochenplanung</div>
     <div class="tab" data-view="worksteps">Arbeitsschritte</div>
-    <div class="tab" data-view="employees">Mitarbeiter</div>
+    <div class="tab" data-view="employees">Ressourcen</div>
     <div class="tab" data-view="reports">Berichte</div>
   </div>
 
@@ -498,13 +498,26 @@
       </div>
     </div>
 
-    <!-- EMPLOYEES -->
+    <!-- EMPLOYEES & MACHINES (RESOURCES) -->
     <div class="view" id="view-employees">
+      <!-- Auslastungs&uuml;bersicht -->
+      <div class="card" id="utilization-card">
+        <div class="card-title">Auslastungs&uuml;bersicht
+          <span style="float:right; display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-outline" style="padding:2px 8px; font-size:12px;" onclick="shiftUtilWeek(-1)">&larr;</button>
+            <span id="util-week-label" class="text-sm fw-600"></span>
+            <button class="btn btn-outline" style="padding:2px 8px; font-size:12px;" onclick="shiftUtilWeek(1)">&rarr;</button>
+          </span>
+        </div>
+        <div id="utilization-content"></div>
+      </div>
+
+      <!-- Mitarbeiter -->
       <div class="toolbar">
         <h2 style="font-size: 18px;">Mitarbeiter</h2>
         <div class="spacer"></div>
         <button class="btn btn-outline" onclick="showModal('modal-change-admin-pw')">Admin-Passwort &auml;ndern</button>
-        <button class="btn btn-primary" onclick="openEmployeeModal()">+ Mitarbeiter hinzuf&uuml;gen</button>
+        <button class="btn btn-primary" onclick="openEmployeeModal()">+ Mitarbeiter</button>
       </div>
       <div class="card">
         <table>
@@ -512,6 +525,21 @@
             <tr><th>ID</th><th>Name</th><th>Bereich</th><th>PIN</th><th>Aktionen</th></tr>
           </thead>
           <tbody id="employees-table"></tbody>
+        </table>
+      </div>
+
+      <!-- Maschinen -->
+      <div class="toolbar" style="margin-top:16px;">
+        <h2 style="font-size: 18px;">Maschinen</h2>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="openMachineModal()">+ Maschine</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Name</th><th>Typ</th><th>Stundensatz</th><th>R&uuml;stzeit</th><th>Status</th><th>Aktionen</th></tr>
+          </thead>
+          <tbody id="machines-table"></tbody>
         </table>
       </div>
     </div>
@@ -787,6 +815,12 @@
           </select>
         </div>
         <div class="form-group">
+          <label>Maschine (optional)</label>
+          <select class="form-control" id="task-machine">
+            <option value="">-- Keine Maschine --</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>Beschreibung der Aufgabe</label>
           <textarea class="form-control" id="task-desc" rows="3" required placeholder="Was soll der Mitarbeiter an diesem Tag erledigen?"></textarea>
         </div>
@@ -974,6 +1008,123 @@
     </div>
   </div>
 
+  <!-- Modal: Maschine -->
+  <div class="modal-overlay" id="modal-machine">
+    <div class="modal" style="max-width: 750px;">
+      <div class="modal-header">
+        <h2 id="machine-modal-title">Neue Maschine</h2>
+        <button class="modal-close" onclick="closeModal('modal-machine')">&times;</button>
+      </div>
+      <form onsubmit="saveMachine(event)">
+        <input type="hidden" id="mach-edit-id">
+        <div class="fw-600 mb-8" style="color:var(--primary);">Stammdaten</div>
+        <div style="display:grid; grid-template-columns:100px 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>ID</label>
+            <input type="text" class="form-control" id="mach-id" required placeholder="M005">
+          </div>
+          <div class="form-group">
+            <label>Name / Bezeichnung</label>
+            <input type="text" class="form-control" id="mach-name" required placeholder="z.B. HURCO VMX60SRTi">
+          </div>
+          <div class="form-group">
+            <label>Typ</label>
+            <input type="text" class="form-control" id="mach-type" placeholder="z.B. 5-Achs CNC-Fr&auml;szentrum">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Hersteller</label>
+            <input type="text" class="form-control" id="mach-manufacturer" placeholder="z.B. HURCO">
+          </div>
+          <div class="form-group">
+            <label>Modell</label>
+            <input type="text" class="form-control" id="mach-model" placeholder="z.B. VMX60SRTi">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" id="mach-status">
+              <option value="aktiv">Aktiv</option>
+              <option value="wartung">In Wartung</option>
+              <option value="inaktiv">Inaktiv</option>
+            </select>
+          </div>
+        </div>
+        <div class="fw-600 mb-8 mt-12" style="color:var(--primary);">Kosten &amp; Zeiten</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Maschinenstundensatz (&euro;/h)</label>
+            <input type="number" class="form-control" id="mach-hourly-rate" min="0" step="0.01" value="0">
+          </div>
+          <div class="form-group">
+            <label>R&uuml;stzeit (Minuten)</label>
+            <input type="number" class="form-control" id="mach-setup-time" min="0" value="0">
+          </div>
+        </div>
+        <div class="fw-600 mb-8 mt-12" style="color:var(--primary);">Technische Daten (optional)</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Verfahrweg X (mm)</label>
+            <input type="number" class="form-control" id="mach-travel-x" min="0">
+          </div>
+          <div class="form-group">
+            <label>Verfahrweg Y (mm)</label>
+            <input type="number" class="form-control" id="mach-travel-y" min="0">
+          </div>
+          <div class="form-group">
+            <label>Verfahrweg Z (mm)</label>
+            <input type="number" class="form-control" id="mach-travel-z" min="0">
+          </div>
+          <div class="form-group">
+            <label>Drehzahl (U/min)</label>
+            <input type="number" class="form-control" id="mach-spindle-speed" min="0">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Leistung (kW)</label>
+            <input type="number" class="form-control" id="mach-spindle-power" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Werkzeugpl&auml;tze</label>
+            <input type="number" class="form-control" id="mach-tool-changer" min="0">
+          </div>
+          <div class="form-group">
+            <label>Tischgr&ouml;&szlig;e</label>
+            <input type="text" class="form-control" id="mach-table-size" placeholder="z.B. 1524x660">
+          </div>
+          <div class="form-group">
+            <label>Gewicht (kg)</label>
+            <input type="number" class="form-control" id="mach-weight" min="0">
+          </div>
+        </div>
+        <div class="fw-600 mb-8 mt-12" style="color:var(--primary);">Verwaltung</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Standort</label>
+            <input type="text" class="form-control" id="mach-location" placeholder="z.B. Halle 1">
+          </div>
+          <div class="form-group">
+            <label>Inventarnummer</label>
+            <input type="text" class="form-control" id="mach-inventory" placeholder="z.B. INV-2022-001">
+          </div>
+          <div class="form-group">
+            <label>Baujahr</label>
+            <input type="number" class="form-control" id="mach-year-built" min="1900" max="2099">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Bemerkungen</label>
+          <textarea class="form-control" id="mach-notes" rows="2" placeholder="z.B. 5-Achs Simultanbearbeitung, WinMax Steuerung"></textarea>
+        </div>
+        <div class="flex gap-8 mt-16" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-machine')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: Arbeitsschritt-Vorlage -->
   <div class="modal-overlay" id="modal-workstep">
     <div class="modal">
@@ -1109,9 +1260,15 @@
             </select>
           </div>
         </div>
-        <div class="form-group">
-          <label>Zugewiesen an</label>
-          <select class="form-control" id="se-assigned"></select>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Zugewiesen an (Person)</label>
+            <select class="form-control" id="se-assigned"></select>
+          </div>
+          <div class="form-group">
+            <label>Maschine</label>
+            <select class="form-control" id="se-machine"></select>
+          </div>
         </div>
         <div class="form-group">
           <label>Abh&auml;ngig von (Ctrl+Klick f&uuml;r mehrere)</label>
@@ -2324,16 +2481,23 @@
         }
         otHtml += '<table style="font-size:13px;"><thead><tr><th>Nr.</th><th>Schritt</th><th>Dauer</th><th>Trockenzeit</th><th>Abh\u00e4ngig von</th></tr></thead><tbody>';
         ot.steps.forEach(function(s, i) {
-          var ws = templates.find(function(t) { return t.id === s.stepId; });
-          var depNames = (s.dependsOn || []).map(function(depId) {
-            var depWs = templates.find(function(t) { return t.id === depId; });
-            return depWs ? depWs.name : depId;
+          var isCustom = s.stepId === '__custom__';
+          var ws = isCustom ? null : templates.find(function(t) { return t.id === s.stepId; });
+          var stepName = isCustom ? (s.customName || 'Eigener Schritt') : (ws ? ws.name : s.stepId);
+          var duration = isCustom ? (s.customDuration || 0) : (ws ? ws.duration : 0);
+          var dryingTime = isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime || 0 : 0);
+          var depNames = (s.dependsOn || []).map(function(depOrder) {
+            var depStep = ot.steps.find(function(ds) { return ds.order === depOrder; });
+            if (!depStep) return '#' + depOrder;
+            var depIsCustom = depStep.stepId === '__custom__';
+            var depWs = depIsCustom ? null : templates.find(function(t) { return t.id === depStep.stepId; });
+            return '#' + depOrder + ' ' + (depIsCustom ? (depStep.customName || '') : (depWs ? depWs.name : depStep.stepId));
           });
           otHtml += '<tr>'
             + '<td>' + s.order + '</td>'
-            + '<td>' + (ws ? escapeHtml(ws.name) : escapeHtml(s.stepId)) + '</td>'
-            + '<td>' + (ws ? ws.duration + ' Min' : '-') + '</td>'
-            + '<td>' + (ws && ws.dryingTime > 0 ? ws.dryingTime + ' Min' : '-') + '</td>'
+            + '<td>' + escapeHtml(stepName) + (isCustom ? ' <span class="badge badge-neutral" style="font-size:10px;">Eigen</span>' : '') + '</td>'
+            + '<td>' + duration + ' Min' + '</td>'
+            + '<td>' + (dryingTime > 0 ? dryingTime + ' Min' : '-') + '</td>'
             + '<td>' + (depNames.length > 0 ? depNames.join(', ') : '-') + '</td>'
             + '</tr>';
         });
@@ -2460,37 +2624,96 @@
         html = '<div class="text-muted text-sm mb-8">Keine Schritte. Klicken Sie "+ Schritt" um einen hinzuzuf\u00fcgen.</div>';
       }
       otStepsTemp.forEach(function(step, i) {
-        html += '<div style="display:grid; grid-template-columns: 50px 1fr 1fr 40px; gap:8px; align-items:center; margin-bottom:8px; padding:8px; background:var(--bg); border-radius:6px;">'
-          + '<div class="text-sm fw-600 text-center">#' + step.order + '</div>'
-          + '<div><select class="form-control" style="font-size:13px;" onchange="otStepsTemp[' + i + '].stepId=this.value">'
+        var isCustom = step.stepId === '__custom__' || (step.stepId === '' && step.customName);
+        html += '<div style="margin-bottom:10px; padding:10px; background:var(--bg); border-radius:8px; border-left:3px solid var(--primary);">'
+          + '<div style="display:grid; grid-template-columns: 40px 1fr 40px; gap:8px; align-items:center;">'
+          + '<div class="text-sm fw-600 text-center" style="color:var(--primary);">#' + step.order + '</div>'
+          + '<div><select class="form-control" style="font-size:13px;" onchange="onOTStepTypeChange(' + i + ', this.value)">'
           + '<option value="">-- Schritt w\u00e4hlen --</option>';
         wsTemplates.forEach(function(ws) {
-          html += '<option value="' + ws.id + '"' + (step.stepId === ws.id ? ' selected' : '') + '>'
-            + escapeHtml(ws.name) + ' (' + ws.duration + ' Min)</option>';
+          html += '<option value="' + ws.id + '"' + (!isCustom && step.stepId === ws.id ? ' selected' : '') + '>'
+            + escapeHtml(ws.name) + ' (' + ws.duration + ' Min/Stk)</option>';
         });
+        html += '<option value="__custom__"' + (isCustom ? ' selected' : '') + '>Eigener Schritt...</option>';
         html += '</select></div>'
-          + '<div><select class="form-control" style="font-size:13px;" multiple onchange="updateOTDeps(' + i + ', this)">';
-        wsTemplates.forEach(function(ws) {
-          var sel = (step.dependsOn || []).indexOf(ws.id) >= 0 ? ' selected' : '';
-          html += '<option value="' + ws.id + '"' + sel + '>' + escapeHtml(ws.name) + '</option>';
-        });
-        html += '</select><div class="text-sm text-muted">Abh\u00e4ngig von (Ctrl+Klick)</div></div>'
           + '<div><button type="button" class="btn btn-outline" style="padding:2px 6px;color:var(--danger);" onclick="removeOTStep(' + i + ')">&times;</button></div>'
           + '</div>';
+
+        // Custom step fields
+        if (isCustom) {
+          html += '<div style="display:grid; grid-template-columns:1fr 100px 100px; gap:8px; margin-top:8px;">'
+            + '<div><input type="text" class="form-control" style="font-size:13px;" placeholder="Schrittname" value="' + escapeHtml(step.customName || '') + '" onchange="otStepsTemp[' + i + '].customName=this.value"></div>'
+            + '<div><input type="number" class="form-control" style="font-size:13px;" placeholder="Min/Stk" value="' + (step.customDuration || '') + '" min="0" onchange="otStepsTemp[' + i + '].customDuration=parseInt(this.value)||0"></div>'
+            + '<div><input type="number" class="form-control" style="font-size:13px;" placeholder="Trock.Min" value="' + (step.customDryingTime || '') + '" min="0" onchange="otStepsTemp[' + i + '].customDryingTime=parseInt(this.value)||0"></div>'
+            + '</div>'
+            + '<div style="margin-top:4px;"><textarea class="form-control" style="font-size:12px;" rows="1" placeholder="Beschreibung (optional)" onchange="otStepsTemp[' + i + '].customDescription=this.value">' + escapeHtml(step.customDescription || '') + '</textarea></div>';
+        }
+
+        // Dependencies: show other steps in this template
+        var otherSteps = otStepsTemp.filter(function(s, j) { return j !== i; });
+        if (otherSteps.length > 0) {
+          html += '<div style="margin-top:8px;"><select class="form-control" style="font-size:12px;" multiple onchange="updateOTDeps(' + i + ', this)">';
+          otherSteps.forEach(function(s) {
+            var depName = getOTStepName(s, wsTemplates);
+            var sel = (step.dependsOn || []).indexOf(s.order) >= 0 ? ' selected' : '';
+            html += '<option value="' + s.order + '"' + sel + '>#' + s.order + ' ' + escapeHtml(depName) + '</option>';
+          });
+          html += '</select><div class="text-sm text-muted" style="font-size:11px;">Abh\u00e4ngig von (Ctrl+Klick f\u00fcr mehrere)</div></div>';
+        }
+
+        html += '</div>';
       });
       document.getElementById('ot-steps-list').innerHTML = html;
+    }
+
+    function getOTStepName(step, wsTemplates) {
+      if (step.stepId === '__custom__' || (step.stepId === '' && step.customName)) {
+        return step.customName || 'Eigener Schritt';
+      }
+      var ws = wsTemplates.find(function(t) { return t.id === step.stepId; });
+      return ws ? ws.name : (step.stepId || 'Unbenannt');
+    }
+
+    function onOTStepTypeChange(index, value) {
+      if (value === '__custom__') {
+        otStepsTemp[index].stepId = '__custom__';
+        otStepsTemp[index].customName = otStepsTemp[index].customName || '';
+        otStepsTemp[index].customDuration = otStepsTemp[index].customDuration || 0;
+        otStepsTemp[index].customDryingTime = otStepsTemp[index].customDryingTime || 0;
+        otStepsTemp[index].customDescription = otStepsTemp[index].customDescription || '';
+      } else {
+        otStepsTemp[index].stepId = value;
+        delete otStepsTemp[index].customName;
+        delete otStepsTemp[index].customDuration;
+        delete otStepsTemp[index].customDryingTime;
+        delete otStepsTemp[index].customDescription;
+      }
+      renderOTSteps();
     }
 
     function updateOTDeps(index, selectEl) {
       var deps = [];
       for (var j = 0; j < selectEl.options.length; j++) {
-        if (selectEl.options[j].selected) deps.push(selectEl.options[j].value);
+        if (selectEl.options[j].selected) deps.push(parseInt(selectEl.options[j].value));
       }
       otStepsTemp[index].dependsOn = deps;
     }
 
     function saveOrderTemplate(e) {
       e.preventDefault();
+      // Validate: all steps must have a stepId or custom name
+      for (var v = 0; v < otStepsTemp.length; v++) {
+        var s = otStepsTemp[v];
+        if (s.stepId === '__custom__' && !s.customName) {
+          alert('Schritt #' + s.order + ': Bitte Namen eingeben.');
+          return;
+        }
+        if (!s.stepId && !s.customName) {
+          alert('Schritt #' + s.order + ': Bitte einen Arbeitsschritt w\u00e4hlen.');
+          return;
+        }
+      }
+
       var ots = Storage.getOrderTemplates();
       var editId = document.getElementById('ot-edit-id').value;
       var data = {
@@ -2546,19 +2769,33 @@
       var projects = Storage.getProjects();
       var proj = projects.find(function(pr) { return pr.id === currentProjectStepsId; });
       var totalQty = proj ? proj.quantity : 1;
+      var baseTs = String(Date.now()).slice(-4);
+
+      // Build order-to-id mapping for dependency resolution
+      var orderToId = {};
+      ot.steps.forEach(function(s) {
+        orderToId[s.order] = 'PS' + baseTs + '_' + s.order;
+      });
 
       currentProjectSteps = ot.steps.map(function(s) {
-        var ws = wsTemplates.find(function(t) { return t.id === s.stepId; });
+        var isCustom = s.stepId === '__custom__';
+        var ws = isCustom ? null : wsTemplates.find(function(t) { return t.id === s.stepId; });
+
+        // Map dependsOn order numbers to project step IDs
+        var mappedDeps = (s.dependsOn || []).map(function(depOrder) {
+          return orderToId[depOrder] || '';
+        }).filter(Boolean);
+
         return {
-          id: 'PS' + String(Date.now()).slice(-4) + '_' + s.order,
-          stepTemplateId: s.stepId,
-          name: ws ? ws.name : s.stepId,
-          description: ws ? ws.description : '',
+          id: orderToId[s.order],
+          stepTemplateId: isCustom ? '' : s.stepId,
+          name: isCustom ? (s.customName || 'Eigener Schritt') : (ws ? ws.name : s.stepId),
+          description: isCustom ? (s.customDescription || '') : (ws ? ws.description : ''),
           order: s.order,
-          dependsOn: s.dependsOn || [],
-          plannedDuration: ws ? ws.duration : 0,
+          dependsOn: mappedDeps,
+          plannedDuration: isCustom ? (s.customDuration || 0) : (ws ? ws.duration : 0),
           actualDuration: 0,
-          dryingTime: ws ? ws.dryingTime : 0,
+          dryingTime: isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime : 0),
           status: 'offen',
           assignedTo: '',
           completedQty: 0,
@@ -2766,6 +3003,14 @@
         empSel.innerHTML += '<option value="' + e.id + '"' + (step.assignedTo === e.id ? ' selected' : '') + '>' + escapeHtml(e.name) + '</option>';
       });
 
+      // Maschinen-Dropdown
+      var machines = Storage.getMachines();
+      var machSel = document.getElementById('se-machine');
+      machSel.innerHTML = '<option value="">-- Keine Maschine --</option>';
+      machines.forEach(function(m) {
+        machSel.innerHTML += '<option value="' + m.id + '"' + (step.machineId === m.id ? ' selected' : '') + '>' + escapeHtml(m.name) + (m.hourlyRate ? ' (' + m.hourlyRate + ' \u20ac/h)' : '') + '</option>';
+      });
+
       // Abhängigkeiten-Dropdown
       var depSel = document.getElementById('se-depends');
       depSel.innerHTML = '';
@@ -2796,6 +3041,7 @@
       step.completedQty = parseInt(document.getElementById('se-completed-qty').value) || 0;
       step.status = document.getElementById('se-status').value;
       step.assignedTo = document.getElementById('se-assigned').value;
+      step.machineId = document.getElementById('se-machine').value;
       step.notes = document.getElementById('se-notes').value.trim();
 
       // Abhängigkeiten
@@ -2936,6 +3182,14 @@
       // Work step dropdown initially empty
       document.getElementById('task-workstep').innerHTML = '<option value="">-- Kein spezifischer Arbeitsschritt --</option>';
 
+      // Maschinen-Dropdown
+      var machines = Storage.getMachines();
+      var machSel = document.getElementById('task-machine');
+      machSel.innerHTML = '<option value="">-- Keine Maschine --</option>';
+      machines.filter(function(m) { return m.status === 'aktiv'; }).forEach(function(m) {
+        machSel.innerHTML += '<option value="' + m.id + '">' + escapeHtml(m.name) + (m.hourlyRate ? ' (' + m.hourlyRate + ' \u20ac/h, R\u00fcst: ' + (m.setupTime || 0) + ' Min)' : '') + '</option>';
+      });
+
       // Fill values if editing
       if (isEdit) {
         empSel.value = existingTask.employeeId;
@@ -2945,6 +3199,7 @@
         document.getElementById('task-desc').value = existingTask.description || '';
         document.getElementById('task-planned-qty').value = existingTask.plannedQty || '';
         document.getElementById('task-planned-minutes').value = existingTask.plannedMinutes || '';
+        machSel.value = existingTask.machineId || '';
         onTaskProjectChange();
         updateTaskTargetProgress();
         // Set target progress and work step after options are populated
@@ -2962,6 +3217,7 @@
         document.getElementById('task-desc').value = '';
         document.getElementById('task-planned-qty').value = '';
         document.getElementById('task-planned-minutes').value = '';
+        machSel.value = '';
         document.getElementById('task-project-preview').style.display = 'none';
         updateTaskTargetProgress();
       }
@@ -3066,6 +3322,7 @@
         area: document.getElementById('task-area').value,
         day: dayVal === 'week' ? 'week' : parseInt(dayVal),
         workStepId: document.getElementById('task-workstep').value || '',
+        machineId: document.getElementById('task-machine').value || '',
         description: document.getElementById('task-desc').value,
         plannedQty: parseInt(document.getElementById('task-planned-qty').value) || 0,
         plannedMinutes: parseInt(document.getElementById('task-planned-minutes').value) || 0,
@@ -3228,6 +3485,13 @@
     }
 
     // ---- EMPLOYEES ----
+    var utilWeekOffset = 0;
+
+    function shiftUtilWeek(delta) {
+      utilWeekOffset += delta;
+      renderUtilization();
+    }
+
     function renderEmployees() {
       const employees = Storage.getEmployees();
       document.getElementById('employees-table').innerHTML = `
@@ -3247,6 +3511,249 @@
           </td>
         </tr>
       `).join('');
+
+      renderMachines();
+      renderUtilization();
+    }
+
+    // ---- MASCHINEN ----
+    function renderMachines() {
+      const machines = Storage.getMachines();
+      var html = '';
+      machines.forEach(function(m) {
+        var statusBadge = m.status === 'aktiv' ? 'badge-success' : (m.status === 'wartung' ? 'badge-warning' : 'badge-neutral');
+        var specs = m.specs || {};
+        var specsInfo = [];
+        if (m.manufacturer) specsInfo.push(escapeHtml(m.manufacturer));
+        if (specs.spindleSpeed) specsInfo.push(specs.spindleSpeed + ' U/min');
+        if (specs.spindlePower) specsInfo.push(specs.spindlePower + ' kW');
+        if (specs.toolChanger) specsInfo.push(specs.toolChanger + ' WZ');
+        html += '<tr>'
+          + '<td><strong>' + escapeHtml(m.id) + '</strong></td>'
+          + '<td>' + escapeHtml(m.name) + (specsInfo.length > 0 ? '<br><span class="text-sm text-muted">' + specsInfo.join(' | ') + '</span>' : '') + '</td>'
+          + '<td>' + escapeHtml(m.type || '-') + '</td>'
+          + '<td>' + (m.hourlyRate ? m.hourlyRate.toFixed(2) + ' \u20ac/h' : '-') + '</td>'
+          + '<td>' + (m.setupTime ? m.setupTime + ' Min' : '-') + '</td>'
+          + '<td><span class="badge ' + statusBadge + '">' + escapeHtml(m.status || 'aktiv') + '</span></td>'
+          + '<td style="white-space:nowrap;">'
+          + '  <button class="btn btn-sm btn-outline" onclick="editMachine(\'' + m.id + '\')">Bearbeiten</button> '
+          + '  <button class="btn btn-sm btn-danger" onclick="deleteMachine(\'' + m.id + '\')">L\u00f6schen</button>'
+          + '</td></tr>';
+      });
+      document.getElementById('machines-table').innerHTML = html || '<tr><td colspan="7" class="text-muted text-sm">Keine Maschinen vorhanden.</td></tr>';
+    }
+
+    function openMachineModal(m) {
+      var specs = (m && m.specs) || {};
+      if (m) {
+        document.getElementById('machine-modal-title').textContent = 'Maschine bearbeiten';
+        document.getElementById('mach-edit-id').value = m.id;
+        document.getElementById('mach-id').value = m.id;
+        document.getElementById('mach-id').readOnly = true;
+        document.getElementById('mach-name').value = m.name;
+        document.getElementById('mach-type').value = m.type || '';
+        document.getElementById('mach-manufacturer').value = m.manufacturer || '';
+        document.getElementById('mach-model').value = m.model || '';
+        document.getElementById('mach-status').value = m.status || 'aktiv';
+        document.getElementById('mach-hourly-rate').value = m.hourlyRate || 0;
+        document.getElementById('mach-setup-time').value = m.setupTime || 0;
+        document.getElementById('mach-travel-x').value = specs.travelX || '';
+        document.getElementById('mach-travel-y').value = specs.travelY || '';
+        document.getElementById('mach-travel-z').value = specs.travelZ || '';
+        document.getElementById('mach-spindle-speed').value = specs.spindleSpeed || '';
+        document.getElementById('mach-spindle-power').value = specs.spindlePower || '';
+        document.getElementById('mach-tool-changer').value = specs.toolChanger || '';
+        document.getElementById('mach-table-size').value = specs.tableSize || '';
+        document.getElementById('mach-weight').value = specs.weight || '';
+        document.getElementById('mach-location').value = m.location || '';
+        document.getElementById('mach-inventory').value = m.inventoryNumber || '';
+        document.getElementById('mach-year-built').value = specs.yearBuilt || '';
+        document.getElementById('mach-notes').value = m.notes || '';
+      } else {
+        document.getElementById('machine-modal-title').textContent = 'Neue Maschine';
+        document.getElementById('mach-edit-id').value = '';
+        document.getElementById('mach-id').value = '';
+        document.getElementById('mach-id').readOnly = false;
+        document.getElementById('mach-name').value = '';
+        document.getElementById('mach-type').value = '';
+        document.getElementById('mach-manufacturer').value = '';
+        document.getElementById('mach-model').value = '';
+        document.getElementById('mach-status').value = 'aktiv';
+        document.getElementById('mach-hourly-rate').value = 0;
+        document.getElementById('mach-setup-time').value = 0;
+        document.getElementById('mach-travel-x').value = '';
+        document.getElementById('mach-travel-y').value = '';
+        document.getElementById('mach-travel-z').value = '';
+        document.getElementById('mach-spindle-speed').value = '';
+        document.getElementById('mach-spindle-power').value = '';
+        document.getElementById('mach-tool-changer').value = '';
+        document.getElementById('mach-table-size').value = '';
+        document.getElementById('mach-weight').value = '';
+        document.getElementById('mach-location').value = '';
+        document.getElementById('mach-inventory').value = '';
+        document.getElementById('mach-year-built').value = '';
+        document.getElementById('mach-notes').value = '';
+      }
+      showModal('modal-machine');
+    }
+
+    function editMachine(id) {
+      var machines = Storage.getMachines();
+      var m = machines.find(function(x) { return x.id === id; });
+      if (m) openMachineModal(m);
+    }
+
+    function saveMachine(e) {
+      e.preventDefault();
+      var machines = Storage.getMachines();
+      var editId = document.getElementById('mach-edit-id').value;
+      var data = {
+        id: document.getElementById('mach-id').value.trim(),
+        name: document.getElementById('mach-name').value.trim(),
+        type: document.getElementById('mach-type').value.trim(),
+        manufacturer: document.getElementById('mach-manufacturer').value.trim(),
+        model: document.getElementById('mach-model').value.trim(),
+        status: document.getElementById('mach-status').value,
+        hourlyRate: parseFloat(document.getElementById('mach-hourly-rate').value) || 0,
+        setupTime: parseInt(document.getElementById('mach-setup-time').value) || 0,
+        specs: {
+          travelX: parseInt(document.getElementById('mach-travel-x').value) || 0,
+          travelY: parseInt(document.getElementById('mach-travel-y').value) || 0,
+          travelZ: parseInt(document.getElementById('mach-travel-z').value) || 0,
+          spindleSpeed: parseInt(document.getElementById('mach-spindle-speed').value) || 0,
+          spindlePower: parseFloat(document.getElementById('mach-spindle-power').value) || 0,
+          toolChanger: parseInt(document.getElementById('mach-tool-changer').value) || 0,
+          tableSize: document.getElementById('mach-table-size').value.trim(),
+          weight: parseInt(document.getElementById('mach-weight').value) || 0,
+          yearBuilt: parseInt(document.getElementById('mach-year-built').value) || 0
+        },
+        location: document.getElementById('mach-location').value.trim(),
+        inventoryNumber: document.getElementById('mach-inventory').value.trim(),
+        notes: document.getElementById('mach-notes').value.trim()
+      };
+      if (editId) {
+        var idx = machines.findIndex(function(x) { return x.id === editId; });
+        if (idx >= 0) machines[idx] = data;
+      } else {
+        if (machines.find(function(x) { return x.id === data.id; })) {
+          alert('ID "' + data.id + '" existiert bereits!');
+          return;
+        }
+        machines.push(data);
+      }
+      Storage.saveMachines(machines);
+      closeModal('modal-machine');
+      renderEmployees();
+    }
+
+    function deleteMachine(id) {
+      if (!confirm('Maschine wirklich l\u00f6schen?')) return;
+      var machines = Storage.getMachines();
+      Storage.saveMachines(machines.filter(function(x) { return x.id !== id; }));
+      renderEmployees();
+    }
+
+    // ---- AUSLASTUNG ----
+    function renderUtilization() {
+      var today = new Date();
+      today.setDate(today.getDate() + utilWeekOffset * 7);
+      var kw = getKW(today);
+      var year = today.getFullYear();
+      document.getElementById('util-week-label').textContent = 'KW ' + kw + ' / ' + year;
+
+      var employees = Storage.getEmployees();
+      var machines = Storage.getMachines();
+      var plan = Storage.getWeekPlan(year, kw);
+      var hoursPerDay = 8;
+      var totalWeekMinutes = hoursPerDay * 60 * 5; // Mo-Fr, 8h/Tag
+
+      var dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+      var html = '';
+
+      // Mitarbeiter-Auslastung
+      html += '<div class="fw-600 mb-8" style="color:var(--primary); margin-top:12px;">Mitarbeiter</div>';
+      html += '<div style="overflow-x:auto;"><table style="font-size:13px; width:100%;"><thead><tr><th>Name</th>';
+      for (var d = 0; d < 5; d++) html += '<th style="text-align:center; min-width:60px;">' + dayNames[d] + '</th>';
+      html += '<th style="text-align:center;">Woche</th><th style="text-align:center; min-width:100px;">Auslastung</th></tr></thead><tbody>';
+
+      employees.forEach(function(emp) {
+        var dayMinutes = [0, 0, 0, 0, 0];
+        plan.forEach(function(t) {
+          if (t.employeeId !== emp.id) return;
+          var mins = t.plannedMinutes || 0;
+          if (t.day === 'week') {
+            for (var dd = 0; dd < 5; dd++) dayMinutes[dd] += Math.round(mins / 5);
+          } else if (typeof t.day === 'number' && t.day >= 0 && t.day <= 4) {
+            dayMinutes[t.day] += mins;
+          }
+        });
+        var totalPlanned = dayMinutes.reduce(function(a, b) { return a + b; }, 0);
+        var utilPct = totalWeekMinutes > 0 ? Math.round(totalPlanned / totalWeekMinutes * 100) : 0;
+        var barColor = utilPct > 100 ? '#e74c3c' : (utilPct > 80 ? '#e67e22' : (utilPct > 50 ? '#3498db' : '#95a5a6'));
+
+        html += '<tr><td class="fw-600">' + escapeHtml(emp.name) + '</td>';
+        for (var dd = 0; dd < 5; dd++) {
+          var dayPct = hoursPerDay * 60 > 0 ? Math.round(dayMinutes[dd] / (hoursPerDay * 60) * 100) : 0;
+          var dayColor = dayPct > 100 ? '#e74c3c' : (dayPct > 80 ? '#e67e22' : '#3498db');
+          html += '<td style="text-align:center;">'
+            + '<div style="font-size:12px; font-weight:600; color:' + dayColor + ';">' + dayPct + '%</div>'
+            + '<div style="height:4px; background:#ecf0f1; border-radius:2px; margin-top:2px;">'
+            + '<div style="height:100%; width:' + Math.min(dayPct, 100) + '%; background:' + dayColor + '; border-radius:2px;"></div>'
+            + '</div></td>';
+        }
+        html += '<td style="text-align:center;"><span class="fw-600">' + Math.round(totalPlanned / 60 * 10) / 10 + 'h</span><br><span class="text-sm text-muted">/ ' + (hoursPerDay * 5) + 'h</span></td>';
+        html += '<td style="text-align:center;">'
+          + '<div class="fw-600" style="color:' + barColor + '; font-size:16px;">' + utilPct + '%</div>'
+          + '<div style="height:6px; background:#ecf0f1; border-radius:3px; margin-top:4px;">'
+          + '<div style="height:100%; width:' + Math.min(utilPct, 100) + '%; background:' + barColor + '; border-radius:3px;"></div>'
+          + '</div></td></tr>';
+      });
+      html += '</tbody></table></div>';
+
+      // Maschinen-Auslastung
+      if (machines.length > 0) {
+        html += '<div class="fw-600 mb-8" style="color:var(--primary); margin-top:20px;">Maschinen</div>';
+        html += '<div style="overflow-x:auto;"><table style="font-size:13px; width:100%;"><thead><tr><th>Maschine</th>';
+        for (var d = 0; d < 5; d++) html += '<th style="text-align:center; min-width:60px;">' + dayNames[d] + '</th>';
+        html += '<th style="text-align:center;">Woche</th><th style="text-align:center; min-width:100px;">Auslastung</th></tr></thead><tbody>';
+
+        machines.forEach(function(mach) {
+          if (mach.status !== 'aktiv') return;
+          var dayMinutes = [0, 0, 0, 0, 0];
+          plan.forEach(function(t) {
+            if (t.machineId !== mach.id) return;
+            var mins = (t.plannedMinutes || 0) + (mach.setupTime || 0);
+            if (t.day === 'week') {
+              for (var dd = 0; dd < 5; dd++) dayMinutes[dd] += Math.round(mins / 5);
+            } else if (typeof t.day === 'number' && t.day >= 0 && t.day <= 4) {
+              dayMinutes[t.day] += mins;
+            }
+          });
+          var totalPlanned = dayMinutes.reduce(function(a, b) { return a + b; }, 0);
+          var utilPct = totalWeekMinutes > 0 ? Math.round(totalPlanned / totalWeekMinutes * 100) : 0;
+          var barColor = utilPct > 100 ? '#e74c3c' : (utilPct > 80 ? '#e67e22' : (utilPct > 50 ? '#3498db' : '#95a5a6'));
+
+          html += '<tr><td class="fw-600">' + escapeHtml(mach.name) + '<br><span class="text-sm text-muted">' + escapeHtml(mach.type || '') + '</span></td>';
+          for (var dd = 0; dd < 5; dd++) {
+            var dayPct = hoursPerDay * 60 > 0 ? Math.round(dayMinutes[dd] / (hoursPerDay * 60) * 100) : 0;
+            var dayColor = dayPct > 100 ? '#e74c3c' : (dayPct > 80 ? '#e67e22' : '#3498db');
+            html += '<td style="text-align:center;">'
+              + '<div style="font-size:12px; font-weight:600; color:' + dayColor + ';">' + dayPct + '%</div>'
+              + '<div style="height:4px; background:#ecf0f1; border-radius:2px; margin-top:2px;">'
+              + '<div style="height:100%; width:' + Math.min(dayPct, 100) + '%; background:' + dayColor + '; border-radius:2px;"></div>'
+              + '</div></td>';
+          }
+          html += '<td style="text-align:center;"><span class="fw-600">' + Math.round(totalPlanned / 60 * 10) / 10 + 'h</span><br><span class="text-sm text-muted">/ ' + (hoursPerDay * 5) + 'h</span></td>';
+          html += '<td style="text-align:center;">'
+            + '<div class="fw-600" style="color:' + barColor + '; font-size:16px;">' + utilPct + '%</div>'
+            + '<div style="height:6px; background:#ecf0f1; border-radius:3px; margin-top:4px;">'
+            + '<div style="height:100%; width:' + Math.min(utilPct, 100) + '%; background:' + barColor + '; border-radius:3px;"></div>'
+            + '</div></td></tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+
+      document.getElementById('utilization-content').innerHTML = html;
     }
 
     function openEmployeeModal(emp) {
