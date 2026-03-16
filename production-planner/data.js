@@ -335,6 +335,60 @@ const ATC_DATA = {
     }
   ],
 
+  // Produkte - Stammdaten mit zugeordneten Arbeitsschritten
+  products: [
+    {
+      id: 'PROD001',
+      name: 'ProLock Konterring',
+      articleNumber: 'PL-KR-001',
+      description: 'Standard Konterring für ProLock System',
+      category: 'Fertigung',
+      material: 'Stahl',
+      defaultSteps: [
+        { stepId: 'WS001', order: 1, dependsOn: [], durationPerPiece: 5 },
+        { stepId: 'WS003', order: 2, dependsOn: [1], durationPerPiece: 8 },
+        { stepId: 'WS004', order: 3, dependsOn: [2], durationPerPiece: 3 },
+        { stepId: 'WS005', order: 4, dependsOn: [3], durationPerPiece: 4 },
+        { stepId: 'WS006', order: 5, dependsOn: [4], durationPerPiece: 2 },
+        { stepId: 'WS008', order: 6, dependsOn: [5], durationPerPiece: 1 }
+      ]
+    },
+    {
+      id: 'PROD002',
+      name: 'Spannhebel DD Sight',
+      articleNumber: 'SH-DD-001',
+      description: 'Spannhebel für DD Sight Mag System',
+      category: 'Fertigung',
+      material: 'Aluminium',
+      defaultSteps: [
+        { stepId: 'WS009', order: 1, dependsOn: [], durationPerPiece: 30 },
+        { stepId: 'WS010', order: 2, dependsOn: [1], durationPerPiece: 15 },
+        { stepId: 'WS001', order: 3, dependsOn: [2], durationPerPiece: 5 },
+        { stepId: 'WS002', order: 4, dependsOn: [3], durationPerPiece: 20 },
+        { stepId: 'WS004', order: 5, dependsOn: [4], durationPerPiece: 5 },
+        { stepId: 'WS005', order: 6, dependsOn: [5], durationPerPiece: 4 },
+        { stepId: 'WS006', order: 7, dependsOn: [6], durationPerPiece: 3 },
+        { stepId: 'WS008', order: 8, dependsOn: [7], durationPerPiece: 2 }
+      ]
+    },
+    {
+      id: 'PROD003',
+      name: 'Eintaucharmatur PP',
+      articleNumber: 'EA-PP-001',
+      description: 'Eintaucharmatur aus Polypropylen',
+      category: 'Fertigung + Montage',
+      material: 'PP (Polypropylen)',
+      defaultSteps: [
+        { stepId: 'WS001', order: 1, dependsOn: [], durationPerPiece: 10 },
+        { stepId: 'WS002', order: 2, dependsOn: [1], durationPerPiece: 25 },
+        { stepId: 'WS004', order: 3, dependsOn: [2], durationPerPiece: 5 },
+        { stepId: 'WS006', order: 4, dependsOn: [3], durationPerPiece: 5 },
+        { stepId: 'WS007', order: 5, dependsOn: [4], durationPerPiece: 15 },
+        { stepId: 'WS008', order: 6, dependsOn: [5], durationPerPiece: 3 }
+      ]
+    }
+  ],
+
   // Blocker-Gründe für Arbeitsschritte
   blockerReasons: [
     { id: 'material', label: 'Material fehlt', icon: '\u{1F4E6}' },
@@ -503,6 +557,15 @@ const Storage = {
 
   saveDisruptions(disruptions) {
     this.save('disruptions', disruptions);
+  },
+
+  // Produkte laden/speichern
+  getProducts() {
+    return this.load('products', ATC_DATA.products);
+  },
+
+  saveProducts(products) {
+    this.save('products', products);
   },
 
   // Arbeitsschritte pro Projekt

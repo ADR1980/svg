@@ -371,6 +371,7 @@
     <div class="tab" data-view="customers">Kunden</div>
     <div class="tab" data-view="projects">Projekte</div>
     <div class="tab" data-view="planning">Wochenplanung</div>
+    <div class="tab" data-view="products">Produkte</div>
     <div class="tab" data-view="worksteps">Arbeitsschritte</div>
     <div class="tab" data-view="scheduling">Terminplanung</div>
     <div class="tab" data-view="employees">Ressourcen</div>
@@ -455,6 +456,77 @@
         <button class="btn btn-primary" onclick="openProjectModal()">+ Neues Projekt</button>
       </div>
       <div id="projects-list"></div>
+    </div>
+
+    <!-- PRODUKTE -->
+    <div class="view" id="view-products">
+      <div class="toolbar">
+        <h2 style="font-size: 18px;">Produkte</h2>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="openProductModal()">+ Neues Produkt</button>
+      </div>
+      <div class="text-sm text-muted mb-8" style="margin-bottom:16px;">
+        Definieren Sie hier Ihre Produkte mit zugeordneten Arbeitsschritten. Bei der Projektanlage k&ouml;nnen Sie ein Produkt w&auml;hlen &ndash; die Arbeitsschritte und Zeiten werden automatisch &uuml;bernommen und anhand der St&uuml;ckzahl skaliert.
+      </div>
+      <div id="products-list"></div>
+    </div>
+
+    <!-- Modal: Produkt anlegen/bearbeiten -->
+    <div class="modal-overlay" id="modal-product">
+      <div class="modal" style="max-width:800px;">
+        <div class="modal-header">
+          <h2 id="product-modal-title">Neues Produkt</h2>
+          <button class="modal-close" onclick="closeModal('modal-product')">&times;</button>
+        </div>
+        <form onsubmit="saveProduct(event)">
+          <input type="hidden" id="prod-edit-id">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Produktname *</label>
+              <input type="text" class="form-control" id="prod-name" required placeholder="z.B. ProLock Konterring">
+            </div>
+            <div class="form-group">
+              <label>Artikelnummer</label>
+              <input type="text" class="form-control" id="prod-article-number" placeholder="z.B. PL-KR-001">
+            </div>
+            <div class="form-group">
+              <label>Kategorie</label>
+              <select class="form-control" id="prod-category">
+                <option value="Fertigung">Fertigung</option>
+                <option value="Montage">Montage</option>
+                <option value="Konstruktion">Konstruktion</option>
+                <option value="Fertigung + Montage">Fertigung + Montage</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Material</label>
+              <input type="text" class="form-control" id="prod-material" placeholder="z.B. Stahl, Aluminium, PP">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Beschreibung</label>
+            <textarea class="form-control" id="prod-description" rows="2" placeholder="Kurze Beschreibung des Produkts"></textarea>
+          </div>
+
+          <!-- Arbeitsschritte des Produkts -->
+          <div style="margin-top:16px; border-top:2px solid var(--border); padding-top:16px;">
+            <div class="flex justify-between items-center mb-8">
+              <div class="fw-600" style="font-size:15px;">Arbeitsschritte dieses Produkts</div>
+              <button type="button" class="btn btn-outline" onclick="addProductStep()">+ Schritt hinzuf&uuml;gen</button>
+            </div>
+            <div class="text-sm text-muted mb-8">
+              Definieren Sie die Dauer <strong>pro St&uuml;ck</strong>. Bei der Projektanlage wird die Gesamtdauer automatisch mit der St&uuml;ckzahl multipliziert.
+            </div>
+            <div id="product-steps-editor"></div>
+            <div id="product-steps-summary" style="margin-top:8px;"></div>
+          </div>
+
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:20px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-product')">Abbrechen</button>
+            <button type="submit" class="btn btn-primary">Speichern</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- WORK STEPS -->
@@ -612,6 +684,13 @@
             <input type="text" class="form-control" id="proj-order">
           </div>
         </div>
+        <div class="form-group" style="background:#eaf2f8; padding:12px; border-radius:8px; border-left:4px solid var(--accent);">
+          <label style="font-weight:600; color:var(--primary);">Produkt w&auml;hlen (optional)</label>
+          <select class="form-control" id="proj-product" onchange="onProjectProductChange()">
+            <option value="">-- Kein Produkt / manuell definieren --</option>
+          </select>
+          <div id="proj-product-info" class="text-sm" style="margin-top:6px; display:none;"></div>
+        </div>
         <div class="form-group">
           <label>Artikelbezeichnung</label>
           <input type="text" class="form-control" id="proj-article" required>
@@ -619,7 +698,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Menge</label>
-            <input type="number" class="form-control" id="proj-qty" required>
+            <input type="number" class="form-control" id="proj-qty" required onchange="updateProjectProductInfo()">
           </div>
           <div class="form-group">
             <label>Einheit</label>
@@ -1462,6 +1541,7 @@
         case 'planning': renderPlanning(); break;
         case 'scheduling': renderScheduling(); break;
         case 'employees': renderEmployees(); break;
+        case 'products': renderProducts(); break;
         case 'worksteps': renderWorkSteps(); break;
         case 'reports': loadReports(); break;
       }
@@ -2249,6 +2329,19 @@
         sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.name) + ' (' + c.id + ')</option>';
       });
 
+      // Produkt-Dropdown
+      var prodSel = document.getElementById('proj-product');
+      var products = Storage.getProducts();
+      prodSel.innerHTML = '<option value="">-- Kein Produkt / manuell definieren --</option>';
+      products.forEach(function(prod) {
+        var stepCount = (prod.defaultSteps || []).length;
+        prodSel.innerHTML += '<option value="' + prod.id + '">' + escapeHtml(prod.name)
+          + (prod.articleNumber ? ' (' + escapeHtml(prod.articleNumber) + ')' : '')
+          + ' - ' + stepCount + ' Schritte</option>';
+      });
+      prodSel.value = project ? (project.productId || '') : '';
+      document.getElementById('proj-product-info').style.display = 'none';
+
       // Parent-Dropdown (Anlagen und Baugruppen)
       var allProjects = Storage.getProjects();
       var parentSel = document.getElementById('proj-parent');
@@ -2653,12 +2746,70 @@
       showModal('modal-project-detail');
     }
 
+    function onProjectProductChange() {
+      var prodId = document.getElementById('proj-product').value;
+      var infoDiv = document.getElementById('proj-product-info');
+      if (!prodId) {
+        infoDiv.style.display = 'none';
+        return;
+      }
+      var products = Storage.getProducts();
+      var prod = products.find(function(p) { return p.id === prodId; });
+      if (!prod) { infoDiv.style.display = 'none'; return; }
+
+      // Auto-fill article name and material
+      if (!document.getElementById('proj-article').value) {
+        document.getElementById('proj-article').value = prod.name;
+      }
+      if (prod.material && !document.getElementById('proj-material').value) {
+        document.getElementById('proj-material').value = prod.material;
+      }
+
+      updateProjectProductInfo();
+    }
+
+    function updateProjectProductInfo() {
+      var prodId = document.getElementById('proj-product').value;
+      var infoDiv = document.getElementById('proj-product-info');
+      if (!prodId) { infoDiv.style.display = 'none'; return; }
+
+      var products = Storage.getProducts();
+      var prod = products.find(function(p) { return p.id === prodId; });
+      if (!prod) { infoDiv.style.display = 'none'; return; }
+
+      var qty = parseInt(document.getElementById('proj-qty').value) || 1;
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var totalPerPiece = 0;
+      var stepNames = [];
+
+      (prod.defaultSteps || []).forEach(function(s) {
+        var dur = s.durationPerPiece || 0;
+        totalPerPiece += dur;
+        var ws = wsTemplates.find(function(t) { return t.id === s.stepId; });
+        stepNames.push(ws ? ws.name : (s.customName || s.stepId));
+      });
+
+      var totalTime = totalPerPiece * qty;
+      var html = '<div style="color:var(--primary);">'
+        + '<strong>' + (prod.defaultSteps || []).length + ' Arbeitsschritte</strong> werden beim Speichern automatisch angelegt: '
+        + stepNames.join(' \u2192 ')
+        + '</div>'
+        + '<div style="margin-top:4px;">'
+        + 'Gesamtdauer: <strong>' + totalPerPiece + ' Min/St\u00fcck</strong>'
+        + ' \u00d7 ' + qty + ' St\u00fcck = <strong>' + totalTime + ' Min</strong> (' + (totalTime / 60).toFixed(1) + ' Std)'
+        + '</div>';
+
+      infoDiv.innerHTML = html;
+      infoDiv.style.display = 'block';
+    }
+
     function saveProject(e) {
       e.preventDefault();
       const projects = Storage.getProjects();
       const editId = document.getElementById('proj-edit-id').value;
 
       const data = {
+        productId: document.getElementById('proj-product').value || '',
         customerId: document.getElementById('proj-customer').value,
         orderNumber: document.getElementById('proj-order').value,
         article: document.getElementById('proj-article').value,
@@ -2706,16 +2857,392 @@
         }
       }
 
+      var newProjectId = null;
       if (editId) {
         const idx = projects.findIndex(p => p.id === parseInt(editId));
         if (idx >= 0) projects[idx] = { ...projects[idx], ...data };
       } else {
         const maxId = projects.reduce((max, p) => Math.max(max, p.id), 0);
-        projects.push({ id: maxId + 1, ...data });
+        newProjectId = maxId + 1;
+        projects.push({ id: newProjectId, ...data });
       }
 
       Storage.saveProjects(projects);
+
+      // Bei neuem Projekt mit Produkt: Arbeitsschritte automatisch anlegen
+      if (newProjectId && data.productId) {
+        applyProductToProject(newProjectId, data.productId, data.quantity || 1);
+      }
+
       closeModal('modal-project');
+      refreshView();
+    }
+
+    function applyProductToProject(projectId, productId, quantity) {
+      var products = Storage.getProducts();
+      var product = products.find(function(p) { return p.id === productId; });
+      if (!product || !product.defaultSteps || product.defaultSteps.length === 0) return;
+
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var baseTs = String(Date.now()).slice(-4);
+
+      // Build order-to-id mapping for dependency resolution
+      var orderToId = {};
+      product.defaultSteps.forEach(function(s) {
+        orderToId[s.order] = 'PS' + baseTs + '_' + s.order;
+      });
+
+      var projectSteps = product.defaultSteps.map(function(s) {
+        var isCustom = s.stepId === '__custom__';
+        var ws = isCustom ? null : wsTemplates.find(function(t) { return t.id === s.stepId; });
+
+        // Map dependsOn order numbers to project step IDs
+        var mappedDeps = (s.dependsOn || []).map(function(depOrder) {
+          return orderToId[depOrder] || '';
+        }).filter(Boolean);
+
+        var durationPerPiece = s.durationPerPiece || (ws ? ws.duration : 0);
+
+        return {
+          id: orderToId[s.order],
+          stepTemplateId: isCustom ? '' : s.stepId,
+          name: isCustom ? (s.customName || 'Eigener Schritt') : (ws ? ws.name : s.stepId),
+          description: isCustom ? (s.customDescription || '') : (ws ? ws.description : ''),
+          order: s.order,
+          dependsOn: mappedDeps,
+          plannedDuration: durationPerPiece,
+          actualDuration: 0,
+          dryingTime: isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime : 0),
+          status: 'offen',
+          assignedTo: '',
+          completedQty: 0,
+          totalQty: quantity,
+          notes: ''
+        };
+      });
+
+      Storage.saveProjectSteps(projectId, projectSteps);
+    }
+
+    // ---- PRODUKTE ----
+    var currentProductSteps = [];
+
+    function renderProducts() {
+      var products = Storage.getProducts();
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var html = '';
+
+      if (products.length === 0) {
+        html = '<div class="card"><div class="text-muted text-sm" style="padding:20px; text-align:center;">'
+          + 'Noch keine Produkte definiert. Klicken Sie oben auf "+ Neues Produkt" um Ihr erstes Produkt anzulegen.'
+          + '</div></div>';
+      }
+
+      products.forEach(function(prod) {
+        var totalTimePerPiece = 0;
+        var stepCount = (prod.defaultSteps || []).length;
+
+        html += '<div class="card" style="margin-bottom:12px; border-left:4px solid var(--accent);">'
+          + '<div class="flex justify-between items-center">'
+          + '  <div>'
+          + '    <span class="fw-600" style="font-size:15px;">' + escapeHtml(prod.name) + '</span>';
+        if (prod.articleNumber) {
+          html += '    <span class="text-sm text-muted" style="margin-left:8px;">Art.-Nr.: ' + escapeHtml(prod.articleNumber) + '</span>';
+        }
+        html += '    <span class="badge badge-info" style="margin-left:8px;">' + escapeHtml(prod.category || '') + '</span>';
+        html += '  </div>'
+          + '  <div style="display:flex; gap:6px;">'
+          + '    <button class="btn btn-outline" style="padding:4px 12px;font-size:12px;" onclick="editProduct(\'' + prod.id + '\')">Bearbeiten</button>'
+          + '    <button class="btn btn-outline" style="padding:4px 12px;font-size:12px;" onclick="duplicateProduct(\'' + prod.id + '\')">Duplizieren</button>'
+          + '    <button class="btn btn-outline" style="padding:4px 12px;font-size:12px;color:var(--danger);" onclick="deleteProduct(\'' + prod.id + '\')">L\u00f6schen</button>'
+          + '  </div>'
+          + '</div>';
+
+        if (prod.description) {
+          html += '<div class="text-sm text-muted" style="margin-top:6px;">' + escapeHtml(prod.description) + '</div>';
+        }
+        if (prod.material) {
+          html += '<div class="text-sm" style="margin-top:4px;">Material: <strong>' + escapeHtml(prod.material) + '</strong></div>';
+        }
+
+        // Arbeitsschritte-Tabelle
+        if (stepCount > 0) {
+          html += '<table class="ws-table" style="margin-top:10px;">'
+            + '<thead><tr>'
+            + '<th style="width:40px;">Nr.</th>'
+            + '<th>Arbeitsschritt</th>'
+            + '<th style="width:120px;">Dauer/St\u00fcck</th>'
+            + '<th style="width:100px;">Trockenzeit</th>'
+            + '<th>Abh\u00e4ngig von</th>'
+            + '</tr></thead><tbody>';
+
+          prod.defaultSteps.forEach(function(s) {
+            var isCustom = s.stepId === '__custom__';
+            var ws = isCustom ? null : wsTemplates.find(function(t) { return t.id === s.stepId; });
+            var stepName = isCustom ? (s.customName || 'Eigener Schritt') : (ws ? ws.name : s.stepId);
+            var dur = s.durationPerPiece || (ws ? ws.duration : 0);
+            var dryingTime = isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime || 0 : 0);
+            totalTimePerPiece += dur;
+
+            var depLabels = (s.dependsOn || []).map(function(depOrder) {
+              var depStep = prod.defaultSteps.find(function(ds) { return ds.order === depOrder; });
+              if (!depStep) return '#' + depOrder;
+              var depWs = wsTemplates.find(function(t) { return t.id === depStep.stepId; });
+              return '#' + depOrder + ' ' + (depWs ? depWs.name : depStep.stepId);
+            });
+
+            html += '<tr>'
+              + '<td class="fw-600">' + s.order + '</td>'
+              + '<td>' + escapeHtml(stepName) + (isCustom ? ' <span class="badge" style="font-size:10px;background:#eee;">Eigen</span>' : '') + '</td>'
+              + '<td>' + dur + ' Min</td>'
+              + '<td>' + (dryingTime > 0 ? dryingTime + ' Min' : '-') + '</td>'
+              + '<td class="text-sm">' + (depLabels.length > 0 ? depLabels.join(', ') : '-') + '</td>'
+              + '</tr>';
+          });
+          html += '</tbody></table>';
+
+          // Zusammenfassung
+          html += '<div style="margin-top:8px; padding:8px 12px; background:var(--bg); border-radius:6px; font-size:12px;">'
+            + '<strong>' + stepCount + ' Schritte</strong> | '
+            + 'Gesamtdauer pro St\u00fcck: <strong>' + totalTimePerPiece + ' Min</strong> (' + (totalTimePerPiece / 60).toFixed(1) + ' Std)'
+            + ' | Beispiel: 10 St\u00fcck = <strong>' + (totalTimePerPiece * 10) + ' Min</strong> (' + (totalTimePerPiece * 10 / 60).toFixed(1) + ' Std)'
+            + '</div>';
+        } else {
+          html += '<div class="text-sm text-muted" style="margin-top:8px;">Keine Arbeitsschritte definiert.</div>';
+        }
+        html += '</div>';
+      });
+
+      document.getElementById('products-list').innerHTML = html;
+    }
+
+    function openProductModal(product) {
+      currentProductSteps = [];
+      if (product) {
+        document.getElementById('product-modal-title').textContent = 'Produkt bearbeiten: ' + product.name;
+        document.getElementById('prod-edit-id').value = product.id;
+        document.getElementById('prod-name').value = product.name || '';
+        document.getElementById('prod-article-number').value = product.articleNumber || '';
+        document.getElementById('prod-category').value = product.category || 'Fertigung';
+        document.getElementById('prod-material').value = product.material || '';
+        document.getElementById('prod-description').value = product.description || '';
+        currentProductSteps = JSON.parse(JSON.stringify(product.defaultSteps || []));
+      } else {
+        document.getElementById('product-modal-title').textContent = 'Neues Produkt';
+        document.getElementById('prod-edit-id').value = '';
+        document.getElementById('prod-name').value = '';
+        document.getElementById('prod-article-number').value = '';
+        document.getElementById('prod-category').value = 'Fertigung';
+        document.getElementById('prod-material').value = '';
+        document.getElementById('prod-description').value = '';
+      }
+      renderProductStepsEditor();
+      showModal('modal-product');
+    }
+
+    function editProduct(id) {
+      var products = Storage.getProducts();
+      var prod = products.find(function(p) { return p.id === id; });
+      if (prod) openProductModal(prod);
+    }
+
+    function duplicateProduct(id) {
+      var products = Storage.getProducts();
+      var prod = products.find(function(p) { return p.id === id; });
+      if (!prod) return;
+      var newProd = JSON.parse(JSON.stringify(prod));
+      newProd.id = 'PROD' + String(Date.now()).slice(-6);
+      newProd.name = prod.name + ' (Kopie)';
+      products.push(newProd);
+      Storage.saveProducts(products);
+      refreshView();
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Produkt wirklich l\u00f6schen?')) return;
+      var products = Storage.getProducts();
+      Storage.saveProducts(products.filter(function(p) { return p.id !== id; }));
+      refreshView();
+    }
+
+    function addProductStep() {
+      var maxOrder = currentProductSteps.reduce(function(m, s) { return Math.max(m, s.order || 0); }, 0);
+      currentProductSteps.push({
+        stepId: '',
+        order: maxOrder + 1,
+        dependsOn: [],
+        durationPerPiece: 0,
+        customName: '',
+        customDescription: '',
+        customDryingTime: 0
+      });
+      renderProductStepsEditor();
+    }
+
+    function removeProductStep(index) {
+      currentProductSteps.splice(index, 1);
+      // Re-number orders
+      currentProductSteps.forEach(function(s, i) { s.order = i + 1; });
+      renderProductStepsEditor();
+    }
+
+    function moveProductStep(index, direction) {
+      var newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= currentProductSteps.length) return;
+      var temp = currentProductSteps[index];
+      currentProductSteps[index] = currentProductSteps[newIndex];
+      currentProductSteps[newIndex] = temp;
+      // Re-number orders
+      currentProductSteps.forEach(function(s, i) { s.order = i + 1; });
+      renderProductStepsEditor();
+    }
+
+    function onProductStepTemplateChange(index, templateId) {
+      var wsTemplates = Storage.getWorkStepTemplates();
+      if (templateId === '__custom__') {
+        currentProductSteps[index].stepId = '__custom__';
+        currentProductSteps[index].durationPerPiece = currentProductSteps[index].durationPerPiece || 10;
+      } else if (templateId) {
+        var ws = wsTemplates.find(function(t) { return t.id === templateId; });
+        if (ws) {
+          currentProductSteps[index].stepId = ws.id;
+          currentProductSteps[index].durationPerPiece = ws.duration;
+          currentProductSteps[index].customDryingTime = ws.dryingTime || 0;
+        }
+      } else {
+        currentProductSteps[index].stepId = '';
+      }
+      renderProductStepsEditor();
+    }
+
+    function renderProductStepsEditor() {
+      var wsTemplates = Storage.getWorkStepTemplates();
+      var html = '';
+      var totalDur = 0;
+
+      if (currentProductSteps.length === 0) {
+        html = '<div class="text-muted text-sm" style="padding:12px; text-align:center; background:var(--bg); border-radius:8px;">'
+          + 'Noch keine Arbeitsschritte. Klicken Sie oben auf "+ Schritt hinzuf\u00fcgen".</div>';
+      }
+
+      currentProductSteps.forEach(function(step, i) {
+        var isCustom = step.stepId === '__custom__';
+        totalDur += step.durationPerPiece || 0;
+
+        html += '<div style="margin-bottom:8px; padding:10px; background:var(--bg); border-radius:8px; border-left:3px solid var(--primary);">'
+          + '<div style="display:grid; grid-template-columns: 36px 1fr 100px 90px 40px; gap:8px; align-items:center;">';
+
+        // Order + Move buttons
+        html += '<div style="text-align:center;">'
+          + '<div class="fw-600" style="color:var(--primary); font-size:14px;">#' + step.order + '</div>'
+          + '<div style="display:flex; flex-direction:column; gap:2px; margin-top:2px;">'
+          + '<button type="button" style="border:none;background:none;cursor:pointer;font-size:10px;padding:0;line-height:1;" onclick="moveProductStep(' + i + ',-1)" title="Nach oben">\u25B2</button>'
+          + '<button type="button" style="border:none;background:none;cursor:pointer;font-size:10px;padding:0;line-height:1;" onclick="moveProductStep(' + i + ',1)" title="Nach unten">\u25BC</button>'
+          + '</div></div>';
+
+        // Step selection
+        html += '<div><select class="form-control" style="font-size:13px;" onchange="onProductStepTemplateChange(' + i + ', this.value)">'
+          + '<option value="">-- Schritt w\u00e4hlen --</option>';
+        wsTemplates.forEach(function(ws) {
+          html += '<option value="' + ws.id + '"' + (!isCustom && step.stepId === ws.id ? ' selected' : '') + '>'
+            + escapeHtml(ws.name) + ' (' + ws.duration + ' Min)</option>';
+        });
+        html += '<option value="__custom__"' + (isCustom ? ' selected' : '') + '>Eigener Schritt...</option>'
+          + '</select>';
+
+        // Custom step fields
+        if (isCustom) {
+          html += '<div style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">'
+            + '<input type="text" class="form-control" placeholder="Name" value="' + escapeHtml(step.customName || '') + '" '
+            + 'onchange="currentProductSteps[' + i + '].customName=this.value" style="font-size:12px;">'
+            + '<input type="text" class="form-control" placeholder="Beschreibung" value="' + escapeHtml(step.customDescription || '') + '" '
+            + 'onchange="currentProductSteps[' + i + '].customDescription=this.value" style="font-size:12px;">'
+            + '</div>';
+        }
+
+        // Dependency select
+        if (currentProductSteps.length > 1) {
+          html += '<div style="margin-top:4px;"><select class="form-control" style="font-size:11px;" multiple size="2" '
+            + 'onchange="updateProductStepDeps(' + i + ', this)" title="Abh\u00e4ngigkeiten">';
+          currentProductSteps.forEach(function(other) {
+            if (other.order !== step.order) {
+              var sel = (step.dependsOn || []).indexOf(other.order) >= 0 ? ' selected' : '';
+              var otherWs = wsTemplates.find(function(t) { return t.id === other.stepId; });
+              var otherName = other.stepId === '__custom__' ? (other.customName || 'Eigen') : (otherWs ? otherWs.name : '?');
+              html += '<option value="' + other.order + '"' + sel + '>#' + other.order + ' ' + escapeHtml(otherName) + '</option>';
+            }
+          });
+          html += '</select></div>';
+        }
+        html += '</div>';
+
+        // Duration per piece
+        html += '<div><label class="text-sm" style="font-size:10px; display:block;">Min/St\u00fcck</label>'
+          + '<input type="number" class="form-control" value="' + (step.durationPerPiece || 0) + '" min="0" '
+          + 'onchange="currentProductSteps[' + i + '].durationPerPiece=parseInt(this.value)||0; renderProductStepsEditor();" '
+          + 'style="font-size:13px;"></div>';
+
+        // Drying time (for custom)
+        html += '<div><label class="text-sm" style="font-size:10px; display:block;">Trockenzt.</label>'
+          + '<input type="number" class="form-control" value="' + (step.customDryingTime || 0) + '" min="0" '
+          + 'onchange="currentProductSteps[' + i + '].customDryingTime=parseInt(this.value)||0" '
+          + 'style="font-size:13px;"></div>';
+
+        // Delete button
+        html += '<div style="text-align:center;"><button type="button" class="btn btn-outline" '
+          + 'style="padding:4px 8px;color:var(--danger);font-size:14px;" onclick="removeProductStep(' + i + ')">&times;</button></div>';
+
+        html += '</div></div>';
+      });
+
+      document.getElementById('product-steps-editor').innerHTML = html;
+
+      // Summary
+      if (currentProductSteps.length > 0) {
+        document.getElementById('product-steps-summary').innerHTML =
+          '<div style="padding:8px 12px; background:var(--primary); color:#fff; border-radius:6px; font-size:13px;">'
+          + '<strong>' + currentProductSteps.length + ' Schritte</strong> | '
+          + 'Gesamtdauer pro St\u00fcck: <strong>' + totalDur + ' Min</strong> (' + (totalDur / 60).toFixed(1) + ' Std)'
+          + '</div>';
+      } else {
+        document.getElementById('product-steps-summary').innerHTML = '';
+      }
+    }
+
+    function updateProductStepDeps(index, selectEl) {
+      var deps = [];
+      for (var j = 0; j < selectEl.options.length; j++) {
+        if (selectEl.options[j].selected) deps.push(parseInt(selectEl.options[j].value));
+      }
+      currentProductSteps[index].dependsOn = deps;
+    }
+
+    function saveProduct(e) {
+      e.preventDefault();
+      var products = Storage.getProducts();
+      var editId = document.getElementById('prod-edit-id').value;
+      var data = {
+        name: document.getElementById('prod-name').value.trim(),
+        articleNumber: document.getElementById('prod-article-number').value.trim(),
+        category: document.getElementById('prod-category').value,
+        material: document.getElementById('prod-material').value.trim(),
+        description: document.getElementById('prod-description').value.trim(),
+        defaultSteps: currentProductSteps
+      };
+
+      if (editId) {
+        var idx = products.findIndex(function(p) { return p.id === editId; });
+        if (idx >= 0) {
+          data.id = editId;
+          products[idx] = data;
+        }
+      } else {
+        data.id = 'PROD' + String(Date.now()).slice(-6);
+        products.push(data);
+      }
+
+      Storage.saveProducts(products);
+      closeModal('modal-product');
       refreshView();
     }
 
