@@ -447,12 +447,158 @@ const ATC_DATA = {
   ]
 };
 
-// Storage-Helfer
+// ---- Supabase Integration ----
+var SUPABASE_URL = 'https://wnaozzjcasdopspnlfsy.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_XnH1vzXIHOt5SeelpigcxA_-oisjcYV';
+var _supabaseClient = null;
+
+function getSupabase() {
+  if (_supabaseClient) return _supabaseClient;
+  if (typeof supabase !== 'undefined' && supabase.createClient) {
+    _supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return _supabaseClient;
+}
+
+// Storage-Helfer (Hybrid: localStorage Cache + Supabase Persistence)
 const Storage = {
   _prefix: 'atc_prod_',
+  _initialized: false,
+  _syncQueue: [],
+  _syncTimer: null,
 
+  // Synchron: localStorage als Cache
   save(key, data) {
     localStorage.setItem(this._prefix + key, JSON.stringify(data));
+    this._syncToSupabase(key, data);
+  },
+
+  load(key, fallback) {
+    if (fallback === undefined) fallback = null;
+    const raw = localStorage.getItem(this._prefix + key);
+    return raw ? JSON.parse(raw) : fallback;
+  },
+
+  remove(key) {
+    localStorage.removeItem(this._prefix + key);
+    this._deleteFromSupabase(key);
+  },
+
+  // Async: Supabase-Sync (fire-and-forget, gebündelt)
+  _syncToSupabase(key, data) {
+    var sb = getSupabase();
+    if (!sb) return;
+    // Debounce: gleichen Key in Queue ersetzen
+    this._syncQueue = this._syncQueue.filter(function(item) { return item.key !== key; });
+    this._syncQueue.push({ key: key, value: data });
+    if (this._syncTimer) clearTimeout(this._syncTimer);
+    this._syncTimer = setTimeout(this._flushSync.bind(this), 300);
+  },
+
+  _flushSync() {
+    var sb = getSupabase();
+    if (!sb || this._syncQueue.length === 0) return;
+    var batch = this._syncQueue.slice();
+    this._syncQueue = [];
+    batch.forEach(function(item) {
+      sb.from('app_data')
+        .upsert({ key: item.key, value: item.value }, { onConflict: 'key' })
+        .then(function(res) {
+          if (res.error) {
+            console.warn('[Supabase] Sync-Fehler für Key "' + item.key + '":', res.error.message);
+          }
+        });
+    });
+  },
+
+  _deleteFromSupabase(key) {
+    var sb = getSupabase();
+    if (!sb) return;
+    sb.from('app_data').delete().eq('key', key).then(function(res) {
+      if (res.error) console.warn('[Supabase] Delete-Fehler:', res.error.message);
+    });
+  },
+
+  // Initialisierung: Alle Daten von Supabase laden und in localStorage cachen
+  initFromSupabase() {
+    var sb = getSupabase();
+    if (!sb) {
+      console.warn('[Supabase] Client nicht verfügbar, nutze nur localStorage.');
+      this._initialized = true;
+      return Promise.resolve();
+    }
+    var self = this;
+    return sb.from('app_data')
+      .select('key, value')
+      .then(function(res) {
+        if (res.error) {
+          console.warn('[Supabase] Laden fehlgeschlagen:', res.error.message);
+          self._initialized = true;
+          return;
+        }
+        var rows = res.data || [];
+        if (rows.length > 0) {
+          console.log('[Supabase] ' + rows.length + ' Einträge von Supabase geladen.');
+          rows.forEach(function(row) {
+            localStorage.setItem(self._prefix + row.key, JSON.stringify(row.value));
+          });
+        } else {
+          // Erstbefüllung: alle localStorage-Daten nach Supabase schreiben
+          console.log('[Supabase] Keine Daten in Supabase, führe Erstbefüllung durch...');
+          self._seedSupabase();
+        }
+        self._initialized = true;
+      })
+      .catch(function(err) {
+        console.warn('[Supabase] Verbindungsfehler:', err);
+        self._initialized = true;
+      });
+  },
+
+  // Erstbefüllung: Alle existierenden localStorage-Daten nach Supabase pushen
+  _seedSupabase() {
+    var sb = getSupabase();
+    if (!sb) return;
+    var self = this;
+    var prefix = this._prefix;
+    var rows = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var fullKey = localStorage.key(i);
+      if (fullKey && fullKey.indexOf(prefix) === 0) {
+        var shortKey = fullKey.substring(prefix.length);
+        try {
+          var val = JSON.parse(localStorage.getItem(fullKey));
+          rows.push({ key: shortKey, value: val });
+        } catch(e) { /* skip invalid */ }
+      }
+    }
+    // Auch Default-Daten seeden falls localStorage leer
+    var defaults = {
+      'projects': ATC_DATA.projects,
+      'employees': ATC_DATA.employees,
+      'customers': ATC_DATA.customers,
+      'products': ATC_DATA.products,
+      'workstep_templates': ATC_DATA.workStepTemplates,
+      'order_templates': ATC_DATA.orderTemplates,
+      'machines': ATC_DATA.machines
+    };
+    Object.keys(defaults).forEach(function(k) {
+      if (!rows.some(function(r) { return r.key === k; })) {
+        rows.push({ key: k, value: defaults[k] });
+        localStorage.setItem(prefix + k, JSON.stringify(defaults[k]));
+      }
+    });
+    if (rows.length > 0) {
+      sb.from('app_data')
+        .upsert(rows, { onConflict: 'key' })
+        .then(function(res) {
+          if (res.error) {
+            console.warn('[Supabase] Seed-Fehler:', res.error.message);
+          } else {
+            console.log('[Supabase] ' + rows.length + ' Einträge initial synchronisiert.');
+          }
+        });
+    }
   },
 
   load(key, fallback = null) {

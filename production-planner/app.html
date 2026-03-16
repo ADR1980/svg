@@ -444,6 +444,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="data.js"></script>
   <script>
     let currentEmployee = null;
@@ -1475,8 +1476,10 @@
       return div.innerHTML;
     }
 
-    // Init
-    initLogin();
+    // Init - Supabase laden, dann Login
+    Storage.initFromSupabase().then(function() {
+      initLogin();
+    });
   </script>
 </body>
 </html>

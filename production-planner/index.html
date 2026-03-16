@@ -1506,12 +1506,19 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="data.js"></script>
   <script>
     // State
     let currentView = 'dashboard';
     let currentKW = getKW(new Date());
     let currentYear = new Date().getFullYear();
+
+    // Supabase-Initialisierung: Daten laden, dann UI rendern
+    Storage.initFromSupabase().then(function() {
+      console.log('[App] Supabase-Init abgeschlossen, rendere UI...');
+      refreshView();
+    });
 
     // Tab Navigation
     document.querySelectorAll('.tab').forEach(tab => {

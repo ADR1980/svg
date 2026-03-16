@@ -287,6 +287,7 @@
     <span>Auto-Refresh <span id="refresh-countdown">60</span>s</span>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="data.js"></script>
   <script>
     // ---- Helpers ----
@@ -1046,9 +1047,11 @@
       }
     }
 
-    // Initial render
-    updateClock();
-    renderAll();
+    // Supabase laden, dann Initial render
+    Storage.initFromSupabase().then(function() {
+      updateClock();
+      renderAll();
+    });
 
     // Update clock every second, refresh data every REFRESH_INTERVAL
     setInterval(tick, 1000);

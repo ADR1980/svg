@@ -142,6 +142,7 @@
   </style>
 </head>
 <body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="data.js"></script>
 
   <!-- LOGIN -->
@@ -341,7 +342,9 @@
       return div.innerHTML;
     }
 
-    initLogin();
+    Storage.initFromSupabase().then(function() {
+      initLogin();
+    });
   </script>
 </body>
 </html>
