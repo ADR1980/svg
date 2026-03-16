@@ -684,32 +684,25 @@
             <input type="text" class="form-control" id="proj-order">
           </div>
         </div>
-        <div class="form-group" style="background:#eaf2f8; padding:12px; border-radius:8px; border-left:4px solid var(--accent);">
-          <label style="font-weight:600; color:var(--primary);">Produkt w&auml;hlen (optional)</label>
-          <select class="form-control" id="proj-product" onchange="onProjectProductChange()">
-            <option value="">-- Kein Produkt / manuell definieren --</option>
-          </select>
-          <div id="proj-product-info" class="text-sm" style="margin-top:6px; display:none;"></div>
+        <!-- Auftragspositionen (Produkte) -->
+        <div class="fw-600 mb-8 mt-16" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">
+          Auftragspositionen
         </div>
-        <div class="form-group">
-          <label>Artikelbezeichnung</label>
-          <input type="text" class="form-control" id="proj-article" required>
+        <div class="text-sm text-muted mb-8">
+          F&uuml;gen Sie ein oder mehrere Produkte zu diesem Auftrag hinzu. Sie k&ouml;nnen Produkte aus dem Katalog w&auml;hlen oder individuelle Positionen definieren.
         </div>
+        <div id="proj-positions-editor"></div>
+        <div style="display:flex; gap:8px; margin-top:8px; margin-bottom:16px;">
+          <button type="button" class="btn btn-primary" onclick="addProjectPosition('catalog')">+ Produkt aus Katalog</button>
+          <button type="button" class="btn btn-outline" onclick="addProjectPosition('custom')">+ Individuelle Position</button>
+        </div>
+        <div id="proj-positions-summary" style="margin-bottom:16px;"></div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-          <div class="form-group">
-            <label>Menge</label>
-            <input type="number" class="form-control" id="proj-qty" required onchange="updateProjectProductInfo()">
-          </div>
-          <div class="form-group">
-            <label>Einheit</label>
-            <input type="text" class="form-control" id="proj-unit" value="St&uuml;ck">
-          </div>
           <div class="form-group">
             <label>Status</label>
             <select class="form-control" id="proj-status"></select>
           </div>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="form-group">
             <label>Priorit&auml;t</label>
             <select class="form-control" id="proj-priority"></select>
@@ -1513,12 +1506,19 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="data.js"></script>
   <script>
     // State
     let currentView = 'dashboard';
     let currentKW = getKW(new Date());
     let currentYear = new Date().getFullYear();
+
+    // Supabase-Initialisierung: Daten laden, dann UI rendern
+    Storage.initFromSupabase().then(function() {
+      console.log('[App] Supabase-Init abgeschlossen, rendere UI...');
+      refreshView();
+    });
 
     // Tab Navigation
     document.querySelectorAll('.tab').forEach(tab => {
@@ -2117,11 +2117,42 @@
         cardHtml += '    </div>'
           + '  </div>'
           + '  <div class="text-right">'
-          + '    <div class="fw-600">' + p.quantity + ' ' + p.unit + '</div>'
+          + '    <div class="fw-600">' + p.quantity + ' ' + (p.unit || 'St\u00fcck') + '</div>'
+          + (p.positions && p.positions.length > 1 ? '<div class="text-sm text-muted">' + p.positions.length + ' Positionen</div>' : '')
           + (p.unitPrice ? '<div class="text-sm text-muted">' + p.unitPrice.toFixed(2) + ' \u20ac/Stk.</div>' : '')
           + (p.orderValue ? '<div class="text-sm fw-600" style="color:var(--accent);">' + p.orderValue.toFixed(2) + ' \u20ac</div>' : '')
           + '  </div>'
           + '</div>';
+
+        // Positionen-Anzeige
+        if (p.positions && p.positions.length > 0) {
+          var allProducts = Storage.getProducts();
+          var wsTemplates2 = Storage.getWorkStepTemplates();
+          cardHtml += '<div style="margin:8px 0; padding:8px; background:var(--bg); border-radius:6px;">'
+            + '<div style="font-size:11px; font-weight:600; color:var(--text-light); margin-bottom:6px;">Auftragspositionen:</div>';
+          p.positions.forEach(function(pos) {
+            var isCatalog = pos.type === 'catalog';
+            var prod = isCatalog && pos.productId ? allProducts.find(function(pr) { return pr.id === pos.productId; }) : null;
+            var posName = prod ? prod.name : (pos.customName || 'Individuell');
+            var stepCount = prod ? (prod.defaultSteps || []).length : (pos.customSteps || []).length;
+            var totalPerPiece = 0;
+            if (prod) {
+              (prod.defaultSteps || []).forEach(function(s) { totalPerPiece += s.durationPerPiece || 0; });
+            } else {
+              (pos.customSteps || []).forEach(function(s) { totalPerPiece += s.durationPerPiece || 0; });
+            }
+            var posTotal = totalPerPiece * (pos.quantity || 1);
+            cardHtml += '<div style="display:flex; align-items:center; gap:8px; padding:3px 0;">'
+              + '<span style="background:var(--primary);color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;">Pos ' + pos.posNr + '</span>'
+              + '<span class="badge ' + (isCatalog ? 'badge-info' : 'badge-warning') + '" style="font-size:9px;">' + (isCatalog ? 'Katalog' : 'Indiv.') + '</span>'
+              + '<span class="fw-600" style="font-size:12px;">' + escapeHtml(posName) + '</span>'
+              + '<span class="text-muted" style="font-size:11px;">' + (pos.quantity || 1) + ' ' + (pos.unit || 'St\u00fcck') + '</span>'
+              + (stepCount > 0 ? '<span class="text-muted" style="font-size:11px;">' + stepCount + ' Schritte</span>' : '')
+              + (posTotal > 0 ? '<span class="text-muted" style="font-size:11px;">' + posTotal + ' Min</span>' : '')
+              + '</div>';
+          });
+          cardHtml += '</div>';
+        }
 
         // Details
         var details = [];
@@ -2329,18 +2360,39 @@
         sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.name) + ' (' + c.id + ')</option>';
       });
 
-      // Produkt-Dropdown
-      var prodSel = document.getElementById('proj-product');
-      var products = Storage.getProducts();
-      prodSel.innerHTML = '<option value="">-- Kein Produkt / manuell definieren --</option>';
-      products.forEach(function(prod) {
-        var stepCount = (prod.defaultSteps || []).length;
-        prodSel.innerHTML += '<option value="' + prod.id + '">' + escapeHtml(prod.name)
-          + (prod.articleNumber ? ' (' + escapeHtml(prod.articleNumber) + ')' : '')
-          + ' - ' + stepCount + ' Schritte</option>';
-      });
-      prodSel.value = project ? (project.productId || '') : '';
-      document.getElementById('proj-product-info').style.display = 'none';
+      // Positionen laden
+      if (project && project.positions && project.positions.length > 0) {
+        currentProjectPositions = JSON.parse(JSON.stringify(project.positions));
+      } else if (project && project.productId) {
+        // Legacy: single product migration
+        currentProjectPositions = [{
+          posNr: 1,
+          type: 'catalog',
+          productId: project.productId,
+          customName: project.article || '',
+          customDescription: '',
+          quantity: project.quantity || 1,
+          unit: project.unit || 'St\u00fcck',
+          material: project.material || '',
+          customSteps: []
+        }];
+      } else if (project) {
+        // Existing project without positions - create one from legacy data
+        currentProjectPositions = [{
+          posNr: 1,
+          type: 'custom',
+          productId: '',
+          customName: project.article || '',
+          customDescription: '',
+          quantity: project.quantity || 1,
+          unit: project.unit || 'St\u00fcck',
+          material: project.material || '',
+          customSteps: []
+        }];
+      } else {
+        currentProjectPositions = [];
+      }
+      renderProjectPositions();
 
       // Parent-Dropdown (Anlagen und Baugruppen)
       var allProjects = Storage.getProjects();
@@ -2378,7 +2430,6 @@
 
       const fields = {
         'proj-edit-id': 'id', 'proj-customer': 'customerId', 'proj-order': 'orderNumber',
-        'proj-article': 'article', 'proj-qty': 'quantity', 'proj-unit': 'unit',
         'proj-status': 'status', 'proj-priority': 'priority', 'proj-drawing': 'drawingNumber',
         'proj-order-date': 'orderDate', 'proj-start': 'startDate', 'proj-deadline': 'deadline',
         'proj-delivery-date': 'deliveryDate', 'proj-material': 'material',
@@ -2405,7 +2456,6 @@
           const el = document.getElementById(elId);
           if (el) el.value = '';
         });
-        document.getElementById('proj-unit').value = 'St\u00fcck';
         document.getElementById('proj-status').value = 'Auftragseingang';
         document.getElementById('proj-priority').value = 'Normal';
         document.getElementById('proj-konstr').value = '0';
@@ -2746,61 +2796,260 @@
       showModal('modal-project-detail');
     }
 
-    function onProjectProductChange() {
-      var prodId = document.getElementById('proj-product').value;
-      var infoDiv = document.getElementById('proj-product-info');
-      if (!prodId) {
-        infoDiv.style.display = 'none';
+    // ---- AUFTRAGSPOSITIONEN (Multi-Produkt) ----
+    var currentProjectPositions = [];
+
+    function addProjectPosition(type) {
+      currentProjectPositions.push({
+        posNr: currentProjectPositions.length + 1,
+        type: type, // 'catalog' or 'custom'
+        productId: '',
+        customName: '',
+        customDescription: '',
+        quantity: 1,
+        unit: 'St\u00fcck',
+        material: '',
+        customSteps: [] // for custom positions: inline work steps
+      });
+      renderProjectPositions();
+    }
+
+    function removeProjectPosition(index) {
+      currentProjectPositions.splice(index, 1);
+      currentProjectPositions.forEach(function(p, i) { p.posNr = i + 1; });
+      renderProjectPositions();
+    }
+
+    function onPositionProductChange(index, productId) {
+      var pos = currentProjectPositions[index];
+      if (!productId) {
+        pos.productId = '';
+        renderProjectPositions();
         return;
       }
       var products = Storage.getProducts();
-      var prod = products.find(function(p) { return p.id === prodId; });
-      if (!prod) { infoDiv.style.display = 'none'; return; }
-
-      // Auto-fill article name and material
-      if (!document.getElementById('proj-article').value) {
-        document.getElementById('proj-article').value = prod.name;
+      var prod = products.find(function(p) { return p.id === productId; });
+      if (prod) {
+        pos.productId = productId;
+        if (!pos.customName) pos.customName = prod.name;
+        if (prod.material && !pos.material) pos.material = prod.material;
       }
-      if (prod.material && !document.getElementById('proj-material').value) {
-        document.getElementById('proj-material').value = prod.material;
-      }
-
-      updateProjectProductInfo();
+      renderProjectPositions();
     }
 
-    function updateProjectProductInfo() {
-      var prodId = document.getElementById('proj-product').value;
-      var infoDiv = document.getElementById('proj-product-info');
-      if (!prodId) { infoDiv.style.display = 'none'; return; }
+    function addPositionCustomStep(posIndex) {
+      var pos = currentProjectPositions[posIndex];
+      var maxOrder = pos.customSteps.reduce(function(m, s) { return Math.max(m, s.order || 0); }, 0);
+      pos.customSteps.push({
+        stepId: '',
+        order: maxOrder + 1,
+        dependsOn: [],
+        durationPerPiece: 10,
+        customName: '',
+        customDescription: '',
+        customDryingTime: 0
+      });
+      renderProjectPositions();
+    }
 
+    function removePositionCustomStep(posIndex, stepIndex) {
+      currentProjectPositions[posIndex].customSteps.splice(stepIndex, 1);
+      currentProjectPositions[posIndex].customSteps.forEach(function(s, i) { s.order = i + 1; });
+      renderProjectPositions();
+    }
+
+    function togglePositionStepDep(posIndex, stepIndex, depOrder, checked) {
+      var step = currentProjectPositions[posIndex].customSteps[stepIndex];
+      var deps = step.dependsOn || [];
+      if (checked) {
+        if (deps.indexOf(depOrder) < 0) deps.push(depOrder);
+      } else {
+        deps = deps.filter(function(d) { return d !== depOrder; });
+      }
+      step.dependsOn = deps;
+      renderProjectPositions();
+    }
+
+    function renderProjectPositions() {
       var products = Storage.getProducts();
-      var prod = products.find(function(p) { return p.id === prodId; });
-      if (!prod) { infoDiv.style.display = 'none'; return; }
-
-      var qty = parseInt(document.getElementById('proj-qty').value) || 1;
       var wsTemplates = Storage.getWorkStepTemplates();
-      var totalPerPiece = 0;
-      var stepNames = [];
+      var html = '';
+      var totalAllTime = 0;
+      var totalAllQty = 0;
 
-      (prod.defaultSteps || []).forEach(function(s) {
-        var dur = s.durationPerPiece || 0;
-        totalPerPiece += dur;
-        var ws = wsTemplates.find(function(t) { return t.id === s.stepId; });
-        stepNames.push(ws ? ws.name : (s.customName || s.stepId));
+      if (currentProjectPositions.length === 0) {
+        html = '<div style="padding:20px; text-align:center; background:var(--bg); border-radius:8px; border:2px dashed var(--border);">'
+          + '<div class="text-muted">Noch keine Positionen. F\u00fcgen Sie Produkte aus dem Katalog oder individuelle Positionen hinzu.</div>'
+          + '</div>';
+      }
+
+      currentProjectPositions.forEach(function(pos, i) {
+        var isCatalog = pos.type === 'catalog';
+        var prod = isCatalog && pos.productId ? products.find(function(p) { return p.id === pos.productId; }) : null;
+        var stepCount = prod ? (prod.defaultSteps || []).length : (pos.customSteps || []).length;
+        var totalPerPiece = 0;
+
+        if (prod) {
+          (prod.defaultSteps || []).forEach(function(s) { totalPerPiece += s.durationPerPiece || 0; });
+        } else {
+          (pos.customSteps || []).forEach(function(s) { totalPerPiece += s.durationPerPiece || 0; });
+        }
+
+        var posTotal = totalPerPiece * (pos.quantity || 1);
+        totalAllTime += posTotal;
+        totalAllQty += (pos.quantity || 1);
+
+        html += '<div style="margin-bottom:10px; padding:12px; background:var(--bg); border-radius:8px; border-left:4px solid '
+          + (isCatalog ? 'var(--accent)' : 'var(--warning, #f59e0b)') + ';">';
+
+        // Header row
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'
+          + '<div style="display:flex; align-items:center; gap:8px;">'
+          + '<span class="fw-600" style="background:var(--primary);color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;">Pos ' + pos.posNr + '</span>'
+          + '<span class="badge ' + (isCatalog ? 'badge-info' : 'badge-warning') + '" style="font-size:10px;">'
+          + (isCatalog ? 'Katalog' : 'Individuell') + '</span>'
+          + '</div>'
+          + '<button type="button" class="btn btn-outline" style="padding:2px 10px;color:var(--danger);font-size:12px;" '
+          + 'onclick="removeProjectPosition(' + i + ')">\u00d7 Entfernen</button>'
+          + '</div>';
+
+        if (isCatalog) {
+          // Product catalog selection
+          html += '<div style="display:grid; grid-template-columns:1fr 120px 100px; gap:8px; align-items:end;">';
+          html += '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Produkt</label>'
+            + '<select class="form-control" style="font-size:13px;" onchange="onPositionProductChange(' + i + ',this.value)">'
+            + '<option value="">-- Produkt w\u00e4hlen --</option>';
+          products.forEach(function(p) {
+            var sc = (p.defaultSteps || []).length;
+            html += '<option value="' + p.id + '"' + (pos.productId === p.id ? ' selected' : '') + '>'
+              + escapeHtml(p.name) + (p.articleNumber ? ' (' + escapeHtml(p.articleNumber) + ')' : '')
+              + ' - ' + sc + ' Schritte</option>';
+          });
+          html += '</select></div>';
+          html += '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Menge</label>'
+            + '<input type="number" class="form-control" value="' + (pos.quantity || 1) + '" min="1" '
+            + 'onchange="currentProjectPositions[' + i + '].quantity=parseInt(this.value)||1;renderProjectPositions();" style="font-size:13px;"></div>';
+          html += '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Einheit</label>'
+            + '<input type="text" class="form-control" value="' + escapeHtml(pos.unit || 'St\u00fcck') + '" '
+            + 'onchange="currentProjectPositions[' + i + '].unit=this.value" style="font-size:13px;"></div>';
+          html += '</div>';
+
+          // Product info
+          if (prod) {
+            var stepNames = (prod.defaultSteps || []).map(function(s) {
+              var ws = wsTemplates.find(function(t) { return t.id === s.stepId; });
+              return s.stepId === '__custom__' ? (s.customName || 'Eigen') : (ws ? ws.name : '?');
+            });
+            html += '<div style="margin-top:8px; padding:8px; background:#e8f0fe; border-radius:6px; font-size:12px;">'
+              + '<strong>' + stepCount + ' Arbeitsschritte:</strong> ' + stepNames.join(' \u2192 ')
+              + '<br>Dauer: <strong>' + totalPerPiece + ' Min/St\u00fcck</strong>'
+              + ' \u00d7 ' + (pos.quantity || 1) + ' = <strong>' + posTotal + ' Min</strong> (' + (posTotal / 60).toFixed(1) + ' Std)'
+              + '</div>';
+          }
+        } else {
+          // Custom position
+          html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">'
+            + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Bezeichnung *</label>'
+            + '<input type="text" class="form-control" value="' + escapeHtml(pos.customName || '') + '" '
+            + 'onchange="currentProjectPositions[' + i + '].customName=this.value" placeholder="z.B. Sonderteil XY" style="font-size:13px;"></div>'
+            + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Material</label>'
+            + '<input type="text" class="form-control" value="' + escapeHtml(pos.material || '') + '" '
+            + 'onchange="currentProjectPositions[' + i + '].material=this.value" placeholder="z.B. Stahl S235" style="font-size:13px;"></div>'
+            + '</div>';
+          html += '<div style="display:grid; grid-template-columns:1fr 120px 100px; gap:8px; margin-top:6px; align-items:end;">'
+            + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Beschreibung</label>'
+            + '<input type="text" class="form-control" value="' + escapeHtml(pos.customDescription || '') + '" '
+            + 'onchange="currentProjectPositions[' + i + '].customDescription=this.value" style="font-size:13px;"></div>'
+            + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Menge</label>'
+            + '<input type="number" class="form-control" value="' + (pos.quantity || 1) + '" min="1" '
+            + 'onchange="currentProjectPositions[' + i + '].quantity=parseInt(this.value)||1;renderProjectPositions();" style="font-size:13px;"></div>'
+            + '<div class="form-group" style="margin:0;"><label style="font-size:11px;">Einheit</label>'
+            + '<input type="text" class="form-control" value="' + escapeHtml(pos.unit || 'St\u00fcck') + '" '
+            + 'onchange="currentProjectPositions[' + i + '].unit=this.value" style="font-size:13px;"></div>'
+            + '</div>';
+
+          // Custom steps editor
+          html += '<div style="margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">'
+            + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+            + '<span style="font-size:12px; font-weight:600;">Arbeitsschritte</span>'
+            + '<button type="button" class="btn btn-outline" style="padding:2px 10px;font-size:11px;" '
+            + 'onclick="addPositionCustomStep(' + i + ')">+ Schritt</button>'
+            + '</div>';
+
+          (pos.customSteps || []).forEach(function(step, si) {
+            var isCustomStep = step.stepId === '__custom__' || !step.stepId;
+            html += '<div style="display:grid; grid-template-columns:30px 1fr 80px 80px 30px; gap:6px; align-items:center; margin-bottom:4px; padding:6px; background:#fff; border-radius:6px;">';
+            // Order
+            html += '<div class="fw-600 text-sm" style="text-align:center;color:var(--primary);">#' + step.order + '</div>';
+            // Step select or name
+            html += '<div><select class="form-control" style="font-size:12px;" '
+              + 'onchange="var s=currentProjectPositions[' + i + '].customSteps[' + si + '];if(this.value===\'__custom__\'){s.stepId=\'__custom__\';s.durationPerPiece=s.durationPerPiece||10;}else if(this.value){var ws=Storage.getWorkStepTemplates().find(function(t){return t.id===this.value;}.bind(this));if(ws){s.stepId=ws.id;s.durationPerPiece=ws.duration;s.customDryingTime=ws.dryingTime||0;}}else{s.stepId=\'\';}renderProjectPositions();">'
+              + '<option value="">-- Schritt w\u00e4hlen --</option>';
+            wsTemplates.forEach(function(ws) {
+              html += '<option value="' + ws.id + '"' + (step.stepId === ws.id ? ' selected' : '') + '>'
+                + escapeHtml(ws.name) + ' (' + ws.duration + ' Min)</option>';
+            });
+            html += '<option value="__custom__"' + (step.stepId === '__custom__' ? ' selected' : '') + '>Eigener Schritt...</option></select>';
+            if (step.stepId === '__custom__') {
+              html += '<input type="text" class="form-control" style="font-size:11px;margin-top:3px;" placeholder="Name" '
+                + 'value="' + escapeHtml(step.customName || '') + '" '
+                + 'onchange="currentProjectPositions[' + i + '].customSteps[' + si + '].customName=this.value">';
+            }
+            // Dependencies
+            var prevSteps = (pos.customSteps || []).filter(function(o) { return o.order < step.order; });
+            if (prevSteps.length > 0) {
+              html += '<div style="margin-top:3px; display:flex; flex-wrap:wrap; gap:2px;">';
+              prevSteps.forEach(function(other) {
+                var checked = (step.dependsOn || []).indexOf(other.order) >= 0;
+                var otherWs = wsTemplates.find(function(t) { return t.id === other.stepId; });
+                var otherName = other.stepId === '__custom__' ? (other.customName || 'Eigen') : (otherWs ? otherWs.name : '#' + other.order);
+                html += '<label style="display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:10px;font-size:10px;cursor:pointer;'
+                  + 'background:' + (checked ? 'var(--primary)' : '#f1f5f9') + ';color:' + (checked ? '#fff' : 'var(--text)') + ';">'
+                  + '<input type="checkbox" ' + (checked ? 'checked' : '') + ' style="margin:0;width:10px;height:10px;" '
+                  + 'onchange="togglePositionStepDep(' + i + ',' + si + ',' + other.order + ',this.checked)">'
+                  + '#' + other.order + '</label>';
+              });
+              html += '</div>';
+            }
+            html += '</div>';
+            // Duration
+            html += '<div><input type="number" class="form-control" value="' + (step.durationPerPiece || 0) + '" min="0" '
+              + 'onchange="currentProjectPositions[' + i + '].customSteps[' + si + '].durationPerPiece=parseInt(this.value)||0;renderProjectPositions();" '
+              + 'style="font-size:12px;" title="Min/St\u00fcck"></div>';
+            // Drying time
+            html += '<div><input type="number" class="form-control" value="' + (step.customDryingTime || 0) + '" min="0" '
+              + 'onchange="currentProjectPositions[' + i + '].customSteps[' + si + '].customDryingTime=parseInt(this.value)||0" '
+              + 'style="font-size:12px;" title="Trockenzeit"></div>';
+            // Delete
+            html += '<div><button type="button" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:14px;" '
+              + 'onclick="removePositionCustomStep(' + i + ',' + si + ')">\u00d7</button></div>';
+            html += '</div>';
+          });
+
+          if ((pos.customSteps || []).length > 0) {
+            html += '<div style="font-size:11px;color:var(--text-light);margin-top:4px;">'
+              + 'Dauer: <strong>' + totalPerPiece + ' Min/St\u00fcck</strong>'
+              + ' \u00d7 ' + (pos.quantity || 1) + ' = <strong>' + posTotal + ' Min</strong> (' + (posTotal / 60).toFixed(1) + ' Std)'
+              + '</div>';
+          }
+          html += '</div>';
+        }
+
+        html += '</div>';
       });
 
-      var totalTime = totalPerPiece * qty;
-      var html = '<div style="color:var(--primary);">'
-        + '<strong>' + (prod.defaultSteps || []).length + ' Arbeitsschritte</strong> werden beim Speichern automatisch angelegt: '
-        + stepNames.join(' \u2192 ')
-        + '</div>'
-        + '<div style="margin-top:4px;">'
-        + 'Gesamtdauer: <strong>' + totalPerPiece + ' Min/St\u00fcck</strong>'
-        + ' \u00d7 ' + qty + ' St\u00fcck = <strong>' + totalTime + ' Min</strong> (' + (totalTime / 60).toFixed(1) + ' Std)'
-        + '</div>';
+      document.getElementById('proj-positions-editor').innerHTML = html;
 
-      infoDiv.innerHTML = html;
-      infoDiv.style.display = 'block';
+      // Summary
+      var summaryEl = document.getElementById('proj-positions-summary');
+      if (currentProjectPositions.length > 0) {
+        summaryEl.innerHTML = '<div style="padding:8px 12px; background:var(--primary); color:#fff; border-radius:6px; font-size:13px;">'
+          + '<strong>' + currentProjectPositions.length + ' Position' + (currentProjectPositions.length > 1 ? 'en' : '') + '</strong>'
+          + ' | Gesamtzeit: <strong>' + totalAllTime + ' Min</strong> (' + (totalAllTime / 60).toFixed(1) + ' Std)'
+          + '</div>';
+      } else {
+        summaryEl.innerHTML = '';
+      }
     }
 
     function saveProject(e) {
@@ -2808,13 +3057,42 @@
       const projects = Storage.getProjects();
       const editId = document.getElementById('proj-edit-id').value;
 
+      // Validate positions
+      if (currentProjectPositions.length === 0) {
+        alert('Bitte f\u00fcgen Sie mindestens eine Auftragsposition hinzu.');
+        return;
+      }
+      for (var pi = 0; pi < currentProjectPositions.length; pi++) {
+        var pos = currentProjectPositions[pi];
+        if (pos.type === 'catalog' && !pos.productId) {
+          alert('Position ' + pos.posNr + ': Bitte w\u00e4hlen Sie ein Produkt aus dem Katalog.');
+          return;
+        }
+        if (pos.type === 'custom' && !pos.customName) {
+          alert('Position ' + pos.posNr + ': Bitte geben Sie eine Bezeichnung ein.');
+          return;
+        }
+      }
+
+      // Derive article name from positions
+      var articleNames = currentProjectPositions.map(function(pos) {
+        if (pos.type === 'catalog' && pos.productId) {
+          var prod = Storage.getProducts().find(function(p) { return p.id === pos.productId; });
+          return prod ? prod.name : pos.customName;
+        }
+        return pos.customName || 'Individuell';
+      });
+      var totalQty = currentProjectPositions.reduce(function(sum, p) { return sum + (p.quantity || 1); }, 0);
+
       const data = {
-        productId: document.getElementById('proj-product').value || '',
+        positions: JSON.parse(JSON.stringify(currentProjectPositions)),
+        // Legacy fields for backward compatibility
+        productId: currentProjectPositions.length === 1 && currentProjectPositions[0].type === 'catalog' ? currentProjectPositions[0].productId : '',
         customerId: document.getElementById('proj-customer').value,
         orderNumber: document.getElementById('proj-order').value,
-        article: document.getElementById('proj-article').value,
-        quantity: parseInt(document.getElementById('proj-qty').value),
-        unit: document.getElementById('proj-unit').value,
+        article: articleNames.join(', '),
+        quantity: totalQty,
+        unit: currentProjectPositions[0].unit || 'St\u00fcck',
         status: document.getElementById('proj-status').value,
         priority: document.getElementById('proj-priority').value,
         drawingNumber: document.getElementById('proj-drawing').value,
@@ -2869,59 +3147,80 @@
 
       Storage.saveProjects(projects);
 
-      // Bei neuem Projekt mit Produkt: Arbeitsschritte automatisch anlegen
-      if (newProjectId && data.productId) {
-        applyProductToProject(newProjectId, data.productId, data.quantity || 1);
+      // Apply work steps from all positions
+      var projectId = newProjectId || parseInt(editId);
+      if (projectId) {
+        applyPositionsToProject(projectId, data.positions);
       }
 
       closeModal('modal-project');
       refreshView();
     }
 
-    function applyProductToProject(projectId, productId, quantity) {
-      var products = Storage.getProducts();
-      var product = products.find(function(p) { return p.id === productId; });
-      if (!product || !product.defaultSteps || product.defaultSteps.length === 0) return;
-
+    function applyPositionsToProject(projectId, positions) {
+      var allProducts = Storage.getProducts();
       var wsTemplates = Storage.getWorkStepTemplates();
-      var baseTs = String(Date.now()).slice(-4);
+      var allSteps = [];
+      var globalOrder = 0;
 
-      // Build order-to-id mapping for dependency resolution
-      var orderToId = {};
-      product.defaultSteps.forEach(function(s) {
-        orderToId[s.order] = 'PS' + baseTs + '_' + s.order;
+      positions.forEach(function(pos, posIdx) {
+        var baseTs = String(Date.now()).slice(-4) + '_' + posIdx;
+        var steps = [];
+        var posLabel = 'Pos ' + pos.posNr + ': ';
+
+        if (pos.type === 'catalog' && pos.productId) {
+          var product = allProducts.find(function(p) { return p.id === pos.productId; });
+          if (!product || !product.defaultSteps || product.defaultSteps.length === 0) return;
+          posLabel += product.name;
+          steps = product.defaultSteps;
+        } else if (pos.type === 'custom') {
+          posLabel += pos.customName || 'Individuell';
+          steps = pos.customSteps || [];
+        }
+
+        if (steps.length === 0) return;
+
+        // Build order-to-id mapping for dependency resolution within this position
+        var orderToId = {};
+        steps.forEach(function(s) {
+          orderToId[s.order] = 'PS' + baseTs + '_' + s.order;
+        });
+
+        steps.forEach(function(s) {
+          globalOrder++;
+          var isCustom = s.stepId === '__custom__' || !s.stepId;
+          var ws = isCustom ? null : wsTemplates.find(function(t) { return t.id === s.stepId; });
+
+          var mappedDeps = (s.dependsOn || []).map(function(depOrder) {
+            return orderToId[depOrder] || '';
+          }).filter(Boolean);
+
+          var durationPerPiece = s.durationPerPiece || (ws ? ws.duration : 0);
+
+          allSteps.push({
+            id: orderToId[s.order],
+            stepTemplateId: isCustom ? '' : s.stepId,
+            name: isCustom ? (s.customName || 'Eigener Schritt') : (ws ? ws.name : s.stepId),
+            description: isCustom ? (s.customDescription || '') : (ws ? ws.description : ''),
+            order: globalOrder,
+            dependsOn: mappedDeps,
+            plannedDuration: durationPerPiece,
+            actualDuration: 0,
+            dryingTime: isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime : 0),
+            status: 'offen',
+            assignedTo: '',
+            completedQty: 0,
+            totalQty: pos.quantity || 1,
+            positionNr: pos.posNr,
+            positionLabel: posLabel,
+            notes: ''
+          });
+        });
       });
 
-      var projectSteps = product.defaultSteps.map(function(s) {
-        var isCustom = s.stepId === '__custom__';
-        var ws = isCustom ? null : wsTemplates.find(function(t) { return t.id === s.stepId; });
-
-        // Map dependsOn order numbers to project step IDs
-        var mappedDeps = (s.dependsOn || []).map(function(depOrder) {
-          return orderToId[depOrder] || '';
-        }).filter(Boolean);
-
-        var durationPerPiece = s.durationPerPiece || (ws ? ws.duration : 0);
-
-        return {
-          id: orderToId[s.order],
-          stepTemplateId: isCustom ? '' : s.stepId,
-          name: isCustom ? (s.customName || 'Eigener Schritt') : (ws ? ws.name : s.stepId),
-          description: isCustom ? (s.customDescription || '') : (ws ? ws.description : ''),
-          order: s.order,
-          dependsOn: mappedDeps,
-          plannedDuration: durationPerPiece,
-          actualDuration: 0,
-          dryingTime: isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime : 0),
-          status: 'offen',
-          assignedTo: '',
-          completedQty: 0,
-          totalQty: quantity,
-          notes: ''
-        };
-      });
-
-      Storage.saveProjectSteps(projectId, projectSteps);
+      if (allSteps.length > 0) {
+        Storage.saveProjectSteps(projectId, allSteps);
+      }
     }
 
     // ---- PRODUKTE ----
