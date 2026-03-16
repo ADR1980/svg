@@ -2973,7 +2973,7 @@
             + '<th>Arbeitsschritt</th>'
             + '<th style="width:120px;">Dauer/St\u00fcck</th>'
             + '<th style="width:100px;">Trockenzeit</th>'
-            + '<th>Abh\u00e4ngig von</th>'
+            + '<th>Abh\u00e4ngigkeiten</th>'
             + '</tr></thead><tbody>';
 
           prod.defaultSteps.forEach(function(s) {
@@ -2984,22 +2984,82 @@
             var dryingTime = isCustom ? (s.customDryingTime || 0) : (ws ? ws.dryingTime || 0 : 0);
             totalTimePerPiece += dur;
 
-            var depLabels = (s.dependsOn || []).map(function(depOrder) {
-              var depStep = prod.defaultSteps.find(function(ds) { return ds.order === depOrder; });
-              if (!depStep) return '#' + depOrder;
-              var depWs = wsTemplates.find(function(t) { return t.id === depStep.stepId; });
-              return '#' + depOrder + ' ' + (depWs ? depWs.name : depStep.stepId);
+            var deps = s.dependsOn || [];
+            var depHtml = '';
+            if (deps.length > 0) {
+              depHtml = deps.map(function(depOrder) {
+                var depStep = prod.defaultSteps.find(function(ds) { return ds.order === depOrder; });
+                if (!depStep) return '<span class="badge" style="font-size:10px;background:#eee;">#' + depOrder + '</span>';
+                var depWs = wsTemplates.find(function(t) { return t.id === depStep.stepId; });
+                var depName = depStep.stepId === '__custom__' ? (depStep.customName || 'Eigen') : (depWs ? depWs.name : '?');
+                return '<span style="display:inline-flex;align-items:center;gap:3px;background:var(--primary-light, #e8f0fe);color:var(--primary);padding:2px 8px;border-radius:12px;font-size:11px;margin:2px;">'
+                  + '<span style="font-size:9px;">\u2190</span> #' + depOrder + ' ' + escapeHtml(depName) + '</span>';
+              }).join('');
+            } else if (s.order === 1) {
+              depHtml = '<span style="font-size:11px;color:var(--success, #22c55e);">\u25CF Startschritt</span>';
+            } else {
+              depHtml = '<span class="text-muted" style="font-size:11px;">keine</span>';
+            }
+
+            // Check if other steps depend on this one
+            var dependents = prod.defaultSteps.filter(function(other) {
+              return (other.dependsOn || []).indexOf(s.order) >= 0;
             });
+            if (dependents.length > 0) {
+              depHtml += '<br>' + dependents.map(function(dep) {
+                var depWs2 = wsTemplates.find(function(t) { return t.id === dep.stepId; });
+                var depName2 = dep.stepId === '__custom__' ? (dep.customName || 'Eigen') : (depWs2 ? depWs2.name : '?');
+                return '<span style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:11px;margin:2px;">'
+                  + '<span style="font-size:9px;">\u2192</span> #' + dep.order + ' ' + escapeHtml(depName2) + '</span>';
+              }).join('');
+            }
 
             html += '<tr>'
               + '<td class="fw-600">' + s.order + '</td>'
               + '<td>' + escapeHtml(stepName) + (isCustom ? ' <span class="badge" style="font-size:10px;background:#eee;">Eigen</span>' : '') + '</td>'
               + '<td>' + dur + ' Min</td>'
               + '<td>' + (dryingTime > 0 ? dryingTime + ' Min' : '-') + '</td>'
-              + '<td class="text-sm">' + (depLabels.length > 0 ? depLabels.join(', ') : '-') + '</td>'
+              + '<td>' + depHtml + '</td>'
               + '</tr>';
           });
           html += '</tbody></table>';
+
+          // Dependency flow visualization
+          var hasAnyDeps = prod.defaultSteps.some(function(s) { return (s.dependsOn || []).length > 0; });
+          if (hasAnyDeps) {
+            html += '<div style="margin-top:8px; padding:8px 12px; background:#f8fafc; border:1px solid var(--border); border-radius:8px;">'
+              + '<div style="font-size:11px; color:var(--text-light); margin-bottom:6px; font-weight:600;">Ablaufkette:</div>'
+              + '<div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; font-size:12px;">';
+            // Build dependency chains - find start steps (no dependencies)
+            var startSteps = prod.defaultSteps.filter(function(s) { return (s.dependsOn || []).length === 0; });
+            var visited = {};
+            function buildChainHtml(step) {
+              if (visited[step.order]) return '';
+              visited[step.order] = true;
+              var ws2 = wsTemplates.find(function(t) { return t.id === step.stepId; });
+              var nm = step.stepId === '__custom__' ? (step.customName || 'Eigen') : (ws2 ? ws2.name : '?');
+              var chainHtml = '<span style="background:var(--primary);color:#fff;padding:3px 10px;border-radius:14px;font-size:11px;white-space:nowrap;">#' + step.order + ' ' + escapeHtml(nm) + '</span>';
+              var nexts = prod.defaultSteps.filter(function(other) {
+                return (other.dependsOn || []).indexOf(step.order) >= 0;
+              });
+              if (nexts.length > 0) {
+                chainHtml += '<span style="color:var(--primary);font-size:14px;margin:0 2px;">\u2192</span>';
+                if (nexts.length === 1) {
+                  chainHtml += buildChainHtml(nexts[0]);
+                } else {
+                  chainHtml += '<span style="display:inline-flex;flex-direction:column;gap:2px;vertical-align:middle;">';
+                  nexts.forEach(function(n) { chainHtml += '<span>' + buildChainHtml(n) + '</span>'; });
+                  chainHtml += '</span>';
+                }
+              }
+              return chainHtml;
+            }
+            startSteps.forEach(function(s, idx) {
+              if (idx > 0) html += '<span style="margin:0 8px;color:var(--text-light);">|</span>';
+              html += buildChainHtml(s);
+            });
+            html += '</div></div>';
+          }
 
           // Zusammenfassung
           html += '<div style="margin-top:8px; padding:8px 12px; background:var(--bg); border-radius:6px; font-size:12px;">'
@@ -3160,19 +3220,49 @@
             + '</div>';
         }
 
-        // Dependency select
+        // Dependency checkboxes
         if (currentProductSteps.length > 1) {
-          html += '<div style="margin-top:4px;"><select class="form-control" style="font-size:11px;" multiple size="2" '
-            + 'onchange="updateProductStepDeps(' + i + ', this)" title="Abh\u00e4ngigkeiten">';
-          currentProductSteps.forEach(function(other) {
-            if (other.order !== step.order) {
-              var sel = (step.dependsOn || []).indexOf(other.order) >= 0 ? ' selected' : '';
+          var hasDeps = (step.dependsOn || []).length > 0;
+          html += '<div style="margin-top:6px; padding:6px 8px; background:' + (hasDeps ? '#f0f7ff' : '#fff') + '; border:1px solid ' + (hasDeps ? 'var(--primary)' : 'var(--border)') + '; border-radius:6px;">'
+            + '<div style="font-size:10px; font-weight:600; color:var(--text-light); margin-bottom:4px;">'
+            + '\u2190 Kann erst starten nach:</div>'
+            + '<div style="display:flex; flex-wrap:wrap; gap:4px;">';
+          var prevSteps = currentProductSteps.filter(function(other) { return other.order < step.order; });
+          if (prevSteps.length === 0) {
+            html += '<span style="font-size:11px;color:var(--success,#22c55e);">\u25CF Startschritt (keine Vorg\u00e4nger)</span>';
+          } else {
+            prevSteps.forEach(function(other) {
+              var checked = (step.dependsOn || []).indexOf(other.order) >= 0;
               var otherWs = wsTemplates.find(function(t) { return t.id === other.stepId; });
               var otherName = other.stepId === '__custom__' ? (other.customName || 'Eigen') : (otherWs ? otherWs.name : '?');
-              html += '<option value="' + other.order + '"' + sel + '>#' + other.order + ' ' + escapeHtml(otherName) + '</option>';
+              html += '<label style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; font-size:11px; cursor:pointer;'
+                + 'background:' + (checked ? 'var(--primary)' : '#f1f5f9') + '; color:' + (checked ? '#fff' : 'var(--text)') + ';">'
+                + '<input type="checkbox" ' + (checked ? 'checked' : '') + ' '
+                + 'onchange="toggleProductStepDep(' + i + ',' + other.order + ',this.checked)" '
+                + 'style="margin:0;width:12px;height:12px;">'
+                + '#' + other.order + ' ' + escapeHtml(otherName)
+                + '</label>';
+            });
+          }
+          // Also show later steps that could depend on this step
+          var laterSteps = currentProductSteps.filter(function(other) { return other.order > step.order; });
+          if (laterSteps.length > 0) {
+            var hasFollowers = laterSteps.some(function(other) { return (other.dependsOn || []).indexOf(step.order) >= 0; });
+            if (hasFollowers) {
+              html += '</div><div style="font-size:10px; font-weight:600; color:var(--text-light); margin-top:6px; margin-bottom:4px;">'
+                + '\u2192 Nachfolger (warten auf diesen Schritt):</div>'
+                + '<div style="display:flex; flex-wrap:wrap; gap:4px;">';
+              laterSteps.forEach(function(other) {
+                if ((other.dependsOn || []).indexOf(step.order) >= 0) {
+                  var otherWs2 = wsTemplates.find(function(t) { return t.id === other.stepId; });
+                  var otherName2 = other.stepId === '__custom__' ? (other.customName || 'Eigen') : (otherWs2 ? otherWs2.name : '?');
+                  html += '<span style="display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:12px;font-size:11px;">'
+                    + '#' + other.order + ' ' + escapeHtml(otherName2) + '</span>';
+                }
+              });
             }
-          });
-          html += '</select></div>';
+          }
+          html += '</div></div>';
         }
         html += '</div>';
 
@@ -3209,12 +3299,15 @@
       }
     }
 
-    function updateProductStepDeps(index, selectEl) {
-      var deps = [];
-      for (var j = 0; j < selectEl.options.length; j++) {
-        if (selectEl.options[j].selected) deps.push(parseInt(selectEl.options[j].value));
+    function toggleProductStepDep(index, depOrder, checked) {
+      var deps = currentProductSteps[index].dependsOn || [];
+      if (checked) {
+        if (deps.indexOf(depOrder) < 0) deps.push(depOrder);
+      } else {
+        deps = deps.filter(function(d) { return d !== depOrder; });
       }
       currentProductSteps[index].dependsOn = deps;
+      renderProductStepsEditor();
     }
 
     function saveProduct(e) {
