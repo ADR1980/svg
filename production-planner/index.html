@@ -372,6 +372,7 @@
     <div class="tab" data-view="projects">Projekte</div>
     <div class="tab" data-view="planning">Wochenplanung</div>
     <div class="tab" data-view="worksteps">Arbeitsschritte</div>
+    <div class="tab" data-view="scheduling">Terminplanung</div>
     <div class="tab" data-view="employees">Ressourcen</div>
     <div class="tab" data-view="reports">Berichte</div>
   </div>
@@ -544,6 +545,16 @@
       </div>
     </div>
 
+    <!-- TERMINPLANUNG / SCHEDULING -->
+    <div class="view" id="view-scheduling">
+      <div class="toolbar">
+        <h2 style="font-size: 18px;">Terminplanung</h2>
+        <div class="spacer"></div>
+        <button class="btn btn-primary btn-sm" onclick="openDisruptionModal()">+ St&ouml;rung melden</button>
+      </div>
+      <div id="scheduling-content"></div>
+    </div>
+
     <!-- REPORTS -->
     <div class="view" id="view-reports">
       <div class="toolbar">
@@ -566,6 +577,26 @@
       </div>
       <form onsubmit="saveProject(event)">
         <input type="hidden" id="proj-edit-id">
+
+        <!-- Abschnitt: Projektstruktur -->
+        <div class="fw-600 mb-8" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Projektstruktur</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Projekttyp</label>
+            <select class="form-control" id="proj-type" onchange="onProjectTypeChange()">
+              <option value="fertigungsteil">&#9881; Fertigungsteil</option>
+              <option value="baugruppe">&#129513; Baugruppe</option>
+              <option value="anlage">&#127981; Anlage</option>
+            </select>
+          </div>
+          <div class="form-group" id="proj-parent-group">
+            <label>Zugeordnet zu (&uuml;bergeordnetes Projekt)</label>
+            <select class="form-control" id="proj-parent">
+              <option value="">-- Kein &uuml;bergeordnetes Projekt --</option>
+            </select>
+          </div>
+        </div>
+        <div id="proj-type-hint" class="text-sm text-muted mb-8" style="background:var(--bg); padding:8px 12px; border-radius:6px; display:none;"></div>
 
         <!-- Abschnitt: Auftragsdaten -->
         <div class="fw-600 mb-8" style="color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 4px;">Auftragsdaten</div>
@@ -1253,11 +1284,46 @@
           </div>
           <div class="form-group">
             <label>Status</label>
-            <select class="form-control" id="se-status">
+            <select class="form-control" id="se-status" onchange="onStepStatusChange()">
               <option value="offen">Offen</option>
               <option value="in_bearbeitung">In Bearbeitung</option>
+              <option value="blockiert">Blockiert</option>
               <option value="abgeschlossen">Abgeschlossen</option>
             </select>
+          </div>
+        </div>
+        <!-- Blocker-Details (nur sichtbar wenn Status=blockiert) -->
+        <div id="se-blocker-section" style="display:none; background:#fef5e7; border:1px solid #f0c36d; border-radius:8px; padding:12px; margin-bottom:12px;">
+          <div class="fw-600 mb-8" style="color:#e67e22;">Blocker-Details</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Blocker-Grund</label>
+              <select class="form-control" id="se-blocker-reason">
+                <option value="">-- Grund w&auml;hlen --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Voraussichtlich behoben am</label>
+              <input type="date" class="form-control" id="se-blocker-until">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Beschreibung</label>
+            <textarea class="form-control" id="se-blocker-note" rows="2" placeholder="Was genau blockiert diesen Schritt?"></textarea>
+          </div>
+        </div>
+        <!-- Ausschuss melden -->
+        <div style="background:#fdedec; border:1px solid #f5b7b1; border-radius:8px; padding:12px; margin-bottom:12px;">
+          <div class="fw-600 mb-8" style="color:#e74c3c;">Ausschuss melden</div>
+          <div style="display:grid; grid-template-columns:80px 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Menge</label>
+              <input type="number" class="form-control" id="se-scrap-qty" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label>Grund</label>
+              <input type="text" class="form-control" id="se-scrap-reason" placeholder="z.B. Ma&szlig;abweichung, Riss...">
+            </div>
           </div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -1268,6 +1334,16 @@
           <div class="form-group">
             <label>Maschine</label>
             <select class="form-control" id="se-machine"></select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Geplanter Start</label>
+            <input type="datetime-local" class="form-control" id="se-planned-start">
+          </div>
+          <div class="form-group">
+            <label>Geplantes Ende</label>
+            <input type="datetime-local" class="form-control" id="se-planned-end">
           </div>
         </div>
         <div class="form-group">
@@ -1311,6 +1387,53 @@
     </div>
   </div>
 
+  <!-- Modal: Störung melden -->
+  <div class="modal-overlay" id="modal-disruption">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2>St&ouml;rung melden</h2>
+        <button class="modal-close" onclick="closeModal('modal-disruption')">&times;</button>
+      </div>
+      <form onsubmit="saveDisruption(event)">
+        <input type="hidden" id="disr-edit-id">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>St&ouml;rungsart</label>
+            <select class="form-control" id="disr-type" required></select>
+          </div>
+          <div class="form-group">
+            <label>Betroffene Maschine</label>
+            <select class="form-control" id="disr-machine">
+              <option value="">-- Keine --</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Beginn</label>
+            <input type="datetime-local" class="form-control" id="disr-start" required>
+          </div>
+          <div class="form-group">
+            <label>Voraussichtliches Ende</label>
+            <input type="datetime-local" class="form-control" id="disr-end">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Betroffene Projekte</label>
+          <select class="form-control" id="disr-projects" multiple style="min-height:80px;"></select>
+        </div>
+        <div class="form-group">
+          <label>Beschreibung / Ma&szlig;nahmen</label>
+          <textarea class="form-control" id="disr-description" rows="3" placeholder="Was ist passiert? Welche Ma&szlig;nahmen wurden eingeleitet?"></textarea>
+        </div>
+        <div class="flex gap-8" style="justify-content:flex-end;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-disruption')">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="data.js"></script>
   <script>
     // State
@@ -1337,6 +1460,7 @@
         case 'customers': renderCustomers(); break;
         case 'projects': renderProjects(); break;
         case 'planning': renderPlanning(); break;
+        case 'scheduling': renderScheduling(); break;
         case 'employees': renderEmployees(); break;
         case 'worksteps': renderWorkSteps(); break;
         case 'reports': loadReports(); break;
@@ -1361,12 +1485,22 @@
         return Schedule.getStatus(avg, expected) === 'red';
       }).length;
 
+      // Blocker zählen
+      let blockerCount = 0;
+      let activeDisruptionCount = Storage.getDisruptions().filter(d => !d.resolvedAt).length;
+      projects.forEach(p => {
+        const steps = Storage.getProjectSteps(p.id);
+        steps.forEach(s => { if (s.status === 'blockiert') blockerCount++; });
+      });
+
       document.getElementById('stats-grid').innerHTML = `
         <div class="stat-card"><div class="stat-value">${totalProjects}</div><div class="stat-label">Aktive Projekte</div></div>
         <div class="stat-card"><div class="stat-value">${Math.round(avgProgress * 100)}%</div><div class="stat-label">Durchschn. Fortschritt</div></div>
         <div class="stat-card"><div class="stat-value">${completed}</div><div class="stat-label">Abgeschlossen</div></div>
         <div class="stat-card"><div class="stat-value">${todayReports.length}</div><div class="stat-label">Berichte Heute</div></div>
         <div class="stat-card" style="${criticalCount > 0 ? 'border: 2px solid var(--danger);' : ''}"><div class="stat-value" style="${criticalCount > 0 ? 'color: var(--danger);' : ''}">${criticalCount}</div><div class="stat-label">Kritische Projekte</div></div>
+        ${blockerCount > 0 ? '<div class="stat-card" style="border: 2px solid var(--accent);"><div class="stat-value" style="color: var(--accent);">' + blockerCount + '</div><div class="stat-label">Blockierte Schritte</div></div>' : ''}
+        ${activeDisruptionCount > 0 ? '<div class="stat-card" style="border: 2px solid var(--danger);"><div class="stat-value" style="color: var(--danger);">' + activeDisruptionCount + '</div><div class="stat-label">Aktive St\u00f6rungen</div></div>' : ''}
       `;
 
       // ---- Recommendations ----
@@ -1850,8 +1984,20 @@
     function renderProjects() {
       var projects = Storage.getProjects();
       var employees = Storage.getEmployees();
+      var tree = buildProjectTree(projects);
       var html = '';
-      projects.forEach(function(p) {
+
+      // Filter-Buttons
+      html += '<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">'
+        + '<button class="btn btn-outline btn-sm" onclick="projFilter=\'\';renderProjects();" style="' + (!window.projFilter ? 'background:var(--primary);color:white;' : '') + '">Alle</button>'
+        + '<button class="btn btn-outline btn-sm" onclick="projFilter=\'anlage\';renderProjects();" style="' + (window.projFilter === 'anlage' ? 'background:var(--primary);color:white;' : '') + '">\u{1F3ED} Anlagen</button>'
+        + '<button class="btn btn-outline btn-sm" onclick="projFilter=\'baugruppe\';renderProjects();" style="' + (window.projFilter === 'baugruppe' ? 'background:var(--primary);color:white;' : '') + '">\u{1F9E9} Baugruppen</button>'
+        + '<button class="btn btn-outline btn-sm" onclick="projFilter=\'fertigungsteil\';renderProjects();" style="' + (window.projFilter === 'fertigungsteil' ? 'background:var(--primary);color:white;' : '') + '">\u2699 Fertigungsteile</button>'
+        + '<button class="btn btn-outline btn-sm" onclick="projFilter=\'flat\';renderProjects();" style="' + (window.projFilter === 'flat' ? 'background:var(--primary);color:white;' : '') + '">Flat-Liste</button>'
+        + '</div>';
+
+      function renderProjectCard(p, depth) {
+        if (window.projFilter && window.projFilter !== 'flat' && p.projectType !== window.projFilter) return '';
         var recentReports = getRecentProjectReports(p.id, 7);
         var hasDeviations = recentReports.some(function(r) { return r.deviation; });
         var avg = (p.konstruktion + p.fertigung + p.montage) / 3;
@@ -1859,22 +2005,36 @@
         var status = Schedule.getStatus(avg, expected);
         var pSteps = Storage.getProjectSteps(p.id);
         var isExpanded = !!expandedProjects[p.id];
+        var children = getProjectChildren(p.id, projects);
+        var typeIcon = getProjectTypeIcon(p.projectType);
+        var indent = depth * 24;
+        var borderColors = { anlage: 'var(--primary)', baugruppe: 'var(--accent)', fertigungsteil: '#95a5a6' };
+        var borderColor = borderColors[p.projectType] || '#95a5a6';
 
-        // Project header card
-        html += '<div class="card" style="padding-bottom:' + (isExpanded && pSteps.length > 0 ? '8px' : '20px') + ';">'
+        var cardHtml = '<div class="card" style="padding-bottom:' + (isExpanded && pSteps.length > 0 ? '8px' : '16px') + '; margin-left:' + indent + 'px; border-left:4px solid ' + borderColor + ';">'
           + '<div style="cursor:pointer;" onclick="openProjectDetail(' + p.id + ')">'
           + '<div class="flex justify-between items-center mb-8">'
           + '  <div>'
           + '    <div class="flex items-center gap-8">'
           + '      <span class="status-dot status-' + status + '"></span>'
+          + '      <span style="font-size:16px;">' + typeIcon + '</span>'
           + '      <span class="fw-600">Pos. ' + p.id + ': ' + escapeHtml(p.article) + '</span>'
           + '      ' + getPriorityBadge(p.priority)
-          + '      <span class="badge badge-info">' + escapeHtml(p.status || 'Auftragseingang') + '</span>'
-          + '    </div>'
+          + '      <span class="badge badge-info">' + escapeHtml(p.status || 'Auftragseingang') + '</span>';
+        if (children.length > 0) {
+          cardHtml += '      <span class="badge badge-neutral">' + children.length + ' ' + (p.projectType === 'anlage' ? 'Baugruppen/Teile' : 'Teile') + '</span>';
+        }
+        cardHtml += '    </div>'
           + '    <div class="text-sm text-muted" style="margin-top:4px;">' + getCustomerName(p.customerId)
           +        (p.orderNumber ? ' | Auftrag: ' + escapeHtml(p.orderNumber) : '')
-          +        (p.drawingNumber ? ' | Zeichnung: ' + escapeHtml(p.drawingNumber) : '')
-          + '    </div>'
+          +        (p.drawingNumber ? ' | Zeichnung: ' + escapeHtml(p.drawingNumber) : '');
+        if (p.parentId) {
+          var parentProj = projects.find(function(pp) { return pp.id === p.parentId; });
+          if (parentProj) {
+            cardHtml += ' | ' + getProjectTypeIcon(parentProj.projectType) + ' ' + escapeHtml(parentProj.article);
+          }
+        }
+        cardHtml += '    </div>'
           + '  </div>'
           + '  <div class="text-right">'
           + '    <div class="fw-600">' + p.quantity + ' ' + p.unit + '</div>'
@@ -1890,7 +2050,7 @@
         if (p.toleranceClass) details.push('Toleranz: ' + escapeHtml(p.toleranceClass));
         if (p.weight) details.push('Gewicht: ' + escapeHtml(p.weight) + ' kg');
         if (details.length > 0) {
-          html += '<div class="text-sm text-muted mb-8" style="display:flex; gap:16px; flex-wrap:wrap;">'
+          cardHtml += '<div class="text-sm text-muted mb-8" style="display:flex; gap:16px; flex-wrap:wrap;">'
             + details.map(function(d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
         }
 
@@ -1901,29 +2061,29 @@
         if (p.deadline) dates.push('Fertigstellung: ' + new Date(p.deadline).toLocaleDateString('de-DE'));
         if (p.deliveryDate) dates.push('Liefertermin: ' + new Date(p.deliveryDate).toLocaleDateString('de-DE'));
         if (dates.length > 0) {
-          html += '<div class="text-sm mb-8" style="display:flex; gap:16px; flex-wrap:wrap; color:var(--primary-light);">'
+          cardHtml += '<div class="text-sm mb-8" style="display:flex; gap:16px; flex-wrap:wrap; color:var(--primary-light);">'
             + dates.map(function(d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
         }
 
         // Progress bars
-        html += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">'
+        cardHtml += '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">'
           + '<div><div class="text-sm text-muted mb-8">Konstruktion</div>' + renderMiniProgress(p.konstruktion) + '<div class="text-sm mt-8">' + getProgressLabel('konstruktion', p.konstruktion) + '</div></div>'
           + '<div><div class="text-sm text-muted mb-8">Fertigung</div>' + renderMiniProgress(p.fertigung) + '<div class="text-sm mt-8">' + getProgressLabel('fertigung', p.fertigung) + '</div></div>'
           + '<div><div class="text-sm text-muted mb-8">Montage</div>' + renderMiniProgress(p.montage) + '<div class="text-sm mt-8">' + getProgressLabel('montage', p.montage) + '</div></div>'
           + '</div>';
 
-        if (p.remarks) html += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
+        if (p.remarks) cardHtml += '<div class="text-sm mt-8" style="color:var(--accent);">' + escapeHtml(p.remarks) + '</div>';
 
         // ---- ZEITLICHER SOLL/IST-VERGLEICH ----
         var durCalc = pSteps.length > 0 ? Schedule.calcProjectDuration(p.id) : null;
         if (durCalc) {
-          html += renderDurationComparison(durCalc, p);
+          cardHtml += renderDurationComparison(durCalc, p);
         }
 
-        html += '</div>'; // end clickable project header area
+        cardHtml += '</div>'; // end clickable project header area
 
         // ---- ARBEITSSCHRITTE SECTION (inline, under project) ----
-        html += '<div class="ws-section">';
+        cardHtml += '<div class="ws-section">';
 
         // Header with expand/collapse + summary
         var doneSteps = pSteps.filter(function(s) { return s.status === 'abgeschlossen'; }).length;
@@ -1931,23 +2091,23 @@
         var totalSoll = pSteps.reduce(function(s, st) { return s + (st.plannedDuration * st.totalQty); }, 0);
         var totalIst = pSteps.reduce(function(s, st) { return s + st.actualDuration; }, 0);
 
-        html += '<div class="ws-section-header" onclick="toggleProjectSteps(' + p.id + ', event)">'
+        cardHtml += '<div class="ws-section-header" onclick="toggleProjectSteps(' + p.id + ', event)">'
           + '<div class="flex items-center gap-8">'
           + '  <span class="ws-toggle ' + (isExpanded ? 'open' : '') + '">\u25B6</span>'
           + '  <span class="fw-600 text-sm">Arbeitsschritte</span>';
         if (pSteps.length > 0) {
-          html += '  <span class="badge badge-success">' + doneSteps + '/' + pSteps.length + ' fertig</span>';
-          if (inProgSteps > 0) html += '  <span class="badge badge-warning">' + inProgSteps + ' aktiv</span>';
-          html += '  <span class="text-sm text-muted">Soll: ' + (totalSoll / 60).toFixed(1) + 'h | Ist: ' + (totalIst / 60).toFixed(1) + 'h';
+          cardHtml += '  <span class="badge badge-success">' + doneSteps + '/' + pSteps.length + ' fertig</span>';
+          if (inProgSteps > 0) cardHtml += '  <span class="badge badge-warning">' + inProgSteps + ' aktiv</span>';
+          cardHtml += '  <span class="text-sm text-muted">Soll: ' + (totalSoll / 60).toFixed(1) + 'h | Ist: ' + (totalIst / 60).toFixed(1) + 'h';
           if (totalSoll > 0) {
             var diff = totalIst - totalSoll;
-            html += ' | <span style="color:' + (diff > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + (diff > 0 ? '+' : '') + diff + ' Min</span>';
+            cardHtml += ' | <span style="color:' + (diff > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + (diff > 0 ? '+' : '') + diff + ' Min</span>';
           }
-          html += '</span>';
+          cardHtml += '</span>';
         } else {
-          html += '  <span class="text-sm text-muted">Keine Schritte definiert</span>';
+          cardHtml += '  <span class="text-sm text-muted">Keine Schritte definiert</span>';
         }
-        html += '</div>'
+        cardHtml += '</div>'
           + '<div onclick="event.stopPropagation();">'
           + '  <button class="btn btn-outline" style="padding:3px 10px;font-size:11px;" onclick="openProjectSteps(' + p.id + ')">Bearbeiten</button>'
           + '</div></div>';
@@ -1956,10 +2116,10 @@
         if (isExpanded) {
           if (pSteps.length > 0) {
             // Dependency graph (SVG)
-            html += buildDepGraphSVG(pSteps, p.id);
+            cardHtml += buildDepGraphSVG(pSteps, p.id);
 
             // Table
-            html += '<table class="ws-table" onclick="event.stopPropagation()">'
+            cardHtml += '<table class="ws-table" onclick="event.stopPropagation()">'
               + '<thead><tr>'
               + '<th style="width:40px;">Nr.</th>'
               + '<th>Arbeitsschritt</th>'
@@ -1987,7 +2147,7 @@
               var sollPct = Math.round(sollTotal / barMax * 100);
               var istPct = Math.round(s.actualDuration / barMax * 100);
 
-              html += '<tr class="' + rowClass + '" onclick="openStepEditModal(' + p.id + ',\'' + s.id + '\')">'
+              cardHtml += '<tr class="' + rowClass + '" onclick="openStepEditModal(' + p.id + ',\'' + s.id + '\')">'
                 + '<td class="fw-600">#' + s.order + '</td>'
                 + '<td>'
                 + '  <div class="fw-600">' + escapeHtml(s.name) + '</div>'
@@ -2016,34 +2176,89 @@
                 + '<td class="text-sm">' + (depCheck.depNames.length > 0 ? depCheck.depNames.join(', ') : '-') + '</td>'
                 + '</tr>';
             });
-            html += '</tbody></table>';
+            cardHtml += '</tbody></table>';
           } else {
-            html += '<div style="text-align:center; padding:16px;" onclick="event.stopPropagation();">'
+            cardHtml += '<div style="text-align:center; padding:16px;" onclick="event.stopPropagation();">'
               + '<div class="text-muted mb-8">Noch keine Arbeitsschritte definiert.</div>'
               + '<button class="btn btn-primary btn-sm" onclick="openProjectSteps(' + p.id + ')">+ Arbeitsschritte anlegen</button>'
               + '</div>';
           }
         }
 
-        html += '</div>'; // ws-section
-        html += '</div>'; // card
-      });
+        cardHtml += '</div>'; // ws-section
+
+        // Add child element actions for anlagen/baugruppen
+        if (p.projectType === 'anlage' || p.projectType === 'baugruppe') {
+          var childType = p.projectType === 'anlage' ? 'baugruppe' : 'fertigungsteil';
+          var childTypeAlt = p.projectType === 'anlage' ? 'fertigungsteil' : null;
+          cardHtml += '<div style="padding:8px 12px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation();">'
+            + '<span class="text-sm text-muted">Hinzuf\u00fcgen:</span>'
+            + '<button class="btn btn-outline btn-sm" onclick="openProjectModal(null, ' + p.id + ', \'' + childType + '\')">'
+            + getProjectTypeIcon(childType) + ' ' + getProjectTypeLabel(childType)
+            + '</button>';
+          if (childTypeAlt) {
+            cardHtml += '<button class="btn btn-outline btn-sm" onclick="openProjectModal(null, ' + p.id + ', \'' + childTypeAlt + '\')">'
+              + getProjectTypeIcon(childTypeAlt) + ' ' + getProjectTypeLabel(childTypeAlt)
+              + '</button>';
+          }
+          cardHtml += '</div>';
+        }
+
+        cardHtml += '</div>'; // card
+
+        // Render children recursively (in tree mode)
+        if (!window.projFilter || window.projFilter === 'flat') {
+          // In flat or no-filter mode, show tree
+          children.forEach(function(child) {
+            cardHtml += renderProjectCard(child, depth + 1);
+          });
+        }
+
+        return cardHtml;
+      }
+
+      // Render tree or flat list
+      if (window.projFilter === 'flat' || (window.projFilter && window.projFilter !== 'flat')) {
+        // Flat mode or filtered: show all matching projects
+        projects.forEach(function(p) {
+          html += renderProjectCard(p, 0);
+        });
+      } else {
+        // Tree mode: only render roots, children are rendered recursively
+        tree.roots.forEach(function(p) {
+          html += renderProjectCard(p, 0);
+        });
+      }
       document.getElementById('projects-list').innerHTML = html;
     }
+    if (!window.projFilter) window.projFilter = '';
 
     function renderStepStatusBadge(status, canStart) {
       if (status === 'abgeschlossen') return '<span class="badge badge-success">Fertig</span>';
+      if (status === 'blockiert') return '<span class="badge badge-danger" title="Manuell blockiert">\u{1F6D1} Blockiert</span>';
       if (status === 'in_bearbeitung') return '<span class="badge badge-warning">Aktiv</span>';
-      if (!canStart) return '<span class="badge badge-danger">Blockiert</span>';
+      if (!canStart) return '<span class="badge badge-danger">Abh. blockiert</span>';
       return '<span class="badge" style="background:#ecf0f1;color:#7f8c8d;">Offen</span>';
     }
 
-    function openProjectModal(project) {
+    function openProjectModal(project, presetParentId, presetType) {
       // Kunden-Dropdown
       const sel = document.getElementById('proj-customer');
       sel.innerHTML = '<option value="">-- Kunde w&auml;hlen --</option>';
       getCustomers().forEach(c => {
         sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.name) + ' (' + c.id + ')</option>';
+      });
+
+      // Parent-Dropdown (Anlagen und Baugruppen)
+      var allProjects = Storage.getProjects();
+      var parentSel = document.getElementById('proj-parent');
+      parentSel.innerHTML = '<option value="">-- Kein \u00fcbergeordnetes Projekt --</option>';
+      allProjects.forEach(function(p) {
+        if (p.projectType === 'anlage' || p.projectType === 'baugruppe') {
+          if (project && p.id === project.id) return; // Can't be own parent
+          var typeLabel = getProjectTypeLabel(p.projectType);
+          parentSel.innerHTML += '<option value="' + p.id + '">' + getProjectTypeIcon(p.projectType) + ' [' + typeLabel + '] ' + escapeHtml(p.article) + ' (#' + p.id + ')</option>';
+        }
       });
 
       // Fortschritts-Dropdowns
@@ -2084,11 +2299,13 @@
       };
 
       if (project) {
-        document.getElementById('project-modal-title').textContent = 'Projekt bearbeiten';
+        document.getElementById('project-modal-title').textContent = getProjectTypeIcon(project.projectType || 'fertigungsteil') + ' Projekt bearbeiten';
         Object.keys(fields).forEach(elId => {
           const el = document.getElementById(elId);
           if (el) el.value = project[fields[elId]] !== undefined ? project[fields[elId]] : '';
         });
+        document.getElementById('proj-type').value = project.projectType || 'fertigungsteil';
+        document.getElementById('proj-parent').value = project.parentId || '';
       } else {
         document.getElementById('project-modal-title').textContent = 'Neues Projekt';
         Object.keys(fields).forEach(elId => {
@@ -2105,8 +2322,55 @@
         document.getElementById('proj-buffer-pct').value = '0';
         document.getElementById('proj-unit-price').value = '0';
         document.getElementById('proj-order-value').value = '0';
+        document.getElementById('proj-type').value = presetType || 'fertigungsteil';
+        document.getElementById('proj-parent').value = presetParentId || '';
+        // Inherit customer from parent
+        if (presetParentId) {
+          var parentProj = allProjects.find(function(p) { return p.id === parseInt(presetParentId) || p.id === presetParentId; });
+          if (parentProj && parentProj.customerId) {
+            document.getElementById('proj-customer').value = parentProj.customerId;
+          }
+        }
       }
+      onProjectTypeChange();
       showModal('modal-project');
+    }
+
+    function onProjectTypeChange() {
+      var type = document.getElementById('proj-type').value;
+      var parentGroup = document.getElementById('proj-parent-group');
+      var hint = document.getElementById('proj-type-hint');
+      var typeInfo = ATC_DATA.projectTypes.find(function(t) { return t.value === type; });
+
+      // Anlage kann kein Parent haben, Baugruppe nur Anlage, Fertigungsteil Anlage oder Baugruppe
+      if (type === 'anlage') {
+        parentGroup.style.display = 'none';
+        document.getElementById('proj-parent').value = '';
+      } else {
+        parentGroup.style.display = 'block';
+        // Filter parent options
+        var allProjects = Storage.getProjects();
+        var parentSel = document.getElementById('proj-parent');
+        var currentParentVal = parentSel.value;
+        parentSel.innerHTML = '<option value="">-- Kein \u00fcbergeordnetes Projekt --</option>';
+        allProjects.forEach(function(p) {
+          var editId = document.getElementById('proj-edit-id').value;
+          if (editId && p.id === parseInt(editId)) return;
+          if (type === 'baugruppe' && p.projectType === 'anlage') {
+            parentSel.innerHTML += '<option value="' + p.id + '">\u{1F3ED} [Anlage] ' + escapeHtml(p.article) + ' (#' + p.id + ')</option>';
+          } else if (type === 'fertigungsteil' && (p.projectType === 'anlage' || p.projectType === 'baugruppe')) {
+            parentSel.innerHTML += '<option value="' + p.id + '">' + getProjectTypeIcon(p.projectType) + ' [' + getProjectTypeLabel(p.projectType) + '] ' + escapeHtml(p.article) + ' (#' + p.id + ')</option>';
+          }
+        });
+        parentSel.value = currentParentVal;
+      }
+
+      if (typeInfo) {
+        hint.textContent = typeInfo.icon + ' ' + typeInfo.description;
+        hint.style.display = 'block';
+      } else {
+        hint.style.display = 'none';
+      }
     }
 
     function editProject(id) {
@@ -2422,8 +2686,25 @@
         orderValue: parseFloat(document.getElementById('proj-order-value').value) || 0,
         deliveryAddress: document.getElementById('proj-delivery-addr').value,
         internalNote: document.getElementById('proj-internal-note').value,
-        remarks: document.getElementById('proj-remarks').value
+        remarks: document.getElementById('proj-remarks').value,
+        projectType: document.getElementById('proj-type').value || 'fertigungsteil',
+        parentId: document.getElementById('proj-parent').value ? parseInt(document.getElementById('proj-parent').value) : null
       };
+
+      // Validate parent assignment
+      if (data.parentId) {
+        var parentProj = projects.find(function(p) { return p.id === data.parentId; });
+        if (parentProj) {
+          if (data.projectType === 'baugruppe' && parentProj.projectType !== 'anlage') {
+            alert('Eine Baugruppe kann nur einer Anlage zugeordnet werden.');
+            return;
+          }
+          if (data.projectType === 'fertigungsteil' && parentProj.projectType !== 'anlage' && parentProj.projectType !== 'baugruppe') {
+            alert('Ein Fertigungsteil kann nur einer Anlage oder Baugruppe zugeordnet werden.');
+            return;
+          }
+        }
+      }
 
       if (editId) {
         const idx = projects.findIndex(p => p.id === parseInt(editId));
@@ -2934,6 +3215,11 @@
     function checkDependencies(step, allSteps) {
       var canStart = true;
       var depNames = [];
+      // Manueller Blocker hat Vorrang
+      if (step.status === 'blockiert') {
+        var reason = ATC_DATA.blockerReasons.find(function(r) { return r.id === step.blockerReason; });
+        return { canStart: false, depNames: [reason ? reason.label : 'Blockiert'], isBlocked: true };
+      }
       (step.dependsOn || []).forEach(function(depId) {
         var dep = allSteps.find(function(s) { return s.id === depId; });
         if (dep && dep.status !== 'abgeschlossen') {
@@ -2941,7 +3227,7 @@
           depNames.push(dep.name || ('#' + dep.order));
         }
       });
-      return { canStart: canStart, depNames: depNames };
+      return { canStart: canStart, depNames: depNames, isBlocked: false };
     }
 
     function onPSTemplateChange(index, templateId) {
@@ -2976,6 +3262,12 @@
     }
 
     // ---- Einzelnen Arbeitsschritt bearbeiten (aus Tabelle/Graph) ----
+    function onStepStatusChange() {
+      var status = document.getElementById('se-status').value;
+      var blockerSection = document.getElementById('se-blocker-section');
+      blockerSection.style.display = status === 'blockiert' ? 'block' : 'none';
+    }
+
     function openStepEditModal(projectId, stepId) {
       var steps = Storage.getProjectSteps(projectId);
       var step = steps.find(function(s) { return s.id === stepId; });
@@ -2994,6 +3286,29 @@
       document.getElementById('se-total-qty').value = step.totalQty || 0;
       document.getElementById('se-status').value = step.status || 'offen';
       document.getElementById('se-notes').value = step.notes || '';
+
+      // Blocker-Felder
+      var blockerReasons = ATC_DATA.blockerReasons;
+      var brSel = document.getElementById('se-blocker-reason');
+      brSel.innerHTML = '<option value="">-- Grund w\u00e4hlen --</option>';
+      blockerReasons.forEach(function(r) {
+        brSel.innerHTML += '<option value="' + r.id + '"' + (step.blockerReason === r.id ? ' selected' : '') + '>' + r.icon + ' ' + escapeHtml(r.label) + '</option>';
+      });
+      document.getElementById('se-blocker-until').value = step.blockerUntil || '';
+      document.getElementById('se-blocker-note').value = step.blockerNote || '';
+      onStepStatusChange();
+      // Force display if status is blockiert
+      if (step.status === 'blockiert') {
+        document.getElementById('se-blocker-section').style.display = 'block';
+      }
+
+      // Ausschuss-Felder zurücksetzen
+      document.getElementById('se-scrap-qty').value = 0;
+      document.getElementById('se-scrap-reason').value = '';
+
+      // Geplante Termine
+      document.getElementById('se-planned-start').value = step.plannedStart || '';
+      document.getElementById('se-planned-end').value = step.plannedEnd || '';
 
       // Mitarbeiter-Dropdown
       var employees = Storage.getEmployees();
@@ -3043,6 +3358,44 @@
       step.assignedTo = document.getElementById('se-assigned').value;
       step.machineId = document.getElementById('se-machine').value;
       step.notes = document.getElementById('se-notes').value.trim();
+
+      // Blocker-Daten
+      if (step.status === 'blockiert') {
+        step.blockerReason = document.getElementById('se-blocker-reason').value;
+        step.blockerUntil = document.getElementById('se-blocker-until').value;
+        step.blockerNote = document.getElementById('se-blocker-note').value.trim();
+        step.blockerSince = step.blockerSince || new Date().toISOString();
+      } else {
+        // Blocker aufgelöst - protokollieren
+        if (step.blockerSince && step.blockerReason) {
+          if (!step.blockerHistory) step.blockerHistory = [];
+          step.blockerHistory.push({
+            reason: step.blockerReason,
+            note: step.blockerNote,
+            from: step.blockerSince,
+            to: new Date().toISOString()
+          });
+        }
+        step.blockerReason = '';
+        step.blockerUntil = '';
+        step.blockerNote = '';
+        step.blockerSince = '';
+      }
+
+      // Geplante Termine
+      step.plannedStart = document.getElementById('se-planned-start').value;
+      step.plannedEnd = document.getElementById('se-planned-end').value;
+
+      // Ausschuss verarbeiten
+      var scrapQty = parseInt(document.getElementById('se-scrap-qty').value) || 0;
+      if (scrapQty > 0) {
+        var scrapReason = document.getElementById('se-scrap-reason').value.trim();
+        Schedule.applyScrap(projectId, stepId, scrapQty, scrapReason);
+        // Reload steps after scrap adjustment
+        steps = Storage.getProjectSteps(projectId);
+        step = steps.find(function(s) { return s.id === stepId; });
+        if (!step) return;
+      }
 
       // Abhängigkeiten
       var depSel = document.getElementById('se-depends');
@@ -4046,6 +4399,359 @@
       document.getElementById('login-overlay').classList.remove('hidden');
       document.getElementById('admin-password').value = '';
       document.getElementById('login-error').style.display = 'none';
+    }
+
+    // ---- TERMINPLANUNG / SCHEDULING ----
+    function renderScheduling() {
+      var projects = Storage.getProjects();
+      var disruptions = Storage.getDisruptions();
+      var html = '';
+
+      // 1) Warnungen: Deadlines und Konflikte
+      var warnings = [];
+      var conflicts = Schedule.checkResourceConflicts();
+      conflicts.forEach(function(c) {
+        var resName = '';
+        if (c.type === 'machine') {
+          var m = Storage.getMachines().find(function(mm) { return mm.id === c.resourceId; });
+          resName = m ? m.name : c.resourceId;
+        } else {
+          var emp = Storage.getEmployees().find(function(e) { return e.id === c.resourceId; });
+          resName = emp ? emp.name : c.resourceId;
+        }
+        warnings.push({
+          type: c.type === 'machine' ? 'Maschinenkonflikt' : 'Mitarbeiterkonflikt',
+          icon: c.type === 'machine' ? '\u{1F527}' : '\u{1F464}',
+          message: resName + ': ' + escapeHtml(c.step1.stepName) + ' (' + escapeHtml(c.step1.projectName) + ') \u2194 ' + escapeHtml(c.step2.stepName) + ' (' + escapeHtml(c.step2.projectName) + ')'
+        });
+      });
+
+      // Blocker-Warnungen sammeln
+      projects.forEach(function(p) {
+        var steps = Storage.getProjectSteps(p.id);
+        steps.forEach(function(s) {
+          if (s.status === 'blockiert') {
+            var reason = ATC_DATA.blockerReasons.find(function(r) { return r.id === s.blockerReason; });
+            warnings.push({
+              type: 'Blocker',
+              icon: '\u{1F6D1}',
+              message: escapeHtml(p.article) + ' \u2192 #' + s.order + ' ' + escapeHtml(s.name) + ': ' + (reason ? reason.label : 'Blockiert') + (s.blockerUntil ? ' (bis ' + s.blockerUntil + ')' : '')
+            });
+          }
+        });
+      });
+
+      // Deadline-Warnungen
+      projects.forEach(function(p) {
+        if (!p.deliveryDate) return;
+        var bwd = Schedule.backwardSchedule(p.id);
+        if (bwd && bwd.isOverdue) {
+          warnings.push({
+            type: 'Terminverzug',
+            icon: '\u26A0',
+            message: escapeHtml(p.article) + ': Sp\u00e4tester Start ' + bwd.earliestStart.toLocaleDateString('de-DE') + ' bereits \u00fcberschritten! Liefertermin: ' + new Date(p.deliveryDate).toLocaleDateString('de-DE')
+          });
+        }
+        var fwd = Schedule.forwardSchedule(p.id);
+        if (fwd && fwd.exceedsDeadline) {
+          warnings.push({
+            type: 'Terminkonflikt',
+            icon: '\u{1F4C5}',
+            message: escapeHtml(p.article) + ': Voraussichtliches Ende ' + fwd.projectEnd.toLocaleDateString('de-DE') + ' \u00fcberschreitet Liefertermin ' + new Date(p.deliveryDate).toLocaleDateString('de-DE')
+          });
+        }
+      });
+
+      if (warnings.length > 0) {
+        html += '<div class="card" style="border-left:4px solid var(--danger); margin-bottom:12px;">'
+          + '<div class="fw-600 mb-8" style="color:var(--danger);">\u26A0 Warnungen (' + warnings.length + ')</div>';
+        warnings.forEach(function(w) {
+          html += '<div style="padding:6px 0; border-bottom:1px solid var(--border); font-size:13px;">'
+            + '<span class="badge badge-danger" style="margin-right:8px;">' + w.icon + ' ' + w.type + '</span>'
+            + w.message + '</div>';
+        });
+        html += '</div>';
+      }
+
+      // 2) Aktive Störungen
+      var activeDisruptions = disruptions.filter(function(d) {
+        return !d.resolvedAt;
+      });
+      if (activeDisruptions.length > 0) {
+        html += '<div class="card" style="border-left:4px solid var(--accent); margin-bottom:12px;">'
+          + '<div class="fw-600 mb-8" style="color:var(--accent);">\u{1F6A8} Aktive St\u00f6rungen (' + activeDisruptions.length + ')</div>';
+        activeDisruptions.forEach(function(d) {
+          var dtype = ATC_DATA.disruptionTypes.find(function(t) { return t.id === d.type; });
+          html += '<div style="padding:8px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">'
+            + '<div><span class="badge badge-warning" style="margin-right:8px;">' + (dtype ? dtype.icon : '') + ' ' + (dtype ? dtype.label : d.type) + '</span>'
+            + '<span class="text-sm">' + escapeHtml(d.description || '') + '</span></div>'
+            + '<div class="flex gap-8">'
+            + '<span class="text-sm text-muted">Seit: ' + new Date(d.startTime).toLocaleString('de-DE') + '</span>'
+            + '<button class="btn btn-outline btn-sm" onclick="resolveDisruption(\'' + d.id + '\')">Behoben</button>'
+            + '</div></div>';
+        });
+        html += '</div>';
+      }
+
+      // 3) Projektterminpläne
+      html += '<div class="fw-600 mb-8" style="color:var(--primary); font-size:16px;">Termin\u00fcbersicht pro Projekt</div>';
+
+      projects.forEach(function(p) {
+        var steps = Storage.getProjectSteps(p.id);
+        if (steps.length === 0) return;
+
+        var bwd = Schedule.backwardSchedule(p.id);
+        var fwd = Schedule.forwardSchedule(p.id);
+        var dur = Schedule.calcProjectDuration(p.id);
+
+        html += '<div class="card" style="margin-bottom:8px;">'
+          + '<div class="card-header"><div>'
+          + '<div class="fw-600">' + escapeHtml(p.article) + '</div>'
+          + '<div class="text-sm text-muted">' + (p.orderNumber || 'Projekt #' + p.id) + '</div>'
+          + '</div>';
+
+        // Status-Badge
+        if (p.deliveryDate) {
+          if (fwd && fwd.exceedsDeadline) {
+            html += '<span class="badge badge-danger">Termin\u00fcberschreitung</span>';
+          } else if (bwd && bwd.isOverdue) {
+            html += '<span class="badge badge-danger">Start \u00fcberschritten</span>';
+          } else {
+            html += '<span class="badge badge-success">Im Plan</span>';
+          }
+        } else {
+          html += '<span class="badge badge-neutral">Kein Liefertermin</span>';
+        }
+        html += '</div>';
+
+        // Termininfos
+        html += '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin:8px 0;">';
+        if (p.startDate) {
+          html += '<div class="progress-item"><div class="label">Startdatum</div><div class="value" style="font-size:13px;">' + new Date(p.startDate).toLocaleDateString('de-DE') + '</div></div>';
+        }
+        if (p.deliveryDate) {
+          html += '<div class="progress-item"><div class="label">Liefertermin</div><div class="value" style="font-size:13px;">' + new Date(p.deliveryDate).toLocaleDateString('de-DE') + '</div></div>';
+        }
+        if (fwd) {
+          html += '<div class="progress-item"><div class="label">Voraussichtl. Ende</div><div class="value" style="font-size:13px; color:' + (fwd.exceedsDeadline ? 'var(--danger)' : 'var(--success)') + ';">' + fwd.projectEnd.toLocaleDateString('de-DE') + '</div></div>';
+        }
+        if (bwd) {
+          html += '<div class="progress-item"><div class="label">Sp\u00e4t. Start</div><div class="value" style="font-size:13px; color:' + (bwd.isOverdue ? 'var(--danger)' : 'var(--text)') + ';">' + bwd.earliestStart.toLocaleDateString('de-DE') + '</div></div>';
+        }
+        html += '</div>';
+
+        // Gantt-ähnliche Darstellung der Schritte
+        if (fwd && fwd.steps.length > 0) {
+          var minDate = fwd.startDate.getTime();
+          var maxDate = fwd.projectEnd.getTime();
+          if (p.deliveryDate) maxDate = Math.max(maxDate, new Date(p.deliveryDate).getTime());
+          var totalSpan = maxDate - minDate || 1;
+
+          html += '<div style="margin-top:8px; overflow-x:auto;">'
+            + '<div style="position:relative; min-height:' + (fwd.steps.length * 28 + 30) + 'px; min-width:100%;">';
+
+          // Deadline-Linie
+          if (p.deliveryDate) {
+            var dlPos = Math.round((new Date(p.deliveryDate).getTime() - minDate) / totalSpan * 100);
+            html += '<div style="position:absolute; left:' + dlPos + '%; top:0; bottom:0; width:2px; background:var(--danger); z-index:2;" title="Liefertermin"></div>';
+            html += '<div style="position:absolute; left:' + dlPos + '%; top:0; font-size:10px; color:var(--danger); transform:translateX(-50%);">LT</div>';
+          }
+
+          // Heute-Linie
+          var todayPos = Math.round((Date.now() - minDate) / totalSpan * 100);
+          if (todayPos >= 0 && todayPos <= 100) {
+            html += '<div style="position:absolute; left:' + todayPos + '%; top:0; bottom:0; width:1px; background:var(--primary); z-index:2; opacity:0.5;" title="Heute"></div>';
+          }
+
+          fwd.steps.forEach(function(s, idx) {
+            var left = Math.round((s.earliestStart.getTime() - minDate) / totalSpan * 100);
+            var width = Math.max(1, Math.round((s.earliestEnd.getTime() - s.earliestStart.getTime()) / totalSpan * 100));
+            var color = s.status === 'abgeschlossen' ? 'var(--success)' : (s.status === 'blockiert' ? 'var(--danger)' : (s.status === 'in_bearbeitung' ? 'var(--accent)' : 'var(--primary-light)'));
+            html += '<div style="position:absolute; left:' + left + '%; top:' + (20 + idx * 28) + 'px; width:' + width + '%; height:22px; background:' + color + '; border-radius:3px; display:flex; align-items:center; padding:0 6px; overflow:hidden; white-space:nowrap; font-size:11px; color:#fff; cursor:pointer;" '
+              + 'title="#' + s.order + ' ' + escapeHtml(s.stepName) + '\nStart: ' + s.earliestStart.toLocaleDateString('de-DE') + '\nEnde: ' + s.earliestEnd.toLocaleDateString('de-DE') + '">'
+              + '#' + s.order + ' ' + escapeHtml(s.stepName) + '</div>';
+          });
+
+          html += '</div></div>';
+        }
+
+        // Blocker in diesem Projekt
+        var blockedSteps = steps.filter(function(s) { return s.status === 'blockiert'; });
+        if (blockedSteps.length > 0) {
+          html += '<div style="margin-top:8px; padding:8px; background:#fef5e7; border-radius:6px;">'
+            + '<div class="text-sm fw-600" style="color:var(--accent); margin-bottom:4px;">\u{1F6D1} Blockierte Schritte:</div>';
+          blockedSteps.forEach(function(s) {
+            var reason = ATC_DATA.blockerReasons.find(function(r) { return r.id === s.blockerReason; });
+            html += '<div class="text-sm">#' + s.order + ' ' + escapeHtml(s.name) + ': '
+              + (reason ? reason.icon + ' ' + reason.label : 'Blockiert')
+              + (s.blockerNote ? ' \u2013 ' + escapeHtml(s.blockerNote) : '')
+              + (s.blockerUntil ? ' (bis ' + s.blockerUntil + ')' : '')
+              + '</div>';
+          });
+          html += '</div>';
+        }
+
+        // Ausschuss-Log
+        var scrapSteps = steps.filter(function(s) { return s.scrapLog && s.scrapLog.length > 0; });
+        if (scrapSteps.length > 0) {
+          var totalScrap = 0;
+          scrapSteps.forEach(function(s) {
+            s.scrapLog.forEach(function(l) { totalScrap += l.qty; });
+          });
+          html += '<div style="margin-top:8px; padding:8px; background:#fdedec; border-radius:6px;">'
+            + '<div class="text-sm fw-600" style="color:var(--danger); margin-bottom:4px;">\u274C Ausschuss gesamt: ' + totalScrap + ' St\u00fcck</div>';
+          scrapSteps.forEach(function(s) {
+            s.scrapLog.forEach(function(l) {
+              html += '<div class="text-sm">#' + s.order + ' ' + escapeHtml(s.name) + ': ' + l.qty + ' St\u00fcck'
+                + (l.reason ? ' (' + escapeHtml(l.reason) + ')' : '')
+                + ' \u2013 ' + new Date(l.timestamp).toLocaleDateString('de-DE')
+                + '</div>';
+            });
+          });
+          html += '</div>';
+        }
+
+        html += '</div>'; // card
+      });
+
+      // 4) Störungshistorie
+      var resolvedDisruptions = disruptions.filter(function(d) { return d.resolvedAt; });
+      if (resolvedDisruptions.length > 0) {
+        html += '<div class="fw-600 mb-8 mt-16" style="color:var(--text-light); font-size:14px;">Behobene St\u00f6rungen</div>';
+        resolvedDisruptions.forEach(function(d) {
+          var dtype = ATC_DATA.disruptionTypes.find(function(t) { return t.id === d.type; });
+          html += '<div class="card" style="margin-bottom:4px; opacity:0.7; padding:10px;">'
+            + '<span class="badge badge-neutral" style="margin-right:8px;">' + (dtype ? dtype.icon : '') + ' ' + (dtype ? dtype.label : d.type) + '</span>'
+            + '<span class="text-sm">' + escapeHtml(d.description || '') + '</span>'
+            + '<span class="text-sm text-muted" style="margin-left:auto;"> ' + new Date(d.startTime).toLocaleDateString('de-DE') + ' \u2192 ' + new Date(d.resolvedAt).toLocaleDateString('de-DE') + '</span>'
+            + '</div>';
+        });
+      }
+
+      document.getElementById('scheduling-content').innerHTML = html;
+    }
+
+    // ---- STÖRUNGEN ----
+    function openDisruptionModal() {
+      document.getElementById('disr-edit-id').value = '';
+      document.getElementById('disr-description').value = '';
+      document.getElementById('disr-start').value = new Date().toISOString().slice(0, 16);
+      document.getElementById('disr-end').value = '';
+
+      // Störungsarten
+      var typeSel = document.getElementById('disr-type');
+      typeSel.innerHTML = '';
+      ATC_DATA.disruptionTypes.forEach(function(t) {
+        typeSel.innerHTML += '<option value="' + t.id + '">' + t.icon + ' ' + escapeHtml(t.label) + '</option>';
+      });
+
+      // Maschinen
+      var machSel = document.getElementById('disr-machine');
+      machSel.innerHTML = '<option value="">-- Keine --</option>';
+      Storage.getMachines().forEach(function(m) {
+        machSel.innerHTML += '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>';
+      });
+
+      // Projekte
+      var projSel = document.getElementById('disr-projects');
+      projSel.innerHTML = '';
+      Storage.getProjects().forEach(function(p) {
+        projSel.innerHTML += '<option value="' + p.id + '">' + escapeHtml(p.article) + '</option>';
+      });
+
+      showModal('modal-disruption');
+    }
+
+    function saveDisruption(e) {
+      e.preventDefault();
+      var disruptions = Storage.getDisruptions();
+      var id = document.getElementById('disr-edit-id').value || ('DISR_' + Date.now());
+
+      var projSel = document.getElementById('disr-projects');
+      var affectedProjects = [];
+      for (var j = 0; j < projSel.options.length; j++) {
+        if (projSel.options[j].selected) affectedProjects.push(parseInt(projSel.options[j].value));
+      }
+
+      var disruption = {
+        id: id,
+        type: document.getElementById('disr-type').value,
+        machineId: document.getElementById('disr-machine').value,
+        startTime: document.getElementById('disr-start').value,
+        endTime: document.getElementById('disr-end').value,
+        affectedProjects: affectedProjects,
+        description: document.getElementById('disr-description').value.trim(),
+        createdAt: new Date().toISOString(),
+        resolvedAt: null
+      };
+
+      // Existierende updaten oder neue hinzufügen
+      var existing = disruptions.findIndex(function(d) { return d.id === id; });
+      if (existing >= 0) {
+        disruptions[existing] = Object.assign(disruptions[existing], disruption);
+      } else {
+        disruptions.push(disruption);
+      }
+
+      Storage.saveDisruptions(disruptions);
+
+      // Betroffene Arbeitsschritte automatisch blockieren, wenn Maschine ausgefallen
+      if (disruption.machineId && disruption.type === 'machine_down') {
+        affectedProjects.forEach(function(pId) {
+          var steps = Storage.getProjectSteps(pId);
+          var changed = false;
+          steps.forEach(function(s) {
+            if (s.machineId === disruption.machineId && s.status !== 'abgeschlossen' && s.status !== 'blockiert') {
+              s.status = 'blockiert';
+              s.blockerReason = 'machine';
+              s.blockerNote = 'Automatisch blockiert: ' + (disruption.description || 'Maschinenausfall');
+              s.blockerSince = new Date().toISOString();
+              s.blockerUntil = disruption.endTime ? disruption.endTime.split('T')[0] : '';
+              changed = true;
+            }
+          });
+          if (changed) Storage.saveProjectSteps(pId, steps);
+        });
+      }
+
+      closeModal('modal-disruption');
+      refreshView();
+    }
+
+    function resolveDisruption(disruptionId) {
+      var disruptions = Storage.getDisruptions();
+      var d = disruptions.find(function(dd) { return dd.id === disruptionId; });
+      if (!d) return;
+      d.resolvedAt = new Date().toISOString();
+
+      // Blockierte Schritte wieder freigeben, wenn Maschine wieder verfügbar
+      if (d.machineId && d.type === 'machine_down') {
+        (d.affectedProjects || []).forEach(function(pId) {
+          var steps = Storage.getProjectSteps(pId);
+          var changed = false;
+          steps.forEach(function(s) {
+            if (s.machineId === d.machineId && s.status === 'blockiert' && s.blockerReason === 'machine') {
+              s.status = 'offen';
+              if (!s.blockerHistory) s.blockerHistory = [];
+              s.blockerHistory.push({
+                reason: s.blockerReason,
+                note: s.blockerNote,
+                from: s.blockerSince,
+                to: new Date().toISOString()
+              });
+              s.blockerReason = '';
+              s.blockerNote = '';
+              s.blockerSince = '';
+              s.blockerUntil = '';
+              changed = true;
+            }
+          });
+          if (changed) Storage.saveProjectSteps(pId, steps);
+        });
+      }
+
+      Storage.saveDisruptions(disruptions);
+      refreshView();
     }
 
     // Init - check auth

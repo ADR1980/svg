@@ -270,6 +270,13 @@ const ATC_DATA = {
     }
   ],
 
+  // Projekttypen
+  projectTypes: [
+    { value: 'anlage', label: 'Anlage', icon: '\u{1F3ED}', description: 'Komplette Anlage mit Baugruppen und Fertigungsteilen' },
+    { value: 'baugruppe', label: 'Baugruppe', icon: '\u{1F9E9}', description: 'Funktionale Einheit aus mehreren Fertigungsteilen' },
+    { value: 'fertigungsteil', label: 'Fertigungsteil', icon: '\u{2699}', description: 'Einzelnes Bauteil \u2013 kleinste produzierbare Einheit' }
+  ],
+
   employees: [
     { id: 'PE', name: 'Philipp Engelbreit', role: 'Fertigung', pin: '1234', email: 'p.engelbreit@atc-sipro.de' },
     { id: 'AT', name: 'Arthur Thaut', role: 'Konstruktion', pin: '5678', email: 'a.thaut@atc-sipro.de' },
@@ -328,6 +335,28 @@ const ATC_DATA = {
     }
   ],
 
+  // Blocker-Gründe für Arbeitsschritte
+  blockerReasons: [
+    { id: 'material', label: 'Material fehlt', icon: '\u{1F4E6}' },
+    { id: 'drawing', label: 'Zeichnung ausstehend', icon: '\u{1F4D0}' },
+    { id: 'machine', label: 'Maschine nicht verfügbar', icon: '\u{1F527}' },
+    { id: 'tool', label: 'Werkzeug fehlt', icon: '\u{1F6E0}' },
+    { id: 'quality', label: 'Qualitätsproblem (Vorgänger)', icon: '\u26A0' },
+    { id: 'external', label: 'Externe Zulieferung', icon: '\u{1F69A}' },
+    { id: 'approval', label: 'Freigabe ausstehend', icon: '\u{1F4CB}' },
+    { id: 'other', label: 'Sonstiger Grund', icon: '\u2753' }
+  ],
+
+  // Störungsarten
+  disruptionTypes: [
+    { id: 'machine_down', label: 'Maschinenausfall', icon: '\u{1F6A8}' },
+    { id: 'material_delay', label: 'Materialverzögerung', icon: '\u{1F4E6}' },
+    { id: 'employee_absent', label: 'Mitarbeiter abwesend', icon: '\u{1F937}' },
+    { id: 'quality_reject', label: 'Ausschuss / Nacharbeit', icon: '\u274C' },
+    { id: 'priority_change', label: 'Prioritätsänderung', icon: '\u{1F504}' },
+    { id: 'other', label: 'Sonstiges', icon: '\u2753' }
+  ],
+
   // Maschinen
   machines: [
     {
@@ -381,9 +410,12 @@ const Storage = {
     localStorage.removeItem(this._prefix + key);
   },
 
-  // Projekte laden (mit Fallback auf Stammdaten)
+  // Projekte laden (mit Fallback auf Stammdaten, Abwärtskompatibilität für projectType)
   getProjects() {
-    return this.load('projects', ATC_DATA.projects);
+    var projects = this.load('projects', ATC_DATA.projects);
+    return projects.map(function(p) {
+      return Object.assign({ projectType: 'fertigungsteil', parentId: null }, p);
+    });
   },
 
   saveProjects(projects) {
@@ -464,6 +496,15 @@ const Storage = {
     this.save('machines', machines);
   },
 
+  // Produktionsstörungen
+  getDisruptions() {
+    return this.load('disruptions', []);
+  },
+
+  saveDisruptions(disruptions) {
+    this.save('disruptions', disruptions);
+  },
+
   // Arbeitsschritte pro Projekt
   getProjectSteps(projectId) {
     return this.load('project_steps_' + projectId, []);
@@ -498,6 +539,74 @@ function getCustomerName(customerId) {
   const stored = Storage.load('customers', ATC_DATA.customers);
   const c = stored.find(c => c.id === customerId);
   return c ? c.name : 'Unbekannt';
+}
+
+// Projekt-Hierarchie Hilfsfunktionen
+function getProjectChildren(projectId, projects) {
+  return projects.filter(function(p) { return p.parentId === projectId; });
+}
+
+function getProjectParent(project, projects) {
+  if (!project.parentId) return null;
+  return projects.find(function(p) { return p.id === project.parentId; }) || null;
+}
+
+function getProjectRoot(project, projects) {
+  var current = project;
+  var maxDepth = 10;
+  while (current.parentId && maxDepth-- > 0) {
+    var parent = projects.find(function(p) { return p.id === current.parentId; });
+    if (!parent) break;
+    current = parent;
+  }
+  return current;
+}
+
+function getProjectTypeLabel(type) {
+  var t = ATC_DATA.projectTypes.find(function(pt) { return pt.value === type; });
+  return t ? t.label : 'Fertigungsteil';
+}
+
+function getProjectTypeIcon(type) {
+  var t = ATC_DATA.projectTypes.find(function(pt) { return pt.value === type; });
+  return t ? t.icon : '\u2699';
+}
+
+// Berechnet den aggregierten Fortschritt eines Elternprojekts aus seinen Kindern
+function calcAggregatedProgress(project, projects) {
+  var children = getProjectChildren(project.id, projects);
+  if (children.length === 0) {
+    return { konstruktion: project.konstruktion, fertigung: project.fertigung, montage: project.montage };
+  }
+  var sumK = 0, sumF = 0, sumM = 0;
+  children.forEach(function(c) {
+    var cp = calcAggregatedProgress(c, projects);
+    sumK += cp.konstruktion;
+    sumF += cp.fertigung;
+    sumM += cp.montage;
+  });
+  return {
+    konstruktion: sumK / children.length,
+    fertigung: sumF / children.length,
+    montage: sumM / children.length
+  };
+}
+
+// Baut eine Baumstruktur aus flachen Projekten auf
+function buildProjectTree(projects) {
+  var roots = [];
+  var childMap = {};
+  projects.forEach(function(p) {
+    if (!childMap[p.id]) childMap[p.id] = [];
+  });
+  projects.forEach(function(p) {
+    if (p.parentId && childMap[p.parentId] !== undefined) {
+      childMap[p.parentId].push(p);
+    } else {
+      roots.push(p);
+    }
+  });
+  return { roots: roots, childMap: childMap };
 }
 
 function getProgressLabel(type, value) {
@@ -924,6 +1033,323 @@ const Schedule = {
       stepDetails,
       progressPercent
     };
+  },
+
+  /**
+   * Rückwärtsterminierung: Berechnet Starttermine ausgehend vom Liefertermin.
+   * Geht von deliveryDate rückwärts durch alle Arbeitsschritte (kritischer Pfad).
+   * Berücksichtigt 8h/Tag, Mo-Fr Arbeitszeit.
+   *
+   * Rückgabe: Array von { stepId, stepName, latestStart, latestEnd, minutesBefore }
+   */
+  backwardSchedule(projectId) {
+    const project = Storage.getProjects().find(p => p.id === projectId);
+    if (!project || !project.deliveryDate) return null;
+    const steps = Storage.getProjectSteps(projectId);
+    if (steps.length === 0) return null;
+
+    const deliveryDate = new Date(project.deliveryDate);
+    deliveryDate.setHours(17, 0, 0, 0); // Arbeitstag endet 17:00
+
+    const minutesPerDay = 480; // 8h
+    const stepMap = {};
+    steps.forEach(s => { stepMap[s.id] = s; });
+
+    // Berechne Dauer pro Schritt (Soll × Reststück + Trockenzeit)
+    function stepDuration(s) {
+      const remainQty = Math.max(0, (s.totalQty || 0) - (s.completedQty || 0));
+      if (s.status === 'abgeschlossen') return 0;
+      return (s.plannedDuration || 0) * remainQty + (s.dryingTime || 0);
+    }
+
+    // Finde Schritte die von diesem abhängen (Nachfolger)
+    function getSuccessors(stepId) {
+      return steps.filter(s => (s.dependsOn || []).indexOf(stepId) >= 0);
+    }
+
+    // Finde Schritte ohne Nachfolger (Endschritte)
+    const endSteps = steps.filter(s => getSuccessors(s.id).length === 0);
+
+    // Rückwärts: latestEnd für Endschritte = deliveryDate
+    const latestEnd = {};
+    const latestStart = {};
+
+    // Arbeitstage-Subtraktion
+    function subtractWorkMinutes(fromDate, minutes) {
+      const d = new Date(fromDate);
+      let remaining = minutes;
+      while (remaining > 0) {
+        const dow = d.getDay();
+        if (dow === 0) { d.setDate(d.getDate() - 1); d.setHours(17, 0, 0, 0); continue; }
+        if (dow === 6) { d.setDate(d.getDate() - 1); d.setHours(17, 0, 0, 0); continue; }
+        // Verfügbare Minuten heute (von 9:00 bis aktuelle Uhrzeit)
+        const hourStart = 9;
+        const todayAvail = (d.getHours() - hourStart) * 60 + d.getMinutes();
+        if (todayAvail <= 0) { d.setDate(d.getDate() - 1); d.setHours(17, 0, 0, 0); continue; }
+        if (remaining <= todayAvail) {
+          d.setMinutes(d.getMinutes() - remaining);
+          remaining = 0;
+        } else {
+          remaining -= todayAvail;
+          d.setDate(d.getDate() - 1);
+          d.setHours(17, 0, 0, 0);
+        }
+      }
+      return d;
+    }
+
+    // Topologische Rückwärtsberechnung
+    function calcLatestEnd(stepId) {
+      if (latestEnd[stepId] !== undefined) return latestEnd[stepId];
+      const succs = getSuccessors(stepId);
+      if (succs.length === 0) {
+        latestEnd[stepId] = deliveryDate;
+      } else {
+        let earliest = deliveryDate;
+        succs.forEach(s => {
+          const sStart = calcLatestStart(s.id);
+          if (sStart < earliest) earliest = sStart;
+        });
+        latestEnd[stepId] = earliest;
+      }
+      return latestEnd[stepId];
+    }
+
+    function calcLatestStart(stepId) {
+      if (latestStart[stepId] !== undefined) return latestStart[stepId];
+      const end = calcLatestEnd(stepId);
+      const dur = stepDuration(stepMap[stepId]);
+      latestStart[stepId] = subtractWorkMinutes(end, dur);
+      return latestStart[stepId];
+    }
+
+    // Alle berechnen
+    const result = steps.map(s => {
+      const lEnd = calcLatestEnd(s.id);
+      const lStart = calcLatestStart(s.id);
+      const now = new Date();
+      return {
+        stepId: s.id,
+        stepName: s.name,
+        order: s.order,
+        status: s.status,
+        latestStart: lStart,
+        latestEnd: lEnd,
+        duration: stepDuration(s),
+        isOverdue: lStart < now && s.status !== 'abgeschlossen',
+        isCritical: lStart.getTime() - now.getTime() < 2 * 24 * 60 * 60 * 1000 && s.status !== 'abgeschlossen'
+      };
+    });
+
+    result.sort((a, b) => a.latestStart - b.latestStart);
+
+    // Frühester benötigter Start
+    const earliestStart = result.length > 0 ? result[0].latestStart : deliveryDate;
+
+    return {
+      deliveryDate: deliveryDate,
+      earliestStart: earliestStart,
+      steps: result,
+      isOverdue: earliestStart < new Date()
+    };
+  },
+
+  /**
+   * Vorwärtsterminierung: Berechnet Start/End pro Schritt ab einem Startdatum.
+   * Berücksichtigt Maschinenverteilung und Mitarbeiterverfügbarkeit.
+   */
+  forwardSchedule(projectId, startDate) {
+    const project = Storage.getProjects().find(p => p.id === projectId);
+    if (!project) return null;
+    const steps = Storage.getProjectSteps(projectId);
+    if (steps.length === 0) return null;
+
+    const start = startDate ? new Date(startDate) : (project.startDate ? new Date(project.startDate) : new Date());
+    start.setHours(9, 0, 0, 0);
+
+    const stepMap = {};
+    steps.forEach(s => { stepMap[s.id] = s; });
+
+    function stepDuration(s) {
+      const remainQty = Math.max(0, (s.totalQty || 0) - (s.completedQty || 0));
+      if (s.status === 'abgeschlossen') return 0;
+      return (s.plannedDuration || 0) * remainQty + (s.dryingTime || 0);
+    }
+
+    function addWorkMinutes(fromDate, minutes) {
+      const d = new Date(fromDate);
+      let remaining = minutes;
+      while (remaining > 0) {
+        const dow = d.getDay();
+        if (dow === 0) { d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); continue; }
+        if (dow === 6) { d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); continue; }
+        const todayRemain = 17 * 60 - (d.getHours() * 60 + d.getMinutes());
+        if (todayRemain <= 0) { d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); continue; }
+        if (remaining <= todayRemain) {
+          d.setMinutes(d.getMinutes() + remaining);
+          remaining = 0;
+        } else {
+          remaining -= todayRemain;
+          d.setDate(d.getDate() + 1);
+          d.setHours(9, 0, 0, 0);
+        }
+      }
+      return d;
+    }
+
+    const earliestStart = {};
+    const earliestEnd = {};
+
+    function calcEarliestStart(stepId) {
+      if (earliestStart[stepId] !== undefined) return earliestStart[stepId];
+      const s = stepMap[stepId];
+      if (!s) return start;
+      let latest = new Date(start);
+      (s.dependsOn || []).forEach(depId => {
+        const depEnd = calcEarliestEnd(depId);
+        if (depEnd > latest) latest = depEnd;
+      });
+      earliestStart[stepId] = latest;
+      return latest;
+    }
+
+    function calcEarliestEnd(stepId) {
+      if (earliestEnd[stepId] !== undefined) return earliestEnd[stepId];
+      const s = stepMap[stepId];
+      const sStart = calcEarliestStart(stepId);
+      earliestEnd[stepId] = addWorkMinutes(sStart, stepDuration(s));
+      return earliestEnd[stepId];
+    }
+
+    const result = steps.map(s => {
+      const eStart = calcEarliestStart(s.id);
+      const eEnd = calcEarliestEnd(s.id);
+      return {
+        stepId: s.id,
+        stepName: s.name,
+        order: s.order,
+        status: s.status,
+        earliestStart: eStart,
+        earliestEnd: eEnd,
+        duration: stepDuration(s),
+        machineId: s.machineId || null,
+        assignedTo: s.assignedTo || null
+      };
+    });
+
+    result.sort((a, b) => a.earliestStart - b.earliestStart);
+
+    const projectEnd = result.reduce((latest, s) => s.earliestEnd > latest ? s.earliestEnd : latest, start);
+
+    return {
+      startDate: start,
+      projectEnd: projectEnd,
+      steps: result,
+      exceedsDeadline: project.deliveryDate ? projectEnd > new Date(project.deliveryDate) : false
+    };
+  },
+
+  /**
+   * Prüft Ressourcen-Konflikte: Gleiche Maschine/Person doppelt belegt?
+   */
+  checkResourceConflicts() {
+    const projects = Storage.getProjects();
+    const conflicts = [];
+
+    // Sammel alle aktiven Schritte mit geplanten Zeiten
+    const allScheduled = [];
+    projects.forEach(p => {
+      const fwd = this.forwardSchedule(p.id);
+      if (!fwd) return;
+      fwd.steps.forEach(s => {
+        if (s.status === 'abgeschlossen') return;
+        allScheduled.push({
+          projectId: p.id,
+          projectName: p.article,
+          stepId: s.stepId,
+          stepName: s.stepName,
+          start: s.earliestStart,
+          end: s.earliestEnd,
+          machineId: s.machineId,
+          assignedTo: s.assignedTo
+        });
+      });
+    });
+
+    // Maschinenüberschneidungen prüfen
+    const byMachine = {};
+    allScheduled.forEach(s => {
+      if (s.machineId) {
+        if (!byMachine[s.machineId]) byMachine[s.machineId] = [];
+        byMachine[s.machineId].push(s);
+      }
+    });
+    Object.keys(byMachine).forEach(machId => {
+      const slots = byMachine[machId].sort((a, b) => a.start - b.start);
+      for (let i = 0; i < slots.length - 1; i++) {
+        if (slots[i].end > slots[i + 1].start) {
+          conflicts.push({
+            type: 'machine',
+            resourceId: machId,
+            step1: slots[i],
+            step2: slots[i + 1]
+          });
+        }
+      }
+    });
+
+    // Mitarbeiterüberschneidungen prüfen
+    const byEmployee = {};
+    allScheduled.forEach(s => {
+      if (s.assignedTo) {
+        if (!byEmployee[s.assignedTo]) byEmployee[s.assignedTo] = [];
+        byEmployee[s.assignedTo].push(s);
+      }
+    });
+    Object.keys(byEmployee).forEach(empId => {
+      const slots = byEmployee[empId].sort((a, b) => a.start - b.start);
+      for (let i = 0; i < slots.length - 1; i++) {
+        if (slots[i].end > slots[i + 1].start) {
+          conflicts.push({
+            type: 'employee',
+            resourceId: empId,
+            step1: slots[i],
+            step2: slots[i + 1]
+          });
+        }
+      }
+    });
+
+    return conflicts;
+  },
+
+  /**
+   * Berechnet Ausschuss-Auswirkungen: Wenn Ausschuss gemeldet wird,
+   * erhöht sich die offene Menge und damit die Restdauer.
+   */
+  applyScrap(projectId, stepId, scrapQty, reason) {
+    const steps = Storage.getProjectSteps(projectId);
+    const step = steps.find(s => s.id === stepId);
+    if (!step) return false;
+
+    // Ausschuss protokollieren
+    if (!step.scrapLog) step.scrapLog = [];
+    step.scrapLog.push({
+      qty: scrapQty,
+      reason: reason || '',
+      timestamp: new Date().toISOString()
+    });
+
+    // Fertigmenge reduzieren (Ausschuss zählt nicht als gute Stücke)
+    step.completedQty = Math.max(0, (step.completedQty || 0) - scrapQty);
+
+    // Wenn Schritt schon abgeschlossen war, wieder öffnen
+    if (step.status === 'abgeschlossen' && step.completedQty < step.totalQty) {
+      step.status = 'in_bearbeitung';
+    }
+
+    Storage.saveProjectSteps(projectId, steps);
+    return true;
   }
 };
 
