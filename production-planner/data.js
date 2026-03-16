@@ -449,7 +449,7 @@ const ATC_DATA = {
 
 // ---- Supabase Integration ----
 var SUPABASE_URL = 'https://wnaozzjcasdopspnlfsy.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_XnH1vzXIHOt5SeelpigcxA_-oisjcYV';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYW96empjYXNkb3BzcG5sZnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Mjg5MTksImV4cCI6MjA4OTIwNDkxOX0.LJ6EQhFI58ec32B1b-6Jze0Rq0Ri3rAZddiLoaF4aQc';
 var _supabaseClient = null;
 
 function getSupabase() {
