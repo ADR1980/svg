@@ -236,7 +236,7 @@
     .daily-report-btn:hover { opacity: 0.9; }
     .daily-report-btn .report-icon { font-size: 20px; }
 
-    /* Daily Report Modal */
+    /* Modal Styles (shared for self-assign) */
     .report-modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.5); z-index: 200; display: flex;
@@ -259,14 +259,6 @@
       background: none; border: none; font-size: 24px; cursor: pointer;
       color: var(--text-light); padding: 4px;
     }
-    .report-task-list { margin-bottom: 16px; }
-    .report-task-entry {
-      background: var(--bg); border-radius: 8px; padding: 12px;
-      margin-bottom: 8px; border-left: 3px solid var(--primary);
-    }
-    .report-task-entry .task-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
-    }
     .report-date-picker {
       display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
       background: var(--bg); border-radius: 8px; padding: 10px 12px;
@@ -276,15 +268,6 @@
       font-size: 14px; font-family: inherit; flex: 1; color: var(--text);
     }
     .report-date-picker label { font-size: 13px; font-weight: 600; white-space: nowrap; }
-    .report-section-label {
-      font-size: 13px; font-weight: 600; color: var(--primary); margin: 12px 0 8px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .report-other-tasks-toggle {
-      font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 500;
-      background: none; border: none; text-decoration: underline;
-    }
-
     /* Self-assign task button */
     .self-assign-btn {
       display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -372,18 +355,20 @@
     <!-- Pages -->
     <div class="page active" id="page-today">
       <div class="date-header" id="today-date"></div>
-      <button class="daily-report-btn" onclick="openDailyReportModal()">
-        <span class="report-icon">&#128221;</span> Tagesbericht erstellen
-      </button>
-      <button class="self-assign-btn" onclick="openSelfAssignModal()">
-        <span>&#10133;</span> Aufgabe &uuml;bernehmen
-      </button>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+        <button class="daily-report-btn" onclick="goToReport()" style="margin-bottom:0;">
+          <span class="report-icon">&#128221;</span> Bericht erstellen
+        </button>
+        <button class="self-assign-btn" onclick="openSelfAssignModal()" style="margin-bottom:0;">
+          <span>&#10133;</span> Aufgabe &uuml;bernehmen
+        </button>
+      </div>
       <div id="today-tasks"></div>
     </div>
 
-    <div class="page" id="page-week">
-      <div class="date-header">Wochenansicht</div>
-      <div id="week-view-container"></div>
+    <div class="page" id="page-report">
+      <div class="date-header">Tagesbericht</div>
+      <div id="report-form-container"></div>
     </div>
 
     <div class="page" id="page-overview">
@@ -391,9 +376,9 @@
       <div id="overview-projects"></div>
     </div>
 
-    <div class="page" id="page-report">
-      <div class="date-header">Tagesbericht erstellen</div>
-      <div id="report-form-container"></div>
+    <div class="page" id="page-allreports">
+      <div class="date-header">Alle Tagesberichte</div>
+      <div id="all-reports-container"></div>
     </div>
 
     <div class="page" id="page-history">
@@ -401,8 +386,34 @@
       <div id="history-list"></div>
     </div>
 
+    <div class="page" id="page-week">
+      <div class="date-header">Wochenansicht</div>
+      <div id="week-view-container"></div>
+    </div>
+
     <div class="page" id="page-settings">
-      <div class="date-header">Einstellungen</div>
+      <div class="date-header">Mehr</div>
+
+      <div class="card" style="cursor:pointer;" onclick="navigateTo('history')">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:24px;">&#128214;</span>
+          <div>
+            <div class="fw-600">Meine Berichte</div>
+            <div class="text-sm text-muted">Verlauf aller eingereichten Berichte</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="cursor:pointer;" onclick="navigateTo('week')">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:24px;">&#128198;</span>
+          <div>
+            <div class="fw-600">Wochenansicht</div>
+            <div class="text-sm text-muted">Aufgaben der aktuellen Woche</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="fw-600 mb-8">PIN &auml;ndern</div>
         <div class="text-sm text-muted mb-8">Hier k&ouml;nnen Sie Ihre Login-PIN f&uuml;r die Mitarbeiter-App &auml;ndern.</div>
@@ -430,17 +441,17 @@
       <div class="nav-item active" data-page="today">
         <span class="nav-icon">&#128197;</span>Heute
       </div>
-      <div class="nav-item" data-page="week">
-        <span class="nav-icon">&#128198;</span>Woche
+      <div class="nav-item" data-page="report">
+        <span class="nav-icon">&#128221;</span>Bericht
+      </div>
+      <div class="nav-item" data-page="allreports">
+        <span class="nav-icon">&#128203;</span>Berichte
       </div>
       <div class="nav-item" data-page="overview">
-        <span class="nav-icon">&#128202;</span>&Uuml;bersicht
-      </div>
-      <div class="nav-item" data-page="history">
-        <span class="nav-icon">&#128214;</span>Verlauf
+        <span class="nav-icon">&#128202;</span>Projekte
       </div>
       <div class="nav-item" data-page="settings">
-        <span class="nav-icon">&#9881;</span>PIN
+        <span class="nav-icon">&#9881;</span>Mehr
       </div>
     </div>
   </div>
@@ -514,21 +525,25 @@
     }
 
     // ---- NAVIGATION ----
+    function navigateTo(page) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const navItem = document.querySelector('[data-page="' + page + '"]');
+      if (navItem) navItem.classList.add('active');
+      document.getElementById('page-' + page).classList.add('active');
+      switch (page) {
+        case 'today': renderToday(); break;
+        case 'report': renderReportForm(); break;
+        case 'allreports': renderAllReports(); break;
+        case 'overview': renderOverview(); break;
+        case 'history': renderHistory(); break;
+        case 'week': renderWeekView(); break;
+      }
+    }
+
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        item.classList.add('active');
-        const page = item.dataset.page;
-        document.getElementById('page-' + page).classList.add('active');
-
-        switch (page) {
-          case 'today': renderToday(); break;
-          case 'week': renderWeekView(); break;
-          case 'overview': renderOverview(); break;
-          case 'report': renderReportForm(); break;
-          case 'history': renderHistory(); break;
-        }
+        navigateTo(item.dataset.page);
       });
     });
 
@@ -1071,32 +1086,6 @@
       ).join('');
     }
 
-    let hasDeviation = false;
-
-    function setDeviation(val) {
-      hasDeviation = val;
-      document.querySelectorAll('.toggle-option').forEach(o => {
-        o.classList.remove('active-yes', 'active-no');
-      });
-      const toggles = document.querySelectorAll('.toggle-option');
-      if (val) {
-        toggles[1].classList.add('active-no');
-      } else {
-        toggles[0].classList.add('active-yes');
-      }
-      const section = document.getElementById('deviation-section');
-      if (section) section.style.display = val ? 'block' : 'none';
-    }
-
-    function updateReportProgress(area) {
-      const sel = document.getElementById('rpt-progress');
-      if (!sel) return;
-      const scale = ATC_DATA.progressScales[area] || [];
-      sel.innerHTML = scale.map(s =>
-        `<option value="${s.value}">${Math.round(s.value * 100)}% - ${escapeHtml(s.label)}</option>`
-      ).join('');
-    }
-
     function handlePhotos(event) {
       const files = event.target.files;
       Array.from(files).forEach(file => {
@@ -1383,6 +1372,154 @@
       renderReportForm();
     }
 
+    // ---- ALLE BERICHTE (ÜBERSICHT) ----
+    let allReportsDateOffset = 0;
+
+    function renderAllReports() {
+      const employees = Storage.getEmployees();
+      const projects = Storage.getProjects();
+      const refDate = new Date();
+      refDate.setDate(refDate.getDate() + allReportsDateOffset);
+      const isoDate = getISODate(refDate);
+
+      // Navigation
+      let html = `
+        <div class="week-nav" style="margin-bottom:16px;">
+          <button class="week-nav-btn" onclick="allReportsDateOffset--; renderAllReports();">&larr;</button>
+          <div class="week-nav-label">${formatDate(refDate)}</div>
+          <button class="week-nav-btn" onclick="allReportsDateOffset++; renderAllReports();">&rarr;</button>
+        </div>
+      `;
+
+      if (allReportsDateOffset !== 0) {
+        html += `<div style="text-align:center; margin-bottom:12px;">
+          <button class="btn btn-outline btn-sm" onclick="allReportsDateOffset=0; renderAllReports();">Heute</button>
+        </div>`;
+      }
+
+      // Collect all reports for this date
+      const allReports = [];
+      employees.forEach(emp => {
+        const report = Storage.getDailyReport(isoDate, emp.id);
+        if (report) {
+          allReports.push({ employee: emp, report: report });
+        }
+      });
+
+      // Summary stats
+      const totalReported = allReports.length;
+      const totalDeviation = allReports.filter(r => {
+        if (r.report.entries) return r.report.entries.some(e => e.deviation);
+        return r.report.deviation;
+      }).length;
+      const totalMinutes = allReports.reduce((sum, r) => {
+        if (r.report.entries) return sum + r.report.entries.reduce((s, e) => s + (e.actualMinutes || 0), 0);
+        return sum + (r.report.actualMinutes || 0);
+      }, 0);
+
+      html += `
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px;">
+          <div class="card" style="text-align:center; padding:12px;">
+            <div class="fw-600" style="font-size:22px; color:var(--primary);">${totalReported}</div>
+            <div class="text-sm text-muted">Berichte</div>
+          </div>
+          <div class="card" style="text-align:center; padding:12px;">
+            <div class="fw-600" style="font-size:22px; color:${totalDeviation > 0 ? 'var(--danger)' : 'var(--success)'};">${totalDeviation}</div>
+            <div class="text-sm text-muted">Abweichungen</div>
+          </div>
+          <div class="card" style="text-align:center; padding:12px;">
+            <div class="fw-600" style="font-size:22px; color:var(--accent);">${totalMinutes > 0 ? Math.round(totalMinutes / 60 * 10) / 10 + 'h' : '—'}</div>
+            <div class="text-sm text-muted">Gesamt-Ist</div>
+          </div>
+        </div>
+      `;
+
+      // Employee list with report status
+      if (allReports.length === 0) {
+        // Show who hasn't reported
+        const unreported = employees.filter(e => e.role !== 'Viewer');
+        html += `
+          <div class="card" style="text-align:center; padding:20px;">
+            <div style="font-size:28px; margin-bottom:8px;">&#128203;</div>
+            <div class="fw-600">Keine Berichte f&uuml;r diesen Tag</div>
+            <div class="text-sm text-muted mt-8">${unreported.length} Mitarbeiter ohne Bericht</div>
+          </div>
+        `;
+      } else {
+        allReports.forEach(({ employee, report }) => {
+          const hasEntries = report.entries && report.entries.length > 0;
+          const anyDeviation = hasEntries ? report.entries.some(e => e.deviation) : report.deviation;
+          const totalActual = hasEntries ? report.entries.reduce((s, e) => s + (e.actualMinutes || 0), 0) : (report.actualMinutes || 0);
+          const totalPlanned = hasEntries ? report.entries.reduce((s, e) => s + (e.plannedMinutes || 0), 0) : 0;
+
+          html += `
+            <div class="card" style="border-left:4px solid ${anyDeviation ? 'var(--danger)' : 'var(--success)'};">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div>
+                  <div class="fw-600">${escapeHtml(employee.name)}</div>
+                  <div class="text-sm text-muted">${escapeHtml(employee.role || '')}</div>
+                </div>
+                <div style="text-align:right;">
+                  <span class="badge ${anyDeviation ? 'badge-danger' : 'badge-success'}">${anyDeviation ? 'Abweichung' : 'OK'}</span>
+                  ${totalActual > 0 ? `<div class="text-sm text-muted mt-8">${totalActual} Min${totalPlanned > 0 ? ' / ' + totalPlanned + ' Soll' : ''}</div>` : ''}
+                </div>
+              </div>
+          `;
+
+          if (hasEntries) {
+            report.entries.forEach(entry => {
+              const proj = projects.find(p => p.id === entry.projectId);
+              const timeDiff = (entry.actualMinutes || 0) - (entry.plannedMinutes || 0);
+              const hasTimeDiff = (entry.plannedMinutes || 0) > 0 && (entry.actualMinutes || 0) > 0;
+              const timeDiffColor = timeDiff > 0 ? 'var(--danger)' : timeDiff < 0 ? 'var(--success)' : 'var(--text)';
+
+              html += `
+                <div style="padding:6px 8px; background:var(--bg); border-radius:6px; margin-bottom:4px; border-left:3px solid ${entry.deviation ? 'var(--danger)' : 'var(--primary)'};">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="fw-600 text-sm">${proj ? escapeHtml(proj.article) : 'Projekt'}</div>
+                    <span class="badge badge-info" style="font-size:10px;">${escapeHtml(entry.area || '')}</span>
+                  </div>
+                  <div class="text-sm" style="margin-top:4px;">${escapeHtml(entry.completedWork || '-')}</div>
+                  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+                    ${entry.actualMinutes > 0 ? `<span class="badge badge-warning" style="font-size:10px;">Ist: ${entry.actualMinutes} Min</span>` : ''}
+                    ${hasTimeDiff ? `<span class="badge" style="font-size:10px; background:${timeDiff > 0 ? '#fadbd8' : '#d5f5e3'}; color:${timeDiffColor};">${timeDiff > 0 ? '+' : ''}${timeDiff} Min</span>` : ''}
+                    ${entry.completedQty > 0 ? `<span class="badge badge-neutral" style="font-size:10px;">${entry.completedQty} Stk.</span>` : ''}
+                  </div>
+                  ${entry.deviation ? `<div class="text-sm" style="color:var(--danger); margin-top:4px;">${escapeHtml(entry.deviationReason || '-')}</div>` : ''}
+                </div>
+              `;
+            });
+          } else {
+            const proj = report.projectId ? projects.find(p => p.id === report.projectId) : null;
+            html += `
+              <div class="text-sm"><strong>${proj ? escapeHtml(proj.article) : ''}</strong>: ${escapeHtml(report.completedWork || '-')}</div>
+              ${report.deviation ? `<div class="text-sm" style="color:var(--danger); margin-top:4px;">${escapeHtml(report.deviationReason || '-')}</div>` : ''}
+            `;
+          }
+
+          if (report.generalNotes) {
+            html += `<div class="text-sm mt-8" style="font-style:italic; color:var(--text-light);">${escapeHtml(report.generalNotes)}</div>`;
+          }
+
+          html += '</div>';
+        });
+
+        // Show who hasn't reported
+        const reportedIds = allReports.map(r => r.employee.id);
+        const unreported = employees.filter(e => !reportedIds.includes(e.id) && e.role !== 'Viewer');
+        if (unreported.length > 0) {
+          html += `
+            <div class="card" style="border-left:4px solid var(--warning);">
+              <div class="fw-600 text-sm" style="color:var(--warning);">Ohne Bericht (${unreported.length})</div>
+              <div class="text-sm text-muted mt-8">${unreported.map(e => escapeHtml(e.name)).join(', ')}</div>
+            </div>
+          `;
+        }
+      }
+
+      document.getElementById('all-reports-container').innerHTML = html;
+    }
+
     // ---- WOCHENANSICHT ----
     let weekViewOffset = 0; // 0 = aktuelle Woche, -1 = letzte Woche, etc.
 
@@ -1495,128 +1632,6 @@
     function toggleWeekDay(headerEl) {
       const body = headerEl.nextElementSibling;
       body.classList.toggle('collapsed');
-    }
-
-    // ---- TAGESBERICHT-MODAL ----
-    function openDailyReportModal(dateStr) {
-      const selectedDate = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
-      selectedReportDate = getISODate(selectedDate);
-      const isoDate = selectedReportDate;
-      const kw = getKW(selectedDate);
-      const year = selectedDate.getFullYear();
-      const dayOfWeek = (selectedDate.getDay() + 6) % 7; // 0=Mo, 4=Fr
-
-      const plan = Storage.getWeekPlan(year, kw);
-      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week'));
-      // Other day tasks from the same week (excluding selected day)
-      const otherTasks = plan.filter(t => t.employeeId === currentEmployee.id && t.day !== dayOfWeek && t.day !== 'week');
-      const projects = Storage.getProjects();
-      const existingReport = Storage.getDailyReport(isoDate, currentEmployee.id);
-
-      const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
-
-      function renderTaskEntry(task, fromOtherDay) {
-        const proj = projects.find(p => p.id === task.projectId);
-        const isReported = !!existingReport;
-        const dayLabel = fromOtherDay && typeof task.day === 'number' ? `<span class="badge badge-neutral" style="font-size:10px;">${dayNames[task.day] || ''}</span>` : '';
-        return `
-          <div class="report-task-entry" ${fromOtherDay ? 'style="border-left-color: var(--accent);"' : ''}>
-            <div class="task-header">
-              <div class="fw-600 text-sm">${proj ? escapeHtml(proj.article) : 'Unbekannt'} ${dayLabel}</div>
-              ${isReported
-                ? '<span class="badge badge-success" style="font-size:10px;">Berichtet</span>'
-                : '<span class="badge badge-warning" style="font-size:10px;">Offen</span>'}
-            </div>
-            <div class="text-sm text-muted">${proj ? getCustomerName(proj.customerId) : ''}</div>
-            <div class="text-sm mt-8"><strong>Aufgabe:</strong> ${escapeHtml(task.description)}</div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
-              <span class="badge badge-info">${escapeHtml(task.area)}</span>
-              ${task.plannedQty ? `<span class="badge badge-neutral">${task.plannedQty} Stk.</span>` : ''}
-              ${task.plannedMinutes ? `<span class="badge badge-warning">Soll: ${task.plannedMinutes} Min</span>` : ''}
-            </div>
-            ${!isReported ? `
-              <div style="margin-top:8px;">
-                <button class="btn btn-accent btn-sm" style="width:100%;" data-desc="${escapeHtml(task.description)}" onclick="closeDailyReportModal(); goToReport(${task.projectId}, '${task.area}', this.dataset.desc, ${task.plannedQty || 0}, '${isoDate}');">
-                  Bericht f&uuml;r diese Aufgabe
-                </button>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }
-
-      let tasksHtml = '';
-      if (myTasks.length === 0) {
-        tasksHtml = '<div class="text-sm text-muted" style="padding: 12px 0;">Keine Aufgaben f&uuml;r diesen Tag geplant.</div>';
-      } else {
-        myTasks.forEach(task => { tasksHtml += renderTaskEntry(task, false); });
-      }
-
-      let otherTasksHtml = '';
-      if (otherTasks.length > 0) {
-        otherTasks.forEach(task => { otherTasksHtml += renderTaskEntry(task, true); });
-      }
-
-      const overlay = document.createElement('div');
-      overlay.className = 'report-modal-overlay';
-      overlay.id = 'daily-report-modal';
-      overlay.onclick = function(e) { if (e.target === overlay) closeDailyReportModal(); };
-
-      overlay.innerHTML = `
-        <div class="report-modal">
-          <div class="report-modal-header">
-            <div>
-              <div class="fw-600" style="font-size:17px;">Tagesbericht</div>
-              <div class="text-sm text-muted">${formatDate(selectedDate)}</div>
-            </div>
-            <button class="report-modal-close" onclick="closeDailyReportModal()">&times;</button>
-          </div>
-          <div class="report-date-picker">
-            <label>Datum:</label>
-            <input type="date" id="report-date-input" value="${isoDate}" onchange="closeDailyReportModal(); openDailyReportModal(this.value);">
-          </div>
-          <div class="report-section-label">Aufgaben f&uuml;r ${formatDate(selectedDate)} (${myTasks.length})</div>
-          <div class="report-task-list">${tasksHtml}</div>
-          ${otherTasks.length > 0 ? `
-            <div class="report-section-label">
-              Aufgaben anderer Tage (${otherTasks.length})
-              <button class="report-other-tasks-toggle" onclick="document.getElementById('other-day-tasks').style.display = document.getElementById('other-day-tasks').style.display === 'none' ? 'block' : 'none'; this.textContent = document.getElementById('other-day-tasks').style.display === 'none' ? 'Einblenden' : 'Ausblenden';">Einblenden</button>
-            </div>
-            <div id="other-day-tasks" class="report-task-list" style="display: none;">${otherTasksHtml}</div>
-          ` : ''}
-          ${existingReport ? `
-            <div class="card" style="background: #d5f5e3; border: 1px solid #27ae60;">
-              <div class="fw-600 text-sm" style="color: #27ae60;">Tagesbericht bereits eingereicht</div>
-              ${existingReport.entries && existingReport.entries.length > 0
-                ? existingReport.entries.map(e => {
-                    const p = projects.find(pp => pp.id === e.projectId);
-                    const timeDiff = (e.actualMinutes || 0) - (e.plannedMinutes || 0);
-                    const hasTD = e.plannedMinutes > 0 && e.actualMinutes > 0;
-                    return '<div class="text-sm mt-8" style="padding:6px 8px; background:rgba(255,255,255,0.6); border-radius:6px;">'
-                      + '<strong>' + escapeHtml(p ? p.article : 'Projekt') + '</strong> (' + escapeHtml(e.area || '') + '): '
-                      + escapeHtml(e.completedWork || '-')
-                      + (hasTD ? ' <span style="color:' + (timeDiff > 0 ? 'var(--danger)' : 'var(--success)') + '; font-weight:600;">' + (timeDiff > 0 ? '+' : '') + timeDiff + ' Min</span>' : '')
-                      + (e.deviation ? ' <span class="badge badge-danger" style="font-size:10px;">Abweichung</span>' : '')
-                      + '</div>';
-                  }).join('')
-                : '<div class="text-sm mt-8"><strong>Erledigt:</strong> ' + escapeHtml(existingReport.completedWork || '-') + '</div>'
-              }
-              <div class="text-sm mt-8">
-                <button class="btn btn-outline btn-sm" onclick="closeDailyReportModal(); editHistoryReport('${isoDate}');">
-                  Bericht bearbeiten
-                </button>
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      `;
-
-      document.body.appendChild(overlay);
-    }
-
-    function closeDailyReportModal() {
-      const modal = document.getElementById('daily-report-modal');
-      if (modal) modal.remove();
     }
 
     // ---- AUFGABE SELBST ZUWEISEN ----
@@ -1736,11 +1751,6 @@
         Storage.saveWeekPlan(year, kw, plan);
         renderToday();
       }
-    }
-
-    function markTaskDone(projectId, area, description) {
-      // Quick-complete: go directly to report form with this task pre-filled
-      goToReport(projectId, area, description, 0);
     }
 
     // ---- AUFGABEN-FOTOS ----
