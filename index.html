@@ -565,10 +565,57 @@ section { padding: 100px 40px; }
   .process-steps::before { display: none; }
   .dashboard-grid { grid-template-columns: 1fr; }
 }
+/* ─── HAMBURGER MENU ─── */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 1001;
+  background: none;
+  border: none;
+}
+.hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
 @media (max-width: 768px) {
   section { padding: 60px 20px; }
   .navbar { padding: 0 20px; }
-  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .nav-links {
+    display: none;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: rgba(10,14,20,0.98);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    padding: 20px;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a {
+    padding: 14px 0;
+    font-size: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-links .lang-switch {
+    margin-top: 12px;
+    align-self: flex-start;
+  }
   .services-grid { grid-template-columns: 1fr; }
   .stats-row { grid-template-columns: 1fr 1fr; }
   .contact-grid { grid-template-columns: 1fr; }
@@ -584,11 +631,14 @@ section { padding: 100px 40px; }
     <div class="nav-logo-icon">SVG</div>
     <div class="nav-logo-text">Sentinal <span>Venguard</span> Global</div>
   </a>
-  <div class="nav-links">
-    <a href="#risk-dashboard" data-de="Risikoanalyse" data-en="Risk Analysis">Risikoanalyse</a>
-    <a href="#services" data-de="Leistungen" data-en="Services">Leistungen</a>
-    <a href="#approach" data-de="Ansatz" data-en="Approach">Ansatz</a>
-    <a href="#contact" data-de="Kontakt" data-en="Contact">Kontakt</a>
+  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a href="#risk-dashboard" data-de="Risikoanalyse" data-en="Risk Analysis" onclick="closeMobileMenu()">Risikoanalyse</a>
+    <a href="#services" data-de="Leistungen" data-en="Services" onclick="closeMobileMenu()">Leistungen</a>
+    <a href="#approach" data-de="Ansatz" data-en="Approach" onclick="closeMobileMenu()">Ansatz</a>
+    <a href="#contact" data-de="Kontakt" data-en="Contact" onclick="closeMobileMenu()">Kontakt</a>
     <div class="lang-switch">
       <button class="lang-btn active" onclick="setLang('de')">DE</button>
       <button class="lang-btn" onclick="setLang('en')">EN</button>
@@ -854,11 +904,24 @@ section { padding: 100px 40px; }
 
 <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
+// ─── Mobile Menu ───
+function toggleMobileMenu() {
+  const nav = document.getElementById('nav-links');
+  const btn = document.querySelector('.hamburger');
+  nav.classList.toggle('open');
+  btn.classList.toggle('active');
+}
+function closeMobileMenu() {
+  document.getElementById('nav-links').classList.remove('open');
+  document.querySelector('.hamburger').classList.remove('active');
+}
+
 // ─── Language System ───
-let currentLang = 'de';
+let currentLang = localStorage.getItem('svg-lang') || 'de';
 
 function setLang(lang) {
   currentLang = lang;
+  localStorage.setItem('svg-lang', lang);
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim() === lang.toUpperCase()));
   document.querySelectorAll('[data-' + lang + ']').forEach(el => {
     const text = el.getAttribute('data-' + lang);
@@ -1146,11 +1209,11 @@ async function loadNewsFeed() {
       const riskLevel = i < 2 ? 'high' : i < 5 ? 'medium' : 'low';
       const timeAgo = getTimeAgo(new Date(pubDate));
       feedEl.innerHTML += `
-        <a href="${link}" target="_blank" rel="noopener" class="news-item risk-${riskLevel}">
+        <a href="${escapeHtml(link)}" target="_blank" rel="noopener" class="news-item risk-${riskLevel}">
           <div class="news-time">${timeAgo}</div>
           <div class="news-content">
-            <h4>${truncate(title, 90)}</h4>
-            <p>${source}</p>
+            <h4>${escapeHtml(truncate(title, 90))}</h4>
+            <p>${escapeHtml(source)}</p>
             <span class="news-tag" style="${tagColors[riskLevel]}">${tagLabels[riskLevel]}</span>
           </div>
         </a>`;
@@ -1207,6 +1270,11 @@ function truncate(str, max) {
   return str.length > max ? str.substring(0, max) + '...' : str;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ─── Popup Styling ───
 const popupStyle = document.createElement('style');
 popupStyle.textContent = `
@@ -1227,6 +1295,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 
 // ─── Init ───
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply saved language preference
+  if (currentLang !== 'de') setLang(currentLang);
   initDashboard();
   // Auto-refresh every 5 minutes
   setInterval(() => { initDashboard(); }, 300000);
