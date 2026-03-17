@@ -701,108 +701,226 @@
       document.querySelector('[data-page="report"]').classList.add('active');
       document.getElementById('page-report').classList.add('active');
 
-      renderReportForm(projectId, area, description, plannedQty);
+      renderReportForm(null, null, null, 0, projectId);
     }
 
-    function renderReportForm(projectId, area, description, plannedQty) {
+    function renderReportForm(unused1, unused2, unused3, unused4, highlightProjectId) {
       const today = selectedReportDate || getISODate(new Date());
       const reportDateObj = new Date(today + 'T12:00:00');
       const existingReport = Storage.getDailyReport(today, currentEmployee.id);
       const projects = Storage.getProjects();
 
-      // Use existing report values as fallback
-      if (existingReport) {
-        if (projectId == null) projectId = existingReport.projectId;
-        if (!area) area = existingReport.area;
-        if (!description) description = existingReport.taskDescription;
-        if (!plannedQty) plannedQty = existingReport.completedQty;
-      }
+      // Gather tasks from week plan for this day
+      const kw = getKW(reportDateObj);
+      const year = reportDateObj.getFullYear();
+      const dayOfWeek = (reportDateObj.getDay() + 6) % 7;
+      const plan = Storage.getWeekPlan(year, kw);
+      const myTasks = plan.filter(t => t.employeeId === currentEmployee.id && (t.day === dayOfWeek || t.day === 'week'));
 
-      // Merge task photos + existing report photos
-      const taskPhotoData = projectId ? TaskPhotos.getPhotos(currentEmployee.id, today, projectId) : [];
-      const taskPhotoUrls = taskPhotoData.map(p => p.data || p);
-      if (existingReport && existingReport.photos && existingReport.photos.length > 0) {
-        reportPhotos = existingReport.photos;
-      } else if (taskPhotoUrls.length > 0) {
-        reportPhotos = taskPhotoUrls;
+      // Build report entries: merge existing saved entries with planned tasks
+      let entries = [];
+      if (existingReport && existingReport.entries && existingReport.entries.length > 0) {
+        entries = existingReport.entries.map(e => ({ ...e }));
+        // Add any new planned tasks not already in report
+        myTasks.forEach(task => {
+          const already = entries.find(e => e.projectId === task.projectId && e.area === task.area);
+          if (!already) {
+            entries.push({
+              projectId: task.projectId,
+              area: task.area,
+              taskDescription: task.description || '',
+              plannedMinutes: task.plannedMinutes || 0,
+              plannedQty: task.plannedQty || 0,
+              workStepId: task.workStepId || null,
+              actualMinutes: 0,
+              completedQty: 0,
+              completedWork: '',
+              deviation: false,
+              deviationReason: '',
+              achievedProgress: 0
+            });
+          }
+        });
+      } else if (existingReport && !existingReport.entries) {
+        // Legacy single-entry report: convert to array
+        entries.push({
+          projectId: existingReport.projectId,
+          area: existingReport.area || 'fertigung',
+          taskDescription: existingReport.taskDescription || '',
+          plannedMinutes: 0,
+          plannedQty: 0,
+          workStepId: null,
+          actualMinutes: existingReport.actualMinutes || 0,
+          completedQty: existingReport.completedQty || 0,
+          completedWork: existingReport.completedWork || '',
+          deviation: existingReport.deviation || false,
+          deviationReason: existingReport.deviationReason || '',
+          achievedProgress: existingReport.achievedProgress || 0
+        });
       } else {
-        reportPhotos = [];
+        // New report: build from planned tasks
+        myTasks.forEach(task => {
+          entries.push({
+            projectId: task.projectId,
+            area: task.area,
+            taskDescription: task.description || '',
+            plannedMinutes: task.plannedMinutes || 0,
+            plannedQty: task.plannedQty || 0,
+            workStepId: task.workStepId || null,
+            actualMinutes: 0,
+            completedQty: 0,
+            completedWork: '',
+            deviation: false,
+            deviationReason: '',
+            achievedProgress: 0
+          });
+        });
       }
 
-      const selectedProjectId = projectId != null ? parseInt(projectId) : null;
+      // If no tasks at all, add one empty entry
+      if (entries.length === 0) {
+        entries.push({
+          projectId: projects.length > 0 ? projects[0].id : 0,
+          area: 'fertigung',
+          taskDescription: '',
+          plannedMinutes: 0,
+          plannedQty: 0,
+          workStepId: null,
+          actualMinutes: 0,
+          completedQty: 0,
+          completedWork: '',
+          deviation: false,
+          deviationReason: '',
+          achievedProgress: 0
+        });
+      }
+
+      // Store entries globally for reference
+      window._reportEntries = entries;
+
+      // General notes
+      const generalNotes = existingReport?.generalNotes || '';
+
       const projOptions = projects.map(p =>
-        `<option value="${p.id}" ${selectedProjectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
+        `<option value="${p.id}">${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
       ).join('');
 
-      document.getElementById('report-form-container').innerHTML = `
+      let html = `
         <div class="card">
-          <div class="fw-600 mb-8">Tagesbericht</div>
+          <div class="fw-600 mb-8" style="font-size:17px;">Tagesbericht</div>
           <div class="report-date-picker" style="margin-bottom: 12px;">
             <label>Datum:</label>
-            <input type="date" id="rpt-date" value="${today}" onchange="selectedReportDate = this.value; renderReportForm(${projectId != null ? projectId : 'null'}, ${area ? "'" + area + "'" : 'null'}, '', ${plannedQty || 0});">
+            <input type="date" id="rpt-date" value="${today}" onchange="selectedReportDate = this.value; renderReportForm();">
           </div>
-          ${existingReport ? '<div class="badge badge-success mb-8">Bericht bereits eingereicht - wird aktualisiert</div>' : ''}
+          ${existingReport ? '<div class="badge badge-success mb-8" style="padding:6px 12px;">Bericht bereits vorhanden &ndash; wird aktualisiert</div>' : ''}
+      `;
 
-          <div class="form-group">
-            <label>Projekt</label>
-            <select class="form-control" id="rpt-project">${projOptions}</select>
-          </div>
+      entries.forEach((entry, idx) => {
+        const proj = projects.find(p => p.id === entry.projectId);
+        const projName = proj ? escapeHtml(proj.article) : 'Projekt';
+        const isHighlighted = highlightProjectId && entry.projectId === parseInt(highlightProjectId);
+        const timeDiff = entry.actualMinutes - (entry.plannedMinutes || 0);
+        const hasTimeDiff = entry.plannedMinutes > 0 && entry.actualMinutes > 0;
+        const timeDiffColor = timeDiff > 0 ? 'var(--danger)' : timeDiff < 0 ? 'var(--success)' : 'var(--text)';
+        const timeDiffLabel = timeDiff > 0 ? '+' + timeDiff + ' Min' : timeDiff < 0 ? timeDiff + ' Min' : '\u00b10';
 
-          <div class="form-group">
-            <label>Bereich</label>
-            <select class="form-control" id="rpt-area">
-              <option value="konstruktion" ${area === 'konstruktion' ? 'selected' : ''}>Konstruktion</option>
-              <option value="fertigung" ${area === 'fertigung' ? 'selected' : ''}>Fertigung</option>
-              <option value="montage" ${area === 'montage' ? 'selected' : ''}>Montage</option>
-            </select>
-          </div>
+        // Build progress options for this entry's area
+        const scale = ATC_DATA.progressScales[entry.area] || ATC_DATA.progressScales['fertigung'] || [];
+        const progressOpts = scale.map(s =>
+          `<option value="${s.value}" ${entry.achievedProgress === s.value ? 'selected' : ''}>${Math.round(s.value * 100)}% - ${escapeHtml(s.label)}</option>`
+        ).join('');
 
-          <div class="form-group">
-            <label>Geplante Aufgabe</label>
-            <textarea class="form-control" id="rpt-task" rows="2">${escapeHtml(description || existingReport?.taskDescription || '')}</textarea>
-          </div>
+        const selectedProjectOpts = projects.map(p =>
+          `<option value="${p.id}" ${entry.projectId === p.id ? 'selected' : ''}>${escapeHtml(p.article)} (${getCustomerName(p.customerId)})</option>`
+        ).join('');
 
-          <div class="report-section">
-            <div class="fw-600 mb-8">Was wurde erledigt?</div>
-
-            <div class="form-group">
-              <label>Beschreibung der erledigten Arbeit</label>
-              <textarea class="form-control" id="rpt-completed" rows="3" placeholder="Beschreiben Sie, was Sie heute erledigt haben...">${escapeHtml(existingReport?.completedWork || '')}</textarea>
+        html += `
+          <div class="report-section" id="entry-${idx}" style="border-left: 4px solid ${entry.deviation ? 'var(--danger)' : 'var(--primary)'}; padding-left: 12px; margin-left: -12px;${isHighlighted ? ' background: #eaf2f8; border-radius: 8px; padding: 12px; margin: 12px -12px;' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div class="fw-600" style="font-size:15px;">${idx + 1}. ${projName}</div>
+              ${entries.length > 1 ? `<button class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger); padding:4px 8px; font-size:11px;" onclick="removeReportEntry(${idx})">&times; Entfernen</button>` : ''}
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-              <div class="form-group">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Projekt</label>
+                <select class="form-control" id="rpt-project-${idx}" onchange="updateEntryArea(${idx})">${selectedProjectOpts}</select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Bereich</label>
+                <select class="form-control" id="rpt-area-${idx}" onchange="updateEntryProgressScale(${idx})">
+                  <option value="konstruktion" ${entry.area === 'konstruktion' ? 'selected' : ''}>Konstruktion</option>
+                  <option value="fertigung" ${entry.area === 'fertigung' ? 'selected' : ''}>Fertigung</option>
+                  <option value="montage" ${entry.area === 'montage' ? 'selected' : ''}>Montage</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Geplante Aufgabe</label>
+              <textarea class="form-control" id="rpt-task-${idx}" rows="1" placeholder="Was war geplant?">${escapeHtml(entry.taskDescription)}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Beschreibung der erledigten Arbeit *</label>
+              <textarea class="form-control" id="rpt-completed-${idx}" rows="2" placeholder="Was wurde erledigt?">${escapeHtml(entry.completedWork)}</textarea>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Soll-Zeit (Min)</label>
+                <input type="number" class="form-control" id="rpt-planned-min-${idx}" value="${entry.plannedMinutes || ''}" min="0" placeholder="Plan" onchange="updateTimeDiff(${idx})" style="background:#f8f9fa;">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Ist-Zeit (Min) *</label>
+                <input type="number" class="form-control" id="rpt-actual-min-${idx}" value="${entry.actualMinutes || ''}" min="0" placeholder="Ist" onchange="updateTimeDiff(${idx})">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Abweichung</label>
+                <div id="rpt-diff-${idx}" class="form-control" style="text-align:center; font-weight:700;${hasTimeDiff ? ' color:' + timeDiffColor : ' color:var(--text-light)'}; background:#f8f9fa; border:1px solid var(--border);">
+                  ${hasTimeDiff ? timeDiffLabel : '&mdash;'}
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+              <div class="form-group" style="margin-bottom:0;">
                 <label>Erledigte St&uuml;ckzahl</label>
-                <input type="number" class="form-control" id="rpt-qty" value="${existingReport?.completedQty ?? plannedQty ?? ''}" min="0">
+                <input type="number" class="form-control" id="rpt-qty-${idx}" value="${entry.completedQty || ''}" min="0" placeholder="0">
               </div>
-              <div class="form-group">
-                <label>Ist-Zeit (Minuten)</label>
-                <input type="number" class="form-control" id="rpt-actual-minutes" value="${existingReport?.actualMinutes ?? ''}" min="0" placeholder="z.B. 120">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Erreichter Fortschritt</label>
+                <select class="form-control" id="rpt-progress-${idx}">${progressOpts}</select>
               </div>
             </div>
 
-            <div class="form-group">
-              <label>Erreichter Fortschritt</label>
-              <select class="form-control" id="rpt-progress"></select>
+            <div style="margin-bottom:8px;">
+              <div class="toggle-group" style="margin-bottom:0;">
+                <button type="button" class="toggle-option ${!entry.deviation ? 'active-yes' : ''}" onclick="setEntryDeviation(${idx}, false)">Plan erf&uuml;llt</button>
+                <button type="button" class="toggle-option ${entry.deviation ? 'active-no' : ''}" onclick="setEntryDeviation(${idx}, true)">Abweichung</button>
+              </div>
             </div>
+            <div id="rpt-deviation-section-${idx}" style="display:${entry.deviation ? 'block' : 'none'};">
+              <div class="form-group">
+                <label>Begr&uuml;ndung der Abweichung *</label>
+                <textarea class="form-control" id="rpt-deviation-${idx}" rows="2" placeholder="Warum konnte die Aufgabe nicht planm&auml;&szlig;ig erledigt werden?">${escapeHtml(entry.deviationReason)}</textarea>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      // Add new entry button
+      html += `
+          <div style="margin-top:12px; margin-bottom:16px;">
+            <button class="btn btn-outline btn-block" onclick="addReportEntry()" style="border-style:dashed;">
+              + Weitere Aufgabe hinzuf&uuml;gen
+            </button>
           </div>
 
           <div class="report-section">
-            <div class="fw-600 mb-8">Stimmt das Ergebnis mit dem Plan &uuml;berein?</div>
-            <div class="toggle-group">
-              <button type="button" class="toggle-option ${!existingReport?.deviation ? 'active-yes' : ''}" onclick="setDeviation(false)">
-                Ja, Plan erf&uuml;llt
-              </button>
-              <button type="button" class="toggle-option ${existingReport?.deviation ? 'active-no' : ''}" onclick="setDeviation(true)">
-                Nein, Abweichung
-              </button>
-            </div>
-            <div id="deviation-section" style="display: ${existingReport?.deviation ? 'block' : 'none'}; margin-top: 12px;">
-              <div class="form-group">
-                <label>Grund der Abweichung</label>
-                <textarea class="form-control" id="rpt-deviation" rows="3" placeholder="Bitte beschreiben Sie, warum die Aufgabe nicht planm&auml;&szlig;ig erledigt werden konnte...">${escapeHtml(existingReport?.deviationReason || '')}</textarea>
-              </div>
-            </div>
+            <div class="fw-600 mb-8">Allgemeine Anmerkungen zum Tag</div>
+            <textarea class="form-control" id="rpt-general-notes" rows="2" placeholder="Optionale Gesamtanmerkungen zum Arbeitstag...">${escapeHtml(generalNotes)}</textarea>
           </div>
 
           <div class="report-section">
@@ -812,33 +930,145 @@
               <label class="photo-add" for="photo-input">+</label>
             </div>
             <input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="handlePhotos(event)">
-            <div class="text-sm text-muted mt-8">Tippen Sie auf + um Fotos hinzuzuf&uuml;gen. Auf Fotos tippen zum Entfernen.</div>
+            <div class="text-sm text-muted mt-8">Tippen Sie auf + um Fotos hinzuzuf&uuml;gen.</div>
           </div>
 
           <div class="mt-12">
-            <button class="btn btn-success btn-block" onclick="submitReport()">
+            <button class="btn btn-success btn-block" onclick="submitReport()" style="padding:14px; font-size:15px;">
               ${existingReport ? 'Bericht aktualisieren' : 'Bericht einreichen'}
             </button>
           </div>
         </div>
       `;
 
-      // Set deviation state from existing report
-      hasDeviation = !!(existingReport?.deviation);
+      document.getElementById('report-form-container').innerHTML = html;
 
-      // Fill progress select
-      updateReportProgress(area || existingReport?.area || 'fertigung');
-      document.getElementById('rpt-area').addEventListener('change', function() {
-        updateReportProgress(this.value);
-      });
-
-      // Set progress value if existing
-      if (existingReport?.achievedProgress !== undefined) {
-        setTimeout(() => {
-          const sel = document.getElementById('rpt-progress');
-          if (sel) sel.value = existingReport.achievedProgress;
-        }, 0);
+      // Merge task photos into reportPhotos
+      if (!existingReport) {
+        reportPhotos = [];
+        entries.forEach(entry => {
+          if (entry.projectId) {
+            const taskPhotoData = TaskPhotos.getPhotos(currentEmployee.id, today, entry.projectId);
+            taskPhotoData.forEach(p => {
+              const url = p.data || p;
+              if (!reportPhotos.includes(url)) reportPhotos.push(url);
+            });
+          }
+        });
+      } else {
+        reportPhotos = existingReport.photos || [];
       }
+      updatePhotoDisplay();
+
+      // Scroll to highlighted entry if any
+      if (highlightProjectId) {
+        const highlightIdx = entries.findIndex(e => e.projectId === parseInt(highlightProjectId));
+        if (highlightIdx >= 0) {
+          setTimeout(() => {
+            const el = document.getElementById('entry-' + highlightIdx);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }
+      }
+    }
+
+    function addReportEntry() {
+      collectReportEntries();
+      const projects = Storage.getProjects();
+      window._reportEntries.push({
+        projectId: projects.length > 0 ? projects[0].id : 0,
+        area: 'fertigung',
+        taskDescription: '',
+        plannedMinutes: 0,
+        plannedQty: 0,
+        workStepId: null,
+        actualMinutes: 0,
+        completedQty: 0,
+        completedWork: '',
+        deviation: false,
+        deviationReason: '',
+        achievedProgress: 0
+      });
+      renderReportForm();
+    }
+
+    function removeReportEntry(idx) {
+      collectReportEntries();
+      window._reportEntries.splice(idx, 1);
+      renderReportForm();
+    }
+
+    function collectReportEntries() {
+      if (!window._reportEntries) return;
+      window._reportEntries.forEach((entry, idx) => {
+        const projEl = document.getElementById('rpt-project-' + idx);
+        const areaEl = document.getElementById('rpt-area-' + idx);
+        const taskEl = document.getElementById('rpt-task-' + idx);
+        const completedEl = document.getElementById('rpt-completed-' + idx);
+        const plannedMinEl = document.getElementById('rpt-planned-min-' + idx);
+        const actualMinEl = document.getElementById('rpt-actual-min-' + idx);
+        const qtyEl = document.getElementById('rpt-qty-' + idx);
+        const progressEl = document.getElementById('rpt-progress-' + idx);
+        const deviationEl = document.getElementById('rpt-deviation-' + idx);
+
+        if (projEl) entry.projectId = parseInt(projEl.value);
+        if (areaEl) entry.area = areaEl.value;
+        if (taskEl) entry.taskDescription = taskEl.value;
+        if (completedEl) entry.completedWork = completedEl.value;
+        if (plannedMinEl) entry.plannedMinutes = parseInt(plannedMinEl.value) || 0;
+        if (actualMinEl) entry.actualMinutes = parseInt(actualMinEl.value) || 0;
+        if (qtyEl) entry.completedQty = parseInt(qtyEl.value) || 0;
+        if (progressEl) entry.achievedProgress = parseFloat(progressEl.value) || 0;
+        if (deviationEl) entry.deviationReason = deviationEl.value;
+      });
+    }
+
+    function updateTimeDiff(idx) {
+      const planned = parseInt(document.getElementById('rpt-planned-min-' + idx).value) || 0;
+      const actual = parseInt(document.getElementById('rpt-actual-min-' + idx).value) || 0;
+      const diffEl = document.getElementById('rpt-diff-' + idx);
+      if (planned > 0 && actual > 0) {
+        const diff = actual - planned;
+        const color = diff > 0 ? 'var(--danger)' : diff < 0 ? 'var(--success)' : 'var(--text)';
+        const label = diff > 0 ? '+' + diff + ' Min' : diff < 0 ? diff + ' Min' : '\u00b10';
+        diffEl.innerHTML = label;
+        diffEl.style.color = color;
+      } else {
+        diffEl.innerHTML = '&mdash;';
+        diffEl.style.color = 'var(--text-light)';
+      }
+    }
+
+    function setEntryDeviation(idx, val) {
+      if (window._reportEntries && window._reportEntries[idx]) {
+        window._reportEntries[idx].deviation = val;
+      }
+      const section = document.getElementById('rpt-deviation-section-' + idx);
+      if (section) section.style.display = val ? 'block' : 'none';
+      const parent = document.getElementById('entry-' + idx);
+      if (parent) parent.style.borderLeftColor = val ? 'var(--danger)' : 'var(--primary)';
+      // Toggle button states
+      const toggles = parent ? parent.querySelectorAll('.toggle-option') : [];
+      toggles.forEach(t => t.classList.remove('active-yes', 'active-no'));
+      if (toggles.length >= 2) {
+        if (val) toggles[1].classList.add('active-no');
+        else toggles[0].classList.add('active-yes');
+      }
+    }
+
+    function updateEntryArea(idx) {
+      collectReportEntries();
+      renderReportForm();
+    }
+
+    function updateEntryProgressScale(idx) {
+      const area = document.getElementById('rpt-area-' + idx).value;
+      const sel = document.getElementById('rpt-progress-' + idx);
+      if (!sel) return;
+      const scale = ATC_DATA.progressScales[area] || [];
+      sel.innerHTML = scale.map(s =>
+        `<option value="${s.value}">${Math.round(s.value * 100)}% - ${escapeHtml(s.label)}</option>`
+      ).join('');
     }
 
     let hasDeviation = false;
@@ -854,7 +1084,8 @@
       } else {
         toggles[0].classList.add('active-yes');
       }
-      document.getElementById('deviation-section').style.display = val ? 'block' : 'none';
+      const section = document.getElementById('deviation-section');
+      if (section) section.style.display = val ? 'block' : 'none';
     }
 
     function updateReportProgress(area) {
@@ -909,82 +1140,115 @@
     }
 
     function submitReport() {
-      const completed = document.getElementById('rpt-completed').value.trim();
-      if (!completed) {
-        alert('Bitte beschreiben Sie, was Sie erledigt haben.');
-        return;
-      }
+      collectReportEntries();
+      const entries = window._reportEntries || [];
 
-      if (hasDeviation && !document.getElementById('rpt-deviation').value.trim()) {
-        alert('Bitte geben Sie den Grund der Abweichung an.');
-        return;
+      // Validate all entries
+      for (let i = 0; i < entries.length; i++) {
+        if (!entries[i].completedWork || !entries[i].completedWork.trim()) {
+          alert('Bitte beschreiben Sie bei Aufgabe ' + (i + 1) + ', was erledigt wurde.');
+          const el = document.getElementById('rpt-completed-' + i);
+          if (el) el.focus();
+          return;
+        }
+        if (entries[i].deviation && (!entries[i].deviationReason || !entries[i].deviationReason.trim())) {
+          alert('Bitte begr\u00fcnden Sie die Abweichung bei Aufgabe ' + (i + 1) + '.');
+          const el = document.getElementById('rpt-deviation-' + i);
+          if (el) el.focus();
+          return;
+        }
       }
 
       const reportDate = document.getElementById('rpt-date') ? document.getElementById('rpt-date').value : getISODate(new Date());
-      const actualMinutes = parseInt(document.getElementById('rpt-actual-minutes').value) || 0;
+      const generalNotes = document.getElementById('rpt-general-notes') ? document.getElementById('rpt-general-notes').value.trim() : '';
+
+      // Build report object (new multi-entry format)
       const report = {
-        projectId: parseInt(document.getElementById('rpt-project').value),
-        area: document.getElementById('rpt-area').value,
-        taskDescription: document.getElementById('rpt-task').value,
-        completedWork: completed,
-        completedQty: parseInt(document.getElementById('rpt-qty').value) || 0,
-        actualMinutes: actualMinutes,
-        achievedProgress: parseFloat(document.getElementById('rpt-progress').value),
-        deviation: hasDeviation,
-        deviationReason: hasDeviation ? document.getElementById('rpt-deviation').value : '',
+        entries: entries.map(e => ({
+          projectId: e.projectId,
+          area: e.area,
+          taskDescription: e.taskDescription,
+          completedWork: e.completedWork,
+          completedQty: e.completedQty,
+          plannedMinutes: e.plannedMinutes,
+          actualMinutes: e.actualMinutes,
+          achievedProgress: e.achievedProgress,
+          deviation: e.deviation,
+          deviationReason: e.deviation ? e.deviationReason : '',
+          workStepId: e.workStepId || null,
+        })),
+        generalNotes: generalNotes,
         photos: reportPhotos,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        // Keep backward-compatible fields from first entry
+        projectId: entries[0].projectId,
+        area: entries[0].area,
+        taskDescription: entries[0].taskDescription,
+        completedWork: entries[0].completedWork,
+        completedQty: entries[0].completedQty,
+        actualMinutes: entries.reduce((sum, e) => sum + (e.actualMinutes || 0), 0),
+        achievedProgress: entries[0].achievedProgress,
+        deviation: entries.some(e => e.deviation),
+        deviationReason: entries.filter(e => e.deviation).map(e => e.deviationReason).join('; '),
       };
 
       Storage.saveDailyReport(reportDate, currentEmployee.id, report);
 
-      // Update project progress
+      // Update project progress and work steps for each entry
       const projects = Storage.getProjects();
-      const proj = projects.find(p => p.id === report.projectId);
-      if (proj && report.achievedProgress > proj[report.area]) {
-        proj[report.area] = report.achievedProgress;
-        Storage.saveProjects(projects);
-      }
-
-      // Update work step actual time and completed qty
       const reportDateObj = new Date(reportDate + 'T12:00:00');
       const kw = getKW(reportDateObj);
       const year = reportDateObj.getFullYear();
       const dayOfWeek = (reportDateObj.getDay() + 6) % 7;
       const weekPlan = Storage.getWeekPlan(year, kw);
-      const myTask = weekPlan.find(t => t.employeeId === currentEmployee.id
-        && t.projectId === report.projectId
-        && (t.day === dayOfWeek || t.day === 'week')
-        && t.workStepId);
-      if (myTask && myTask.workStepId) {
-        const pSteps = Storage.getProjectSteps(report.projectId);
-        const step = pSteps.find(s => s.id === myTask.workStepId);
-        if (step) {
-          step.actualDuration = (step.actualDuration || 0) + actualMinutes;
-          step.completedQty = Math.max(step.completedQty || 0, report.completedQty);
-          if (step.completedQty >= step.totalQty) {
-            step.status = 'abgeschlossen';
-          } else if (step.completedQty > 0 || actualMinutes > 0) {
-            step.status = 'in_bearbeitung';
-          }
-          Storage.saveProjectSteps(report.projectId, pSteps);
+      let projectsChanged = false;
+      let weekPlanChanged = false;
+
+      entries.forEach(entry => {
+        // Update project progress
+        const proj = projects.find(p => p.id === entry.projectId);
+        if (proj && entry.achievedProgress > proj[entry.area]) {
+          proj[entry.area] = entry.achievedProgress;
+          projectsChanged = true;
         }
-        // Update task actual minutes
-        myTask.actualMinutes = (myTask.actualMinutes || 0) + actualMinutes;
-        Storage.saveWeekPlan(year, kw, weekPlan);
-      }
 
-      // Email-Benachrichtigung bei Abweichung an Admin
-      if (report.deviation && proj) {
-        Notify.notifyDeviationToAdmin(
-          currentEmployee.name,
-          proj.article,
-          report.deviationReason,
-          formatDate(reportDateObj)
-        );
-      }
+        // Update work step
+        const myTask = weekPlan.find(t => t.employeeId === currentEmployee.id
+          && t.projectId === entry.projectId
+          && (t.day === dayOfWeek || t.day === 'week')
+          && t.workStepId);
+        if (myTask && myTask.workStepId) {
+          const pSteps = Storage.getProjectSteps(entry.projectId);
+          const step = pSteps.find(s => s.id === myTask.workStepId);
+          if (step) {
+            step.actualDuration = (step.actualDuration || 0) + (entry.actualMinutes || 0);
+            step.completedQty = Math.max(step.completedQty || 0, entry.completedQty);
+            if (step.completedQty >= step.totalQty) {
+              step.status = 'abgeschlossen';
+            } else if (step.completedQty > 0 || entry.actualMinutes > 0) {
+              step.status = 'in_bearbeitung';
+            }
+            Storage.saveProjectSteps(entry.projectId, pSteps);
+          }
+          myTask.actualMinutes = (myTask.actualMinutes || 0) + (entry.actualMinutes || 0);
+          weekPlanChanged = true;
+        }
 
-      alert('Bericht erfolgreich eingereicht!');
+        // Email notification for deviations
+        if (entry.deviation && proj) {
+          Notify.notifyDeviationToAdmin(
+            currentEmployee.name,
+            proj.article,
+            entry.deviationReason,
+            formatDate(reportDateObj)
+          );
+        }
+      });
+
+      if (projectsChanged) Storage.saveProjects(projects);
+      if (weekPlanChanged) Storage.saveWeekPlan(year, kw, weekPlan);
+
+      alert('Bericht erfolgreich gespeichert!');
 
       // Go back to today
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -997,6 +1261,7 @@
     // ---- HISTORY ----
     function renderHistory() {
       const today = new Date();
+      const projects = Storage.getProjects();
       let html = '';
       let hasAny = false;
 
@@ -1009,27 +1274,87 @@
 
         if (report) {
           hasAny = true;
-          const projects = Storage.getProjects();
-          const proj = report.projectId ? projects.find(p => p.id === report.projectId) : null;
+          const hasEntries = report.entries && report.entries.length > 0;
+          const anyDeviation = hasEntries ? report.entries.some(e => e.deviation) : report.deviation;
+          const totalActual = hasEntries ? report.entries.reduce((s, e) => s + (e.actualMinutes || 0), 0) : (report.actualMinutes || 0);
+          const totalPlanned = hasEntries ? report.entries.reduce((s, e) => s + (e.plannedMinutes || 0), 0) : 0;
 
           html += `
-            <div class="card" style="border-left: 4px solid ${report.deviation ? 'var(--danger)' : 'var(--success)'};">
+            <div class="card" style="border-left: 4px solid ${anyDeviation ? 'var(--danger)' : 'var(--success)'};">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
                   <div class="fw-600">${formatDate(d)}</div>
-                  <div class="text-sm text-muted">${proj ? escapeHtml(proj.article) : 'Kein Projekt'} | ${escapeHtml(report.area || '')}</div>
+                  <div class="text-sm text-muted">
+                    ${hasEntries ? report.entries.length + ' Aufgabe' + (report.entries.length > 1 ? 'n' : '') : '1 Aufgabe'}
+                    ${totalActual > 0 ? ' &middot; ' + totalActual + ' Min Ist' : ''}
+                    ${totalPlanned > 0 ? ' / ' + totalPlanned + ' Min Soll' : ''}
+                  </div>
                 </div>
-                <span class="badge ${report.deviation ? 'badge-danger' : 'badge-success'}">${report.deviation ? 'Abweichung' : 'OK'}</span>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span class="badge ${anyDeviation ? 'badge-danger' : 'badge-success'}">${anyDeviation ? 'Abweichung' : 'OK'}</span>
+                </div>
               </div>
-              <div class="text-sm mt-8"><strong>Aufgabe:</strong> ${escapeHtml(report.taskDescription || '-')}</div>
+          `;
+
+          if (hasEntries) {
+            report.entries.forEach((entry, eIdx) => {
+              const proj = projects.find(p => p.id === entry.projectId);
+              const timeDiff = (entry.actualMinutes || 0) - (entry.plannedMinutes || 0);
+              const hasTimeDiff = (entry.plannedMinutes || 0) > 0 && (entry.actualMinutes || 0) > 0;
+              const timeDiffColor = timeDiff > 0 ? 'var(--danger)' : timeDiff < 0 ? 'var(--success)' : 'var(--text)';
+              const timeDiffLabel = timeDiff > 0 ? '+' + timeDiff : timeDiff < 0 ? '' + timeDiff : '\u00b10';
+
+              html += `
+                <div style="margin-top:8px; padding:8px 10px; background:var(--bg); border-radius:8px; border-left:3px solid ${entry.deviation ? 'var(--danger)' : 'var(--primary)'};">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="fw-600 text-sm">${proj ? escapeHtml(proj.article) : 'Projekt'}</div>
+                    <span class="badge badge-info" style="font-size:10px;">${escapeHtml(entry.area || '')}</span>
+                  </div>
+                  <div class="text-sm mt-8">${escapeHtml(entry.completedWork || '-')}</div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+                    ${entry.plannedMinutes > 0 ? `<span class="badge badge-neutral">Soll: ${entry.plannedMinutes} Min</span>` : ''}
+                    ${entry.actualMinutes > 0 ? `<span class="badge badge-warning">Ist: ${entry.actualMinutes} Min</span>` : ''}
+                    ${hasTimeDiff ? `<span class="badge" style="background:${timeDiff > 0 ? '#fadbd8' : '#d5f5e3'}; color:${timeDiffColor};">${timeDiffLabel} Min</span>` : ''}
+                    ${entry.completedQty > 0 ? `<span class="badge badge-neutral">${entry.completedQty} Stk.</span>` : ''}
+                    ${entry.achievedProgress > 0 ? `<span class="badge badge-success">${Math.round(entry.achievedProgress * 100)}%</span>` : ''}
+                  </div>
+                  ${entry.deviation ? `<div class="text-sm mt-8" style="color:var(--danger);"><strong>Abweichung:</strong> ${escapeHtml(entry.deviationReason || '-')}</div>` : ''}
+                </div>
+              `;
+            });
+          } else {
+            // Legacy single-entry display
+            const proj = report.projectId ? projects.find(p => p.id === report.projectId) : null;
+            html += `
+              <div class="text-sm mt-8"><strong>Projekt:</strong> ${proj ? escapeHtml(proj.article) : 'Unbekannt'} | ${escapeHtml(report.area || '')}</div>
               <div class="text-sm mt-8"><strong>Erledigt:</strong> ${escapeHtml(report.completedWork || '-')}</div>
               ${report.completedQty ? `<div class="text-sm mt-8"><strong>St&uuml;ckzahl:</strong> ${report.completedQty}</div>` : ''}
-              ${report.deviation ? `<div class="text-sm mt-8" style="color: var(--danger);"><strong>Abweichung:</strong> ${escapeHtml(report.deviationReason || '-')}</div>` : ''}
-              ${report.photos && report.photos.length > 0 ? `
-                <div class="photo-upload mt-8">
-                  ${report.photos.map(ph => `<img src="${ph}" class="photo-preview">`).join('')}
-                </div>
-              ` : ''}
+              ${report.actualMinutes ? `<div class="text-sm mt-8"><strong>Ist-Zeit:</strong> ${report.actualMinutes} Min</div>` : ''}
+              ${report.deviation ? `<div class="text-sm mt-8" style="color:var(--danger);"><strong>Abweichung:</strong> ${escapeHtml(report.deviationReason || '-')}</div>` : ''}
+            `;
+          }
+
+          // General notes
+          if (report.generalNotes) {
+            html += `<div class="text-sm mt-8" style="font-style:italic; color:var(--text-light);"><strong>Anmerkung:</strong> ${escapeHtml(report.generalNotes)}</div>`;
+          }
+
+          // Photos
+          if (report.photos && report.photos.length > 0) {
+            html += `
+              <div class="photo-upload mt-8">
+                ${report.photos.map(ph => `<img src="${ph}" class="photo-preview" style="cursor:default;">`).join('')}
+              </div>
+            `;
+          }
+
+          // Edit button
+          html += `
+              <div style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
+                <button class="btn btn-outline btn-sm" onclick="editHistoryReport('${iso}')" style="width:100%;">
+                  Bericht bearbeiten
+                </button>
+              </div>
             </div>
           `;
         }
@@ -1046,6 +1371,16 @@
       }
 
       document.getElementById('history-list').innerHTML = html;
+    }
+
+    function editHistoryReport(dateStr) {
+      selectedReportDate = dateStr;
+      // Switch to report tab
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-page="report"]').classList.add('active');
+      document.getElementById('page-report').classList.add('active');
+      renderReportForm();
     }
 
     // ---- WOCHENANSICHT ----
@@ -1252,9 +1587,22 @@
           ${existingReport ? `
             <div class="card" style="background: #d5f5e3; border: 1px solid #27ae60;">
               <div class="fw-600 text-sm" style="color: #27ae60;">Tagesbericht bereits eingereicht</div>
-              <div class="text-sm mt-8"><strong>Erledigt:</strong> ${escapeHtml(existingReport.completedWork || '-')}</div>
+              ${existingReport.entries && existingReport.entries.length > 0
+                ? existingReport.entries.map(e => {
+                    const p = projects.find(pp => pp.id === e.projectId);
+                    const timeDiff = (e.actualMinutes || 0) - (e.plannedMinutes || 0);
+                    const hasTD = e.plannedMinutes > 0 && e.actualMinutes > 0;
+                    return '<div class="text-sm mt-8" style="padding:6px 8px; background:rgba(255,255,255,0.6); border-radius:6px;">'
+                      + '<strong>' + escapeHtml(p ? p.article : 'Projekt') + '</strong> (' + escapeHtml(e.area || '') + '): '
+                      + escapeHtml(e.completedWork || '-')
+                      + (hasTD ? ' <span style="color:' + (timeDiff > 0 ? 'var(--danger)' : 'var(--success)') + '; font-weight:600;">' + (timeDiff > 0 ? '+' : '') + timeDiff + ' Min</span>' : '')
+                      + (e.deviation ? ' <span class="badge badge-danger" style="font-size:10px;">Abweichung</span>' : '')
+                      + '</div>';
+                  }).join('')
+                : '<div class="text-sm mt-8"><strong>Erledigt:</strong> ' + escapeHtml(existingReport.completedWork || '-') + '</div>'
+              }
               <div class="text-sm mt-8">
-                <button class="btn btn-outline btn-sm" onclick="closeDailyReportModal(); goToReport(${existingReport.projectId}, '${existingReport.area}', '', 0, '${isoDate}');">
+                <button class="btn btn-outline btn-sm" onclick="closeDailyReportModal(); editHistoryReport('${isoDate}');">
                   Bericht bearbeiten
                 </button>
               </div>
