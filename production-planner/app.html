@@ -344,13 +344,14 @@
     <div class="login-title">ATC Produktion</div>
     <div class="login-subtitle">Mitarbeiter-App</div>
     <div class="login-card">
-      <label>Email-Adresse</label>
-      <input type="email" id="login-email" placeholder="ihre.email@firma.de" autocomplete="email" style="text-align: center; margin-bottom: 20px;">
-      <label>PIN</label>
-      <input type="password" id="login-pin" placeholder="PIN eingeben" inputmode="numeric" maxlength="10" style="text-align: center; letter-spacing: 6px;">
-      <div id="login-error" style="color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none;">Falscher PIN. Bitte erneut versuchen.</div>
-      <button class="login-btn" onclick="doLogin()">Anmelden</button>
-      <div style="margin-top: 16px; font-size: 12px; color: #7f8c8d;">&nbsp;</div>
+      <form onsubmit="event.preventDefault(); doLogin();">
+        <label>Email-Adresse</label>
+        <input type="email" id="login-email" placeholder="ihre.email@firma.de" autocomplete="email" style="text-align: center; margin-bottom: 20px;">
+        <label>PIN</label>
+        <input type="password" id="login-pin" placeholder="PIN eingeben" inputmode="numeric" maxlength="10" style="text-align: center; letter-spacing: 6px;">
+        <div id="login-error" style="color: #e74c3c; font-size: 13px; margin-bottom: 12px; display: none;">Falscher PIN. Bitte erneut versuchen.</div>
+        <button type="submit" class="login-btn">Anmelden</button>
+      </form>
     </div>
   </div>
 
@@ -1471,9 +1472,7 @@
     // ---- HELPERS ----
     function escapeHtml(str) {
       if (!str) return '';
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
     // Init - Supabase laden, dann Login

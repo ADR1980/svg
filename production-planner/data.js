@@ -506,9 +506,21 @@ const Storage = {
         .then(function(res) {
           if (res.error) {
             console.warn('[Supabase] Sync-Fehler für Key "' + item.key + '":', res.error.message);
+            Storage._showSyncWarning('Sync-Fehler: ' + res.error.message);
           }
         });
     });
+  },
+
+  _showSyncWarning(msg) {
+    var existing = document.getElementById('sync-warning-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'sync-warning-toast';
+    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#e74c3c;color:white;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:90%;text-align:center;';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function() { if (toast.parentNode) toast.remove(); }, 5000);
   },
 
   _deleteFromSupabase(key) {
