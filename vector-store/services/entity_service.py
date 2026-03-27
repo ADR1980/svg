@@ -58,7 +58,7 @@ def extract_and_link_entities(
                 rid=entity_rid,
             )
             try:
-                create_document_fn(entity_doc, extract_entities_flag=False)
+                create_document_fn(entity_doc, extract_entities_flag=False, skip_checks=True)
                 status = "created"
             except Exception as e:
                 results.append({

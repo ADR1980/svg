@@ -23,6 +23,7 @@ class DocumentResponse(BaseModel):
     doc_type: str
     title: str
     content: str
+    content_hash: str | None = None
     metadata: dict[str, Any]
     language: str
     source: str | None

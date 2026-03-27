@@ -9,10 +9,18 @@ from models.document import (
     DocumentLinkCreate,
     DocumentLinkResponse,
 )
+from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from services.rid_service import generate_rid, validate_doc_type
 from services.embedding_service import generate_embedding, generate_embeddings
 from services.chunking_service import chunk_text
 from services.entity_service import extract_and_link_entities
+from services.spam_filter_service import check_spam
+from services.dedup_service import (
+    compute_content_hash,
+    check_exact_duplicate,
+    check_rid_duplicate,
+    check_near_duplicate,
+)
 
 
 def _get_client():
@@ -22,27 +30,62 @@ def _get_client():
 # ─── Document CRUD ────────────────────────────────────────────────────────────
 
 
-def create_document(doc: DocumentCreate, extract_entities_flag: bool = True) -> DocumentResponse:
+def create_document(
+    doc: DocumentCreate,
+    extract_entities_flag: bool = True,
+    skip_checks: bool = False,
+) -> DocumentResponse:
     """Erstellt ein Dokument mit Chunks und Embeddings.
 
     Args:
         doc: Dokument-Daten
         extract_entities_flag: Wenn True, werden Personen und Unternehmen
             automatisch extrahiert, als eigene Dokumente angelegt und verlinkt.
+        skip_checks: Wenn True, werden Spam- und Dedup-Checks übersprungen
+            (z.B. für automatisch generierte Entity-Dokumente).
+
+    Raises:
+        SpamRejectedError: Dokument wurde als Spam erkannt.
+        DuplicateDocumentError: Dokument existiert bereits (exakt, RID oder near-duplicate).
     """
     client = _get_client()
 
     validate_doc_type(doc.doc_type)
 
-    # RID generieren oder verwenden
-    rid = doc.rid if doc.rid else generate_rid(doc.doc_type, doc.title)
+    # ── 1. Spam-Check ────────────────────────────────────────────────────────
+    if not skip_checks:
+        spam_result = check_spam(doc.content, doc.title, doc.metadata, doc.doc_type)
+        if spam_result.is_spam:
+            raise SpamRejectedError(spam_result.reason, spam_result.score)
 
-    # Dokument speichern
+    # ── 2. Content-Hash berechnen ────────────────────────────────────────────
+    content_hash = compute_content_hash(doc.content)
+
+    # ── 3. Exakte Deduplizierung (Content-Hash) ─────────────────────────────
+    if not skip_checks:
+        exact = check_exact_duplicate(doc.doc_type, content_hash)
+        if exact.is_duplicate:
+            raise DuplicateDocumentError("exact", exact.existing_rid, exact.similarity)
+
+    # ── 4. RID-Duplikat-Check ────────────────────────────────────────────────
+    rid = doc.rid if doc.rid else generate_rid(doc.doc_type, doc.title)
+    rid_dup = check_rid_duplicate(rid)
+    if rid_dup.is_duplicate:
+        raise DuplicateDocumentError("rid", rid)
+
+    # ── 5. Near-Duplicate-Check ──────────────────────────────────────────────
+    if not skip_checks:
+        near = check_near_duplicate(doc.content, doc.doc_type)
+        if near.is_duplicate:
+            raise DuplicateDocumentError("near", near.existing_rid, near.similarity)
+
+    # ── 6. Dokument speichern ────────────────────────────────────────────────
     doc_data = {
         "rid": rid,
         "doc_type": doc.doc_type,
         "title": doc.title,
         "content": doc.content,
+        "content_hash": content_hash,
         "metadata": doc.metadata,
         "language": doc.language,
         "source": doc.source,

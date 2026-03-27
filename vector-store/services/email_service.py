@@ -21,6 +21,7 @@ from config import (
     EMAIL_DEFAULT_LANGUAGE,
 )
 from models.document import DocumentCreate
+from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from services.email_parser_service import parse_email_message
 
 logger = logging.getLogger(__name__)
@@ -86,8 +87,9 @@ def poll_and_ingest() -> list[dict]:
                     result = _process_single_email(msg_id, msg_data, create_document, get_document)
                     results.append(result)
 
-                    # Bei Erfolg als gelesen markieren
-                    if result["status"] == "created" or result["status"] == "existing":
+                    # Als gelesen markieren: bei Erfolg, Duplikat ODER Spam
+                    # (damit Spam-Mails nicht erneut geprüft werden)
+                    if result["status"] in ("created", "existing", "spam", "duplicate"):
                         client.set_flags(msg_id, [b"\\Seen"])
 
                 except Exception as e:
@@ -165,5 +167,12 @@ def _process_single_email(msg_id, msg_data, create_document_fn, get_document_fn)
         rid=rid,
     )
 
-    result = create_document_fn(doc)
-    return {"rid": result.rid, "title": result.title, "status": "created"}
+    try:
+        result = create_document_fn(doc)
+        return {"rid": result.rid, "title": result.title, "status": "created"}
+    except SpamRejectedError as e:
+        logger.info("E-Mail als Spam erkannt: %s (Grund: %s)", title, e.reason)
+        return {"rid": rid, "title": title, "status": "spam", "reason": e.reason}
+    except DuplicateDocumentError as e:
+        logger.info("E-Mail-Duplikat: %s -> %s", rid, e.existing_rid)
+        return {"rid": e.existing_rid, "title": title, "status": "duplicate", "type": e.dup_type}

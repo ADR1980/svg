@@ -6,6 +6,7 @@ from models.document import (
     DocumentLinkCreate,
     DocumentLinkResponse,
 )
+from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from services import document_service
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Dokumente"])
@@ -13,9 +14,27 @@ router = APIRouter(prefix="/api/v1/documents", tags=["Dokumente"])
 
 @router.post("", response_model=DocumentResponse, status_code=201)
 def create_document(doc: DocumentCreate):
-    """Erstellt ein neues Dokument mit automatischer RID-Generierung, Chunking und Embedding."""
+    """Erstellt ein neues Dokument mit automatischer RID-Generierung, Chunking und Embedding.
+
+    Gibt 422 zurück bei Spam, 409 bei Duplikaten.
+    """
     try:
         return document_service.create_document(doc)
+    except SpamRejectedError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "spam", "reason": e.reason, "score": e.score},
+        )
+    except DuplicateDocumentError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "duplicate",
+                "type": e.dup_type,
+                "existing_rid": e.existing_rid,
+                "similarity": e.similarity,
+            },
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
