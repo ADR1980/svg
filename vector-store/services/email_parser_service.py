@@ -172,6 +172,18 @@ def _extract_text_from_attachment(filename: str, ext: str, payload: bytes) -> st
     return None
 
 
+def extract_attachment_text(filename: str, payload: bytes) -> str | None:
+    """Extrahiert Text aus einem Anhang (Public API).
+
+    Prüft ob der Dateityp unterstützt wird und extrahiert den Text.
+    Wird von IMAP- und Microsoft Graph-Service genutzt.
+    """
+    ext = _get_extension(filename)
+    if ext not in SUPPORTED_ATTACHMENT_TYPES:
+        return None
+    return _extract_text_from_attachment(filename, ext, payload)
+
+
 def _extract_pdf_text(payload: bytes) -> str:
     """Extrahiert Text aus einem PDF."""
     from pypdf import PdfReader

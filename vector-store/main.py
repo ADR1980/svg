@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from config import API_HOST, API_PORT, EMAIL_POLL_INTERVAL_SECONDS
+from config import API_HOST, API_PORT, EMAIL_POLL_INTERVAL_SECONDS, MSGRAPH_POLL_INTERVAL_SECONDS
 from routers import documents, search, entities
 from routers.ai import router as ai_router
 from routers.email_ingest import router as email_router
@@ -19,12 +19,29 @@ logger = logging.getLogger(__name__)
 _scheduler = None
 
 
-def _start_email_scheduler():
-    """Startet den Background-Scheduler für automatisches Email-Polling."""
-    from services.email_service import is_email_enabled, poll_and_ingest
+def _make_poll_job(poll_fn, label: str):
+    """Factory für Polling-Jobs."""
+    def _job():
+        try:
+            results = poll_fn()
+            created = len([r for r in results if r["status"] == "created"])
+            if created:
+                logger.info("%s-Polling: %d neue Dokumente erstellt", label, created)
+        except Exception as e:
+            logger.error("%s-Polling Fehler: %s", label, e)
+    return _job
 
-    if not is_email_enabled():
-        logger.info("Email-Polling deaktiviert (IMAP nicht konfiguriert)")
+
+def _start_email_scheduler():
+    """Startet den Background-Scheduler für automatisches Email-Polling (IMAP + Graph)."""
+    from services.email_service import is_email_enabled, poll_and_ingest as imap_poll
+    from services.msgraph_email_service import is_msgraph_enabled, poll_and_ingest as msgraph_poll
+
+    imap_on = is_email_enabled()
+    msgraph_on = is_msgraph_enabled()
+
+    if not imap_on and not msgraph_on:
+        logger.info("Email-Polling deaktiviert (weder IMAP noch Microsoft Graph konfiguriert)")
         return
 
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -32,26 +49,27 @@ def _start_email_scheduler():
     global _scheduler
     _scheduler = BackgroundScheduler()
 
-    def _poll_job():
-        try:
-            results = poll_and_ingest()
-            created = len([r for r in results if r["status"] == "created"])
-            if created:
-                logger.info("Email-Polling: %d neue Dokumente erstellt", created)
-        except Exception as e:
-            logger.error("Email-Polling Fehler: %s", e)
+    if imap_on:
+        _scheduler.add_job(
+            _make_poll_job(imap_poll, "IMAP"),
+            "interval",
+            seconds=EMAIL_POLL_INTERVAL_SECONDS,
+            id="email_poll_imap",
+            name="IMAP-Polling",
+        )
+        logger.info("IMAP-Polling gestartet (Intervall: %ds)", EMAIL_POLL_INTERVAL_SECONDS)
 
-    _scheduler.add_job(
-        _poll_job,
-        "interval",
-        seconds=EMAIL_POLL_INTERVAL_SECONDS,
-        id="email_poll",
-        name="Email-Polling",
-    )
+    if msgraph_on:
+        _scheduler.add_job(
+            _make_poll_job(msgraph_poll, "Graph"),
+            "interval",
+            seconds=MSGRAPH_POLL_INTERVAL_SECONDS,
+            id="email_poll_msgraph",
+            name="Graph-Polling",
+        )
+        logger.info("Graph-Polling gestartet (Intervall: %ds)", MSGRAPH_POLL_INTERVAL_SECONDS)
+
     _scheduler.start()
-    logger.info(
-        "Email-Polling gestartet (Intervall: %ds)", EMAIL_POLL_INTERVAL_SECONDS
-    )
 
 
 def _stop_email_scheduler():

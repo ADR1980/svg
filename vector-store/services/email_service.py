@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from imapclient import IMAPClient
-from slugify import slugify
 
 from config import (
     IMAP_HOST,
@@ -20,9 +19,8 @@ from config import (
     IMAP_USE_SSL,
     EMAIL_DEFAULT_LANGUAGE,
 )
-from models.document import DocumentCreate
-from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from services.email_parser_service import parse_email_message
+from services.email_processor import process_parsed_email
 
 logger = logging.getLogger(__name__)
 
@@ -115,64 +113,11 @@ def poll_and_ingest() -> list[dict]:
 
 
 def _process_single_email(msg_id, msg_data, create_document_fn, get_document_fn) -> dict:
-    """Verarbeitet eine einzelne E-Mail und erstellt ein Dokument."""
-    raw_email = msg_data[b"RFC822"]
-    internal_date = msg_data.get(b"INTERNALDATE")
-
-    # E-Mail parsen (Body + Anhänge)
-    parsed = parse_email_message(raw_email)
-
-    # RID generieren (idempotent über Message-ID)
-    message_id_slug = slugify(parsed.message_id or str(msg_id), max_length=80)
-    rid = f"ri.svg.email.{message_id_slug}"
-
-    # Prüfen ob bereits verarbeitet
-    existing = get_document_fn(rid)
-    if existing:
-        return {"rid": rid, "title": existing.title, "status": "existing"}
-
-    # Inhalt zusammensetzen
-    content_parts = []
-    if parsed.body_text:
-        content_parts.append(parsed.body_text)
-
-    for att in parsed.attachments:
-        if att.extracted_text:
-            content_parts.append(f"\n\n--- Anhang: {att.filename} ---\n{att.extracted_text}")
-
-    content = "\n".join(content_parts).strip()
-    if not content:
-        content = f"(Leere E-Mail von {parsed.sender})"
-
-    title = parsed.subject or f"E-Mail von {parsed.sender}"
-
-    doc = DocumentCreate(
-        doc_type="email",
-        title=title,
-        content=content,
-        metadata={
-            "sender": parsed.sender,
-            "recipients": parsed.recipients,
-            "cc": parsed.cc,
-            "email_date": parsed.date,
-            "message_id": parsed.message_id,
-            "attachments": [
-                {"filename": a.filename, "content_type": a.content_type, "size": a.size}
-                for a in parsed.attachments
-            ],
-            "has_attachments": len(parsed.attachments) > 0,
-        },
-        language=EMAIL_DEFAULT_LANGUAGE,
-        source=f"email:{IMAP_EMAIL}",
-        rid=rid,
+    """Verarbeitet eine einzelne IMAP-E-Mail via shared Processor."""
+    parsed = parse_email_message(msg_data[b"RFC822"])
+    return process_parsed_email(
+        parsed,
+        source_label=f"imap:{IMAP_EMAIL}",
+        create_document_fn=create_document_fn,
+        get_document_fn=get_document_fn,
     )
-
-    try:
-        result = create_document_fn(doc)
-        return {"rid": result.rid, "title": result.title, "status": "created"}
-    except SpamRejectedError as e:
-        logger.info("E-Mail als Spam erkannt: %s (Grund: %s)", title, e.reason)
-        return {"rid": rid, "title": title, "status": "spam", "reason": e.reason}
-    except DuplicateDocumentError as e:
-        logger.info("E-Mail-Duplikat: %s -> %s", rid, e.existing_rid)
-        return {"rid": e.existing_rid, "title": title, "status": "duplicate", "type": e.dup_type}
