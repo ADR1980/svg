@@ -2,23 +2,24 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System-Dependencies für spaCy und PDF-Verarbeitung
+# System-Dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Python-Dependencies installieren (Pfad relativ zum Repo-Root)
+# Python-Dependencies
 COPY vector-store/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# spaCy Deutsch-Modell herunterladen
+# spaCy Modell vorinstallieren
 RUN python -m spacy download de_core_news_sm
 
-# Anwendungscode kopieren
+# Embedding-Modell vorinstallieren (verhindert Download beim Start)
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Anwendungscode
 COPY vector-store/ .
 
-# Port (Railway setzt PORT automatisch)
 EXPOSE 8000
 
-# Server starten
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
