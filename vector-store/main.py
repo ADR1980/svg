@@ -1,9 +1,13 @@
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from config import API_HOST, API_PORT
 from routers import documents, search, entities
+from routers.ai import router as ai_router
 from routers.ingest import router as ingest_router
 
 app = FastAPI(
@@ -23,7 +27,13 @@ app.add_middleware(
 app.include_router(documents.router)
 app.include_router(search.router)
 app.include_router(entities.router)
+app.include_router(ai_router)
 app.include_router(ingest_router)
+
+# Static Files für UI
+ui_dir = Path(__file__).parent / "ui"
+if ui_dir.exists():
+    app.mount("/ui", StaticFiles(directory=str(ui_dir), html=True), name="ui")
 
 
 @app.get("/health")

@@ -17,3 +17,8 @@ RID_NAMESPACE = "svg"
 
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
+
+# KI-Analyse (RAG)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+AI_MODEL = os.getenv("AI_MODEL", "claude-sonnet-4-6")
+AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "2000"))

@@ -7,3 +7,4 @@ python-dotenv>=1,<2
 pydantic>=2,<3
 vecs>=0.4,<1
 spacy>=3.7,<4
+anthropic>=0.42,<1
