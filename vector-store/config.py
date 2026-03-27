@@ -1,0 +1,46 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
+
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+EMBEDDING_DIMENSIONS = 384
+
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("API_PORT", "8000"))
+
+RID_NAMESPACE = "svg"
+
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
+
+# KI-Analyse (RAG)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+AI_MODEL = os.getenv("AI_MODEL", "claude-sonnet-4-6")
+AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "2000"))
+
+# Email-Ingestion (IMAP)
+IMAP_HOST = os.getenv("IMAP_HOST", "")
+IMAP_PORT = int(os.getenv("IMAP_PORT", "993"))
+IMAP_EMAIL = os.getenv("IMAP_EMAIL", "")
+IMAP_PASSWORD = os.getenv("IMAP_PASSWORD", "")
+IMAP_MAILBOX = os.getenv("IMAP_MAILBOX", "INBOX")
+IMAP_USE_SSL = os.getenv("IMAP_USE_SSL", "true").lower() == "true"
+EMAIL_POLL_INTERVAL_SECONDS = int(os.getenv("EMAIL_POLL_INTERVAL_SECONDS", "300"))
+EMAIL_DEFAULT_LANGUAGE = os.getenv("EMAIL_DEFAULT_LANGUAGE", "de")
+
+# Email-Ingestion (Microsoft Graph)
+MSGRAPH_TENANT_ID = os.getenv("MSGRAPH_TENANT_ID", "")
+MSGRAPH_CLIENT_ID = os.getenv("MSGRAPH_CLIENT_ID", "")
+MSGRAPH_CLIENT_SECRET = os.getenv("MSGRAPH_CLIENT_SECRET", "")
+MSGRAPH_MAILBOX = os.getenv("MSGRAPH_MAILBOX", "")
+MSGRAPH_POLL_INTERVAL_SECONDS = int(os.getenv("MSGRAPH_POLL_INTERVAL_SECONDS", "300"))
+
+# JWT Authentifizierung
+JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production-please")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_HOURS = float(os.getenv("JWT_EXPIRATION_HOURS", "24"))

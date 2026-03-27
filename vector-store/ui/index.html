@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Vector Store - Dokument-Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+/* ── Reset & Variables ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e14;
+      --bg-secondary: #111827;
+      --bg-card: #1a2332;
+      --bg-card-hover: #1f2b3d;
+      --gold: #c8a84e;
+      --gold-light: #e0c76a;
+      --gold-dark: #a08030;
+      --text-primary: #e8e8e8;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --border: #2a3444;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.3);
+      /* DocType colors */
+      --c-risk: #ef4444; --c-project: #3b82f6; --c-customer: #22c55e;
+      --c-person: #a855f7; --c-company: #f59e0b; --c-intelligence: #06b6d4;
+      --c-default: #6b7280; --c-employee: #ec4899; --c-product: #8b5cf6;
+      --c-order: #14b8a6; --c-work-step: #f97316; --c-machine: #64748b;
+      --c-email: #38bdf8;
+    }
+    html { font-size: 15px; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+
+    /* ── Navbar ────────────────────────────────────────────── */
+    .navbar {
+      display: flex; align-items: center; gap: 24px;
+      padding: 0 28px; height: 64px;
+      background: rgba(10,14,20,0.96); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--bg-primary); font-family: 'Rajdhani', sans-serif;
+      font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-text { font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.5px; }
+    .nav-tabs { display: flex; gap: 4px; flex: 1; }
+    .nav-tab {
+      background: none; border: none; color: var(--text-secondary);
+      font-family: 'Rajdhani', sans-serif; font-weight: 500; font-size: 14px;
+      padding: 8px 16px; border-radius: 6px; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s;
+    }
+    .nav-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+    .nav-tab.active { color: var(--gold); background: rgba(200,168,78,0.1); }
+    .navbar-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-default); }
+    .status-dot.online { background: #22c55e; }
+
+    /* ── Tab Content ──────────────────────────────────────── */
+    .tab-content { display: none; padding: 28px; max-width: 1280px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .section-title { font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 22px; letter-spacing: 0.3px; }
+    .section-subtitle { color: var(--text-muted); font-size: 13px; }
+
+    /* ── Toolbar / Filters ────────────────────────────────── */
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .input, .select {
+      background: var(--bg-secondary); border: 1.5px solid var(--border);
+      color: var(--text-primary); padding: 8px 14px; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 13px; outline: none;
+      transition: border-color 0.2s;
+    }
+    .input:focus, .select:focus { border-color: var(--gold); }
+    .input::placeholder { color: var(--text-muted); }
+    .select { cursor: pointer; -webkit-appearance: none; padding-right: 32px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+    .select option { background: var(--bg-secondary); color: var(--text-primary); }
+
+    /* ── Buttons ──────────────────────────────────────────── */
+    .btn {
+      padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer;
+      font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 13px;
+      text-transform: uppercase; letter-spacing: 0.4px; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: var(--bg-primary); }
+    .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(200,168,78,0.3); }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-secondary); }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-sm { padding: 6px 12px; font-size: 11px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Cards ────────────────────────────────────────────── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 18px 20px; cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .card-title { font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 16px; }
+    .card-rid { font-size: 11px; color: var(--text-muted); font-family: monospace; word-break: break-all; margin-top: 4px; }
+    .card-meta { display: flex; gap: 10px; align-items: center; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+    .card-preview { font-size: 13px; color: var(--text-secondary); margin-top: 8px; line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* ── Badges ───────────────────────────────────────────── */
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 10px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .badge-risk-report { background: rgba(239,68,68,0.15); color: var(--c-risk); }
+    .badge-project { background: rgba(59,130,246,0.15); color: var(--c-project); }
+    .badge-customer { background: rgba(34,197,94,0.15); color: var(--c-customer); }
+    .badge-person { background: rgba(168,85,247,0.15); color: var(--c-person); }
+    .badge-company { background: rgba(245,158,11,0.15); color: var(--c-company); }
+    .badge-intelligence { background: rgba(6,182,212,0.15); color: var(--c-intelligence); }
+    .badge-employee { background: rgba(236,72,153,0.15); color: var(--c-employee); }
+    .badge-product { background: rgba(139,92,246,0.15); color: var(--c-product); }
+    .badge-order { background: rgba(20,184,166,0.15); color: var(--c-order); }
+    .badge-work-step { background: rgba(249,115,22,0.15); color: var(--c-work-step); }
+    .badge-machine { background: rgba(100,116,139,0.15); color: var(--c-machine); }
+    .badge-email { background: rgba(56,189,248,0.15); color: var(--c-email); }
+
+    /* ── Forms ────────────────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 11px; font-weight: 500; margin-bottom: 6px;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    textarea.input { min-height: 140px; resize: vertical; line-height: 1.6; }
+    .rid-preview {
+      font-family: monospace; font-size: 12px; color: var(--gold);
+      background: rgba(200,168,78,0.08); padding: 8px 12px; border-radius: 6px;
+      margin-top: 8px; word-break: break-all;
+    }
+
+    /* ── Drop Zone ────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 32px; text-align: center; color: var(--text-muted);
+      transition: all 0.2s; cursor: pointer;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); color: var(--gold); background: rgba(200,168,78,0.04); }
+    .drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
+    .drop-zone-text { font-size: 13px; }
+    .drop-zone input[type="file"] { display: none; }
+
+    /* ── Batch Import ─────────────────────────────────────── */
+    .batch-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .batch-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+    /* ── Entity Columns ───────────────────────────────────── */
+    .entity-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .entity-column-title { font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 16px; margin-bottom: 12px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .entity-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+    .entity-card .card-title { font-size: 14px; }
+    .entity-avatar {
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .entity-avatar.person { background: rgba(168,85,247,0.2); color: var(--c-person); }
+    .entity-avatar.company { background: rgba(245,158,11,0.2); color: var(--c-company); }
+    .entity-info { flex: 1; min-width: 0; }
+
+    /* ── Chat ─────────────────────────────────────────────── */
+    .chat-container { display: flex; flex-direction: column; height: calc(100vh - 140px); }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 16px; }
+    .chat-msg { max-width: 85%; padding: 14px 18px; border-radius: var(--radius); font-size: 14px; line-height: 1.6; }
+    .chat-msg.user { align-self: flex-end; background: rgba(200,168,78,0.12); border: 1px solid rgba(200,168,78,0.25); }
+    .chat-msg.ai { align-self: flex-start; background: var(--bg-card); border: 1px solid var(--border); }
+    .chat-msg.ai .sources { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .chat-msg.ai .source-item { font-size: 11px; color: var(--text-muted); margin-top: 4px; cursor: pointer; }
+    .chat-msg.ai .source-item:hover { color: var(--gold); }
+    .chat-msg.ai .source-rid { font-family: monospace; color: var(--gold); }
+    .chat-input-row { display: flex; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .chat-input { flex: 1; }
+    .chat-typing { font-size: 12px; color: var(--text-muted); padding: 4px 0; }
+
+    /* ── Modal ────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000;
+      display: flex; align-items: flex-start; justify-content: center; padding-top: 60px;
+      backdrop-filter: blur(4px);
+    }
+    .modal {
+      background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px;
+      width: 90%; max-width: 740px; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4); padding: 28px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .modal-header h2 { font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 20px; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 4px 8px; }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal-section { margin-bottom: 18px; }
+    .modal-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 8px; }
+    .modal-content-text { font-size: 14px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+      background: var(--bg-primary); padding: 14px; border-radius: 8px; }
+    .modal-metadata { font-size: 13px; color: var(--text-secondary); }
+    .modal-metadata pre { background: var(--bg-primary); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 12px; }
+    .modal-links { display: flex; flex-wrap: wrap; gap: 6px; }
+    .modal-link-chip {
+      font-size: 11px; padding: 4px 10px; border-radius: 12px;
+      background: rgba(200,168,78,0.1); color: var(--gold); cursor: pointer;
+      font-family: monospace; border: 1px solid rgba(200,168,78,0.2);
+    }
+    .modal-link-chip:hover { background: rgba(200,168,78,0.2); }
+
+    /* ── Toast ────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px;
+      font-size: 13px; z-index: 2000; transition: all 0.3s; opacity: 0; transform: translateY(10px);
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+    .toast.error { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+    /* ── Empty State ──────────────────────────────────────── */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state-text { font-size: 14px; }
+
+    /* ── Spinner ──────────────────────────────────────────── */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .navbar { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 8px; }
+      .nav-tabs { order: 3; width: 100%; overflow-x: auto; }
+      .tab-content { padding: 16px; }
+      .card-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .entity-columns { grid-template-columns: 1fr; }
+      .chat-msg { max-width: 95%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="navbar-brand">
+      <div class="logo-icon">VS</div>
+      <span class="logo-text">SVG Vector Store</span>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="documents">Dokumente</button>
+      <button class="nav-tab" data-tab="upload">Upload</button>
+      <button class="nav-tab" data-tab="entities">Entit&auml;ten</button>
+      <button class="nav-tab" data-tab="ai" id="nav-tab-ai">KI-Analyse</button>
+    </nav>
+    <div class="navbar-status" id="status-bar">
+      <span class="status-dot"></span>
+      <span id="status-text">Verbinde...</span>
+    </div>
+  </header>
+
+  <!-- Tab: Dokumente -->
+  <main class="tab-content active" id="tab-documents">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Dokumente</h1>
+        <p class="section-subtitle" id="doc-count">Lade...</p>
+      </div>
+      <div class="toolbar">
+        <input class="input" type="text" id="doc-search" placeholder="Suche (semantisch)..." style="width:220px">
+        <select class="select" id="doc-filter">
+          <option value="">Alle Typen</option>
+          <option value="risk-report">Risiko-Bericht</option>
+          <option value="project">Projekt</option>
+          <option value="customer">Kunde</option>
+          <option value="person">Person</option>
+          <option value="company">Unternehmen</option>
+          <option value="intelligence">Intelligence</option>
+          <option value="employee">Mitarbeiter</option>
+          <option value="product">Produkt</option>
+          <option value="order">Auftrag</option>
+          <option value="work-step">Arbeitsschritt</option>
+          <option value="machine">Maschine</option>
+          <option value="email">E-Mail</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="loadDocuments()">Aktualisieren</button>
+      </div>
+    </div>
+    <div class="card-grid" id="doc-grid"></div>
+  </main>
+
+  <!-- Tab: Upload -->
+  <main class="tab-content" id="tab-upload">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Dokument hochladen</h1>
+        <p class="section-subtitle">Dokument manuell erfassen oder Datei importieren</p>
+      </div>
+    </div>
+
+    <!-- Datei-Upload Zone -->
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-zone-icon">&#128196;</div>
+      <div class="drop-zone-text">Datei hierher ziehen oder <strong>klicken</strong> (.txt, .json, .md)</div>
+      <input type="file" id="file-input" accept=".txt,.json,.md,.csv">
+    </div>
+
+    <!-- Manuelles Formular -->
+    <form id="upload-form" style="margin-top: 24px">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Dokumenttyp *</label>
+          <select class="select" id="up-type" required style="width:100%">
+            <option value="risk-report">Risiko-Bericht</option>
+            <option value="intelligence">Intelligence</option>
+            <option value="project">Projekt</option>
+            <option value="customer">Kunde</option>
+            <option value="product">Produkt</option>
+            <option value="order">Auftrag</option>
+            <option value="work-step">Arbeitsschritt</option>
+            <option value="employee">Mitarbeiter</option>
+            <option value="machine">Maschine</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sprache</label>
+          <select class="select" id="up-lang" style="width:100%">
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Titel *</label>
+        <input class="input" type="text" id="up-title" required placeholder="z.B. Risikobericht Osteuropa Q1 2026" style="width:100%">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inhalt *</label>
+        <textarea class="input" id="up-content" required placeholder="Dokumentinhalt hier eingeben oder Datei per Drag&amp;Drop laden..." style="width:100%"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quelle (optional)</label>
+        <input class="input" type="text" id="up-source" placeholder="z.B. OSINT, Interner Bericht, risk-data.json" style="width:100%">
+      </div>
+      <div class="rid-preview" id="rid-preview">RID wird beim Speichern generiert...</div>
+      <div style="margin-top: 16px; display: flex; gap: 10px">
+        <button type="submit" class="btn btn-gold" id="upload-btn">Dokument speichern</button>
+        <button type="reset" class="btn btn-outline">Leeren</button>
+      </div>
+    </form>
+
+    <!-- Batch Import -->
+    <div class="batch-section">
+      <h2 class="section-title" style="font-size:18px">Batch-Import</h2>
+      <p class="section-subtitle">Bestehende Daten aus dem SVG-System importieren</p>
+      <div class="batch-buttons">
+        <button class="btn btn-outline" id="btn-ingest-risk" onclick="batchIngest('risk-data')">Risiko-Daten importieren</button>
+        <button class="btn btn-outline" id="btn-ingest-prod" onclick="batchIngest('production-data')">Produktionsdaten importieren</button>
+      </div>
+      <div id="batch-result" style="margin-top: 12px"></div>
+    </div>
+
+    <!-- Email Ingestion -->
+    <div class="batch-section" id="email-section">
+      <h2 class="section-title" style="font-size:18px">E-Mail Ingestion</h2>
+      <p class="section-subtitle">Dokumente an die Funktions-E-Mail-Adresse senden &ndash; sie werden automatisch verarbeitet</p>
+      <div id="email-status" style="margin-top: 12px; font-size: 13px; color: var(--text-secondary)">Lade Status...</div>
+      <div class="batch-buttons" style="margin-top: 12px">
+        <button class="btn btn-outline" id="btn-email-poll" onclick="pollEmails()">Jetzt E-Mails abrufen</button>
+      </div>
+      <div id="email-result" style="margin-top: 12px"></div>
+    </div>
+  </main>
+
+  <!-- Tab: Entitäten -->
+  <main class="tab-content" id="tab-entities">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Erkannte Entit&auml;ten</h1>
+        <p class="section-subtitle">Automatisch aus Dokumenten extrahierte Personen und Unternehmen</p>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="loadEntities()">Aktualisieren</button>
+    </div>
+    <div class="entity-columns">
+      <div>
+        <div class="entity-column-title">Personen <span id="person-count" style="color:var(--text-muted);font-size:13px"></span></div>
+        <div id="person-list"></div>
+      </div>
+      <div>
+        <div class="entity-column-title">Unternehmen / Organisationen <span id="company-count" style="color:var(--text-muted);font-size:13px"></span></div>
+        <div id="company-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Tab: KI-Analyse -->
+  <main class="tab-content" id="tab-ai">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">KI-Analyse</h1>
+        <p class="section-subtitle">Stelle Fragen an die Wissensdatenbank (RAG)</p>
+      </div>
+      <div class="toolbar">
+        <select class="select" id="ai-filter">
+          <option value="">Alle Dokumente</option>
+          <option value="risk-report">Nur Risikoberichte</option>
+          <option value="project">Nur Projekte</option>
+          <option value="intelligence">Nur Intelligence</option>
+        </select>
+      </div>
+    </div>
+    <div class="chat-container">
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg ai">
+          Willkommen! Ich bin der SVG KI-Analyst. Stelle mir Fragen zur Wissensdatenbank &ndash;
+          z.B. &quot;Welche Regionen haben das h&ouml;chste Risiko?&quot; oder &quot;Welche Unternehmen werden erw&auml;hnt?&quot;
+        </div>
+      </div>
+      <div class="chat-typing" id="chat-typing" style="display:none"><span class="spinner"></span> Analysiere...</div>
+      <div class="chat-input-row">
+        <input class="input chat-input" type="text" id="ai-input" placeholder="Frage an die Wissensdatenbank...">
+        <button class="btn btn-gold" id="ai-send" onclick="sendAIQuery()">Senden</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Detail-Modal -->
+  <div class="modal-overlay" id="modal-overlay" style="display:none">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+// ══════════════════════════════════════════════════════════
+// CONFIG & API CLIENT
+// ══════════════════════════════════════════════════════════
+const API = window.location.origin;
+let aiAvailable = false;
+
+async function api(method, path, body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ══════════════════════════════════════════════════════════
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    // Lazy-load tab data
+    if (tab.dataset.tab === 'documents') loadDocuments();
+    if (tab.dataset.tab === 'entities') loadEntities();
+  });
+});
+
+// ══════════════════════════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ══════════════════════════════════════════════════════════
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════
+function badgeClass(docType) {
+  return 'badge badge-' + docType;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function truncate(text, len = 120) {
+  return text && text.length > len ? text.substring(0, len) + '...' : (text || '');
+}
+
+function initials(name) {
+  return name.split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+}
+
+function escapeHtml(text) {
+  const el = document.createElement('div');
+  el.textContent = text;
+  return el.innerHTML;
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB 1: DOKUMENTE
+// ══════════════════════════════════════════════════════════
+let searchTimeout;
+const docSearch = document.getElementById('doc-search');
+const docFilter = document.getElementById('doc-filter');
+
+docSearch.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => loadDocuments(), 400);
+});
+docFilter.addEventListener('change', () => loadDocuments());
+
+async function loadDocuments() {
+  const grid = document.getElementById('doc-grid');
+  const countEl = document.getElementById('doc-count');
+  const searchTerm = docSearch.value.trim();
+  const filterType = docFilter.value;
+
+  grid.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+
+  try {
+    let docs;
+    if (searchTerm.length >= 2) {
+      // Semantische Suche
+      const results = await api('POST', '/api/v1/search', {
+        query: searchTerm,
+        doc_type: filterType || null,
+        threshold: 0.4,
+        limit: 50,
+      });
+      // Deduplizieren nach RID
+      const seen = new Set();
+      docs = [];
+      for (const r of results) {
+        if (!seen.has(r.document_rid)) {
+          seen.add(r.document_rid);
+          docs.push({
+            rid: r.document_rid, doc_type: r.doc_type, title: r.title,
+            content: r.chunk_text, metadata: r.metadata,
+            similarity: r.similarity,
+          });
+        }
+      }
+    } else {
+      // Normale Liste
+      const params = new URLSearchParams();
+      if (filterType) params.set('type', filterType);
+      params.set('limit', '100');
+      docs = await api('GET', '/api/v1/documents?' + params.toString());
+    }
+
+    countEl.textContent = docs.length + ' Dokument' + (docs.length !== 1 ? 'e' : '');
+
+    if (docs.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128196;</div><div class="empty-state-text">Keine Dokumente gefunden</div></div>';
+      return;
+    }
+
+    grid.innerHTML = docs.map(doc => `
+      <div class="card" onclick="openDocument('${escapeHtml(doc.rid)}')">
+        <div class="card-top">
+          <span class="${badgeClass(doc.doc_type)}">${escapeHtml(doc.doc_type)}</span>
+          ${doc.similarity ? '<span style="font-size:11px;color:var(--gold)">' + Math.round(doc.similarity * 100) + '%</span>' : ''}
+        </div>
+        <div class="card-title">${escapeHtml(doc.title)}</div>
+        <div class="card-rid">${escapeHtml(doc.rid)}</div>
+        <div class="card-preview">${escapeHtml(truncate(doc.content, 150))}</div>
+        <div class="card-meta">
+          ${doc.created_at ? '<span>' + formatDate(doc.created_at) + '</span>' : ''}
+          ${doc.language ? '<span>' + escapeHtml(doc.language).toUpperCase() + '</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-text" style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div></div>';
+  }
+}
+
+// ── Detail-Modal ─────────────────────────────────────────
+async function openDocument(rid) {
+  const overlay = document.getElementById('modal-overlay');
+  const titleEl = document.getElementById('modal-title');
+  const bodyEl = document.getElementById('modal-body');
+
+  overlay.style.display = 'flex';
+  titleEl.textContent = 'Lade...';
+  bodyEl.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const doc = await api('GET', '/api/v1/documents/' + rid);
+    let links = [];
+    try { links = await api('GET', '/api/v1/documents/' + rid + '/links'); } catch (_) {}
+
+    titleEl.textContent = doc.title;
+
+    const entities = (doc.metadata && doc.metadata.extracted_entities) || [];
+    const persons = entities.filter(e => e.type === 'person');
+    const companies = entities.filter(e => e.type === 'company');
+
+    bodyEl.innerHTML = `
+      <div class="modal-section">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="${badgeClass(doc.doc_type)}">${escapeHtml(doc.doc_type)}</span>
+          <span style="font-family:monospace;font-size:12px;color:var(--gold)">${escapeHtml(doc.rid)}</span>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Inhalt</div>
+        <div class="modal-content-text">${escapeHtml(doc.content)}</div>
+      </div>
+      ${persons.length || companies.length ? `
+      <div class="modal-section">
+        <div class="modal-section-title">Erkannte Entit&auml;ten</div>
+        <div class="modal-links">
+          ${persons.map(e => '<span class="modal-link-chip" onclick="openDocument(\'' + escapeHtml(e.rid) + '\')" title="Person">&#128100; ' + escapeHtml(e.name) + '</span>').join('')}
+          ${companies.map(e => '<span class="modal-link-chip" onclick="openDocument(\'' + escapeHtml(e.rid) + '\')" title="Unternehmen">&#127970; ' + escapeHtml(e.name) + '</span>').join('')}
+        </div>
+      </div>` : ''}
+      ${links.length ? `
+      <div class="modal-section">
+        <div class="modal-section-title">Verkn&uuml;pfungen (${links.length})</div>
+        <div class="modal-links">
+          ${links.map(l => {
+            const target = l.source_rid === doc.rid ? l.target_rid : l.source_rid;
+            return '<span class="modal-link-chip" onclick="openDocument(\'' + escapeHtml(target) + '\')">' + escapeHtml(l.link_type) + ': ' + escapeHtml(target) + '</span>';
+          }).join('')}
+        </div>
+      </div>` : ''}
+      <div class="modal-section">
+        <div class="modal-section-title">Metadaten</div>
+        <div class="modal-metadata"><pre>${escapeHtml(JSON.stringify(doc.metadata, null, 2))}</pre></div>
+      </div>
+      <div class="modal-section">
+        <div style="display:flex;gap:8px;font-size:12px;color:var(--text-muted)">
+          <span>Erstellt: ${formatDate(doc.created_at)}</span>
+          <span>Sprache: ${(doc.language || '').toUpperCase()}</span>
+          ${doc.source ? '<span>Quelle: ' + escapeHtml(doc.source) + '</span>' : ''}
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn btn-danger btn-sm" onclick="deleteDocument('${escapeHtml(doc.rid)}')">L&ouml;schen</button>
+      </div>
+    `;
+  } catch (e) {
+    bodyEl.innerHTML = '<div style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+}
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+async function deleteDocument(rid) {
+  if (!confirm('Dokument "' + rid + '" wirklich l\u00f6schen?')) return;
+  try {
+    await api('DELETE', '/api/v1/documents/' + rid);
+    showToast('Dokument gel\u00f6scht');
+    closeModal();
+    loadDocuments();
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB 2: UPLOAD
+// ══════════════════════════════════════════════════════════
+
+// RID-Vorschau
+const upTitle = document.getElementById('up-title');
+const upType = document.getElementById('up-type');
+const ridPreview = document.getElementById('rid-preview');
+
+function updateRidPreview() {
+  const title = upTitle.value.trim();
+  const type = upType.value;
+  if (title) {
+    const locator = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 80);
+    ridPreview.textContent = 'ri.svg.' + type + '.' + locator;
+  } else {
+    ridPreview.textContent = 'RID wird beim Speichern generiert...';
+  }
+}
+upTitle.addEventListener('input', updateRidPreview);
+upType.addEventListener('change', updateRidPreview);
+
+// Formular-Submit
+document.getElementById('upload-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Speichere...';
+
+  const payload = {
+    doc_type: upType.value,
+    title: upTitle.value.trim(),
+    content: document.getElementById('up-content').value.trim(),
+    language: document.getElementById('up-lang').value,
+    source: document.getElementById('up-source').value.trim() || null,
+  };
+
+  try {
+    const result = await api('POST', '/api/v1/documents', payload);
+    showToast('Gespeichert: ' + result.rid);
+    this.reset();
+    ridPreview.textContent = 'RID wird beim Speichern generiert...';
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Dokument speichern';
+  }
+});
+
+// Drag & Drop
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    let content = reader.result;
+    // JSON hübsch formatieren
+    if (file.name.endsWith('.json')) {
+      try { content = JSON.stringify(JSON.parse(content), null, 2); } catch (_) {}
+    }
+    document.getElementById('up-content').value = content;
+    // Titel aus Dateiname ableiten
+    if (!upTitle.value) {
+      upTitle.value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      updateRidPreview();
+    }
+    document.getElementById('up-source').value = file.name;
+    showToast('Datei geladen: ' + file.name);
+  };
+  reader.readAsText(file);
+}
+
+// Batch Import
+async function batchIngest(type) {
+  const btn = document.getElementById(type === 'risk-data' ? 'btn-ingest-risk' : 'btn-ingest-prod');
+  const resultEl = document.getElementById('batch-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Importiere...';
+  resultEl.innerHTML = '';
+
+  try {
+    const result = await api('POST', '/api/v1/ingest/' + type);
+    resultEl.innerHTML = '<div style="font-size:13px;color:var(--text-secondary)">'
+      + '<strong style="color:#22c55e">' + result.imported + '</strong> importiert, '
+      + '<strong style="color:#ef4444">' + result.errors + '</strong> Fehler'
+      + '</div>';
+    showToast(result.imported + ' Dokumente importiert');
+  } catch (e) {
+    resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px">Fehler: ' + escapeHtml(e.message) + '</div>';
+    showToast('Import fehlgeschlagen', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = type === 'risk-data' ? 'Risiko-Daten importieren' : 'Produktionsdaten importieren';
+  }
+}
+
+// ── Email Ingestion ──────────────────────────────────────
+async function loadEmailStatus() {
+  try {
+    const status = await api('GET', '/api/v1/email/status');
+    const el = document.getElementById('email-status');
+    if (!status.enabled) {
+      el.innerHTML = '<span style="color:var(--text-muted)">E-Mail-Ingestion nicht konfiguriert (IMAP-Daten fehlen in .env)</span>';
+      document.getElementById('btn-email-poll').disabled = true;
+      return;
+    }
+    const parts = ['<span style="color:#22c55e">Aktiv</span>'];
+    if (status.last_poll) parts.push('Letzter Abruf: ' + new Date(status.last_poll).toLocaleString('de-DE'));
+    if (status.last_poll_count !== undefined) parts.push('Letzter Abruf: ' + status.last_poll_count + ' E-Mails');
+    parts.push('Gesamt verarbeitet: ' + status.emails_processed_total);
+    if (status.last_error) parts.push('<span style="color:#ef4444">Fehler: ' + escapeHtml(status.last_error) + '</span>');
+    el.innerHTML = parts.join(' &middot; ');
+  } catch (_) {}
+}
+
+async function pollEmails() {
+  const btn = document.getElementById('btn-email-poll');
+  const resultEl = document.getElementById('email-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Rufe E-Mails ab...';
+  resultEl.innerHTML = '';
+
+  try {
+    const result = await api('POST', '/api/v1/email/poll');
+    resultEl.innerHTML = '<div style="font-size:13px;color:var(--text-secondary)">'
+      + '<strong style="color:#22c55e">' + result.imported + '</strong> importiert, '
+      + '<strong style="color:var(--text-muted)">' + result.skipped + '</strong> bereits vorhanden, '
+      + '<strong style="color:#ef4444">' + result.errors + '</strong> Fehler'
+      + '</div>';
+    if (result.imported > 0) showToast(result.imported + ' E-Mails verarbeitet');
+    else showToast('Keine neuen E-Mails');
+    loadEmailStatus();
+  } catch (e) {
+    resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px">Fehler: ' + escapeHtml(e.message) + '</div>';
+    showToast('E-Mail-Abruf fehlgeschlagen', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Jetzt E-Mails abrufen';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB 3: ENTITÄTEN
+// ══════════════════════════════════════════════════════════
+async function loadEntities() {
+  const personList = document.getElementById('person-list');
+  const companyList = document.getElementById('company-list');
+  const personCount = document.getElementById('person-count');
+  const companyCount = document.getElementById('company-count');
+
+  personList.innerHTML = companyList.innerHTML = '<div class="spinner" style="margin:20px auto;display:block"></div>';
+
+  try {
+    const [persons, companies] = await Promise.all([
+      api('GET', '/api/v1/entities/persons?limit=100'),
+      api('GET', '/api/v1/entities/companies?limit=100'),
+    ]);
+
+    personCount.textContent = '(' + persons.length + ')';
+    companyCount.textContent = '(' + companies.length + ')';
+
+    personList.innerHTML = persons.length ? persons.map(p => entityCard(p, 'person')).join('') :
+      '<div class="empty-state" style="padding:30px"><div class="empty-state-text">Keine Personen erkannt</div></div>';
+
+    companyList.innerHTML = companies.length ? companies.map(c => entityCard(c, 'company')).join('') :
+      '<div class="empty-state" style="padding:30px"><div class="empty-state-text">Keine Unternehmen erkannt</div></div>';
+
+  } catch (e) {
+    personList.innerHTML = companyList.innerHTML = '<div style="color:#ef4444;font-size:13px;padding:12px">Fehler: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function entityCard(entity, type) {
+  return `
+    <div class="card entity-card" onclick="openDocument('${escapeHtml(entity.rid)}')">
+      <div class="entity-avatar ${type}">${initials(entity.title)}</div>
+      <div class="entity-info">
+        <div class="card-title">${escapeHtml(entity.title)}</div>
+        <div class="card-rid">${escapeHtml(entity.rid)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB 4: KI-ANALYSE
+// ══════════════════════════════════════════════════════════
+const aiInput = document.getElementById('ai-input');
+aiInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIQuery(); } });
+
+async function sendAIQuery() {
+  const question = aiInput.value.trim();
+  if (!question) return;
+
+  const messages = document.getElementById('chat-messages');
+  const typing = document.getElementById('chat-typing');
+  const sendBtn = document.getElementById('ai-send');
+
+  // User-Nachricht anzeigen
+  messages.innerHTML += '<div class="chat-msg user">' + escapeHtml(question) + '</div>';
+  aiInput.value = '';
+  sendBtn.disabled = true;
+  typing.style.display = 'block';
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const filterType = document.getElementById('ai-filter').value || null;
+    const result = await api('POST', '/api/v1/ai/query', {
+      question: question,
+      doc_type: filterType,
+      language: 'de',
+      max_context_chunks: 15,
+    });
+
+    // KI-Antwort rendern
+    let sourcesHtml = '';
+    if (result.sources && result.sources.length) {
+      sourcesHtml = '<div class="sources"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Quellen (' + result.sources.length + '):</div>'
+        + result.sources.map(s =>
+          '<div class="source-item" onclick="openDocument(\'' + escapeHtml(s.document_rid) + '\')">'
+          + '<span class="source-rid">' + escapeHtml(s.document_rid) + '</span> '
+          + escapeHtml(s.title) + ' (' + Math.round(s.similarity * 100) + '%)</div>'
+        ).join('')
+        + '</div>';
+    }
+
+    // Markdown-like formatting: **bold** und `code`
+    let answer = escapeHtml(result.answer);
+    answer = answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    answer = answer.replace(/`(.*?)`/g, '<code style="background:var(--bg-primary);padding:1px 4px;border-radius:3px;font-size:12px">$1</code>');
+    answer = answer.replace(/\n/g, '<br>');
+
+    messages.innerHTML += '<div class="chat-msg ai">' + answer + sourcesHtml + '</div>';
+
+  } catch (e) {
+    messages.innerHTML += '<div class="chat-msg ai" style="border-color:rgba(239,68,68,0.3)">Fehler: ' + escapeHtml(e.message) + '</div>';
+  } finally {
+    typing.style.display = 'none';
+    sendBtn.disabled = false;
+    messages.scrollTop = messages.scrollHeight;
+    aiInput.focus();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+async function init() {
+  try {
+    const health = await api('GET', '/health');
+    document.getElementById('status-text').textContent = 'Online';
+    document.querySelector('.status-dot').classList.add('online');
+  } catch (e) {
+    document.getElementById('status-text').textContent = 'Offline';
+  }
+
+  // KI-Verfügbarkeit prüfen
+  try {
+    const status = await api('GET', '/api/v1/ai/status');
+    aiAvailable = status.available;
+    if (!aiAvailable) {
+      document.getElementById('nav-tab-ai').style.opacity = '0.4';
+      document.getElementById('nav-tab-ai').title = 'ANTHROPIC_API_KEY nicht konfiguriert';
+    }
+  } catch (_) {}
+
+  loadDocuments();
+  loadEmailStatus();
+}
+
+init();
+  </script>
+</body>
+</html>
