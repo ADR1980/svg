@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import API_HOST, API_PORT
-from routers import documents, search
+from routers import documents, search, entities
 from routers.ingest import router as ingest_router
 
 app = FastAPI(
@@ -22,6 +22,7 @@ app.add_middleware(
 
 app.include_router(documents.router)
 app.include_router(search.router)
+app.include_router(entities.router)
 app.include_router(ingest_router)
 
 

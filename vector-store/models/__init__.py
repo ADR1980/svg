@@ -8,3 +8,4 @@ from .document import (
     DocumentLinkResponse,
 )
 from .rid import RID, DocType
+from .entity import EntityResponse

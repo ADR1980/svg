@@ -6,3 +6,4 @@ python-slugify>=8,<9
 python-dotenv>=1,<2
 pydantic>=2,<3
 vecs>=0.4,<1
+spacy>=3.7,<4

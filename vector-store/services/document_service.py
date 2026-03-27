@@ -12,6 +12,7 @@ from models.document import (
 from services.rid_service import generate_rid, validate_doc_type
 from services.embedding_service import generate_embedding, generate_embeddings
 from services.chunking_service import chunk_text
+from services.entity_service import extract_and_link_entities
 
 
 def _get_client():
@@ -21,8 +22,14 @@ def _get_client():
 # ─── Document CRUD ────────────────────────────────────────────────────────────
 
 
-def create_document(doc: DocumentCreate) -> DocumentResponse:
-    """Erstellt ein Dokument mit Chunks und Embeddings."""
+def create_document(doc: DocumentCreate, extract_entities_flag: bool = True) -> DocumentResponse:
+    """Erstellt ein Dokument mit Chunks und Embeddings.
+
+    Args:
+        doc: Dokument-Daten
+        extract_entities_flag: Wenn True, werden Personen und Unternehmen
+            automatisch extrahiert, als eigene Dokumente angelegt und verlinkt.
+    """
     client = _get_client()
 
     validate_doc_type(doc.doc_type)
@@ -59,6 +66,23 @@ def create_document(doc: DocumentCreate) -> DocumentResponse:
             for i, (text, embedding) in enumerate(zip(chunk_texts, embeddings))
         ]
         client.table("document_chunks").insert(chunk_records).execute()
+
+    # Automatische Entity-Extraktion (Personen & Unternehmen)
+    if extract_entities_flag and doc.doc_type not in ("person", "company"):
+        entity_results = extract_and_link_entities(
+            document_rid=rid,
+            content=doc.content,
+            language=doc.language,
+            source=doc.source,
+            create_document_fn=create_document,
+            create_link_fn=create_link,
+            get_document_fn=get_document,
+        )
+        # Entitäten-Info in Metadaten speichern
+        if entity_results:
+            updated_metadata = {**doc.metadata, "extracted_entities": entity_results}
+            client.table("documents").update({"metadata": updated_metadata}).eq("rid", rid).execute()
+            document["metadata"] = updated_metadata
 
     return DocumentResponse(**document)
 
