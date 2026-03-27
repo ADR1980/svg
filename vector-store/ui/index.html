@@ -27,6 +27,7 @@
       --c-person: #a855f7; --c-company: #f59e0b; --c-intelligence: #06b6d4;
       --c-default: #6b7280; --c-employee: #ec4899; --c-product: #8b5cf6;
       --c-order: #14b8a6; --c-work-step: #f97316; --c-machine: #64748b;
+      --c-email: #38bdf8;
     }
     html { font-size: 15px; }
     body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
@@ -130,6 +131,7 @@
     .badge-order { background: rgba(20,184,166,0.15); color: var(--c-order); }
     .badge-work-step { background: rgba(249,115,22,0.15); color: var(--c-work-step); }
     .badge-machine { background: rgba(100,116,139,0.15); color: var(--c-machine); }
+    .badge-email { background: rgba(56,189,248,0.15); color: var(--c-email); }
 
     /* ── Forms ────────────────────────────────────────────── */
     .form-group { margin-bottom: 16px; }
@@ -290,6 +292,7 @@
           <option value="order">Auftrag</option>
           <option value="work-step">Arbeitsschritt</option>
           <option value="machine">Maschine</option>
+          <option value="email">E-Mail</option>
         </select>
         <button class="btn btn-outline btn-sm" onclick="loadDocuments()">Aktualisieren</button>
       </div>
@@ -366,6 +369,17 @@
         <button class="btn btn-outline" id="btn-ingest-prod" onclick="batchIngest('production-data')">Produktionsdaten importieren</button>
       </div>
       <div id="batch-result" style="margin-top: 12px"></div>
+    </div>
+
+    <!-- Email Ingestion -->
+    <div class="batch-section" id="email-section">
+      <h2 class="section-title" style="font-size:18px">E-Mail Ingestion</h2>
+      <p class="section-subtitle">Dokumente an die Funktions-E-Mail-Adresse senden &ndash; sie werden automatisch verarbeitet</p>
+      <div id="email-status" style="margin-top: 12px; font-size: 13px; color: var(--text-secondary)">Lade Status...</div>
+      <div class="batch-buttons" style="margin-top: 12px">
+        <button class="btn btn-outline" id="btn-email-poll" onclick="pollEmails()">Jetzt E-Mails abrufen</button>
+      </div>
+      <div id="email-result" style="margin-top: 12px"></div>
     </div>
   </main>
 
@@ -781,6 +795,51 @@ async function batchIngest(type) {
   }
 }
 
+// ── Email Ingestion ──────────────────────────────────────
+async function loadEmailStatus() {
+  try {
+    const status = await api('GET', '/api/v1/email/status');
+    const el = document.getElementById('email-status');
+    if (!status.enabled) {
+      el.innerHTML = '<span style="color:var(--text-muted)">E-Mail-Ingestion nicht konfiguriert (IMAP-Daten fehlen in .env)</span>';
+      document.getElementById('btn-email-poll').disabled = true;
+      return;
+    }
+    const parts = ['<span style="color:#22c55e">Aktiv</span>'];
+    if (status.last_poll) parts.push('Letzter Abruf: ' + new Date(status.last_poll).toLocaleString('de-DE'));
+    if (status.last_poll_count !== undefined) parts.push('Letzter Abruf: ' + status.last_poll_count + ' E-Mails');
+    parts.push('Gesamt verarbeitet: ' + status.emails_processed_total);
+    if (status.last_error) parts.push('<span style="color:#ef4444">Fehler: ' + escapeHtml(status.last_error) + '</span>');
+    el.innerHTML = parts.join(' &middot; ');
+  } catch (_) {}
+}
+
+async function pollEmails() {
+  const btn = document.getElementById('btn-email-poll');
+  const resultEl = document.getElementById('email-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Rufe E-Mails ab...';
+  resultEl.innerHTML = '';
+
+  try {
+    const result = await api('POST', '/api/v1/email/poll');
+    resultEl.innerHTML = '<div style="font-size:13px;color:var(--text-secondary)">'
+      + '<strong style="color:#22c55e">' + result.imported + '</strong> importiert, '
+      + '<strong style="color:var(--text-muted)">' + result.skipped + '</strong> bereits vorhanden, '
+      + '<strong style="color:#ef4444">' + result.errors + '</strong> Fehler'
+      + '</div>';
+    if (result.imported > 0) showToast(result.imported + ' E-Mails verarbeitet');
+    else showToast('Keine neuen E-Mails');
+    loadEmailStatus();
+  } catch (e) {
+    resultEl.innerHTML = '<div style="color:#ef4444;font-size:13px">Fehler: ' + escapeHtml(e.message) + '</div>';
+    showToast('E-Mail-Abruf fehlgeschlagen', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Jetzt E-Mails abrufen';
+  }
+}
+
 // ══════════════════════════════════════════════════════════
 // TAB 3: ENTITÄTEN
 // ══════════════════════════════════════════════════════════
@@ -907,6 +966,7 @@ async function init() {
   } catch (_) {}
 
   loadDocuments();
+  loadEmailStatus();
 }
 
 init();

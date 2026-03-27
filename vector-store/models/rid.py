@@ -16,6 +16,7 @@ class DocType(str, Enum):
     INTELLIGENCE = "intelligence"
     PERSON = "person"
     COMPANY = "company"
+    EMAIL = "email"
 
 
 RID_PATTERN = re.compile(r"^ri\.[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z0-9][a-z0-9-]*$")
