@@ -5,6 +5,7 @@ import anthropic
 from config import ANTHROPIC_API_KEY, AI_MODEL, AI_MAX_TOKENS
 from models.document import SearchQuery
 from models.ai import AIQuery, AIResponse, AISource
+from models.tenant import TenantContext
 from services.document_service import search_documents
 
 
@@ -31,16 +32,16 @@ If you cannot find relevant information in the context, say so honestly.
 Respond in English unless the user asks in German."""
 
 
-def query_ai(query: AIQuery) -> AIResponse:
-    """Führt eine RAG-basierte KI-Analyse durch."""
-    # 1. Semantische Suche nach relevantem Kontext
+def query_ai(query: AIQuery, tenant: TenantContext | None = None) -> AIResponse:
+    """Führt eine tenant-scoped RAG-basierte KI-Analyse durch."""
+    # 1. Semantische Suche nach relevantem Kontext (tenant-scoped)
     search = SearchQuery(
         query=query.question,
         doc_type=query.doc_type,
         threshold=0.5,
         limit=query.max_context_chunks,
     )
-    search_results = search_documents(search)
+    search_results = search_documents(search, tenant=tenant) if tenant else search_documents(search)
 
     # 2. Kontext aus Suchergebnissen aufbauen
     context_parts = []

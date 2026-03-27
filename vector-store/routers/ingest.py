@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from middleware.auth import get_tenant
 from models.document import DocumentCreate
+from models.tenant import TenantContext
 from services.document_service import create_document
 
 router = APIRouter(prefix="/api/v1/ingest", tags=["Batch-Import"])
@@ -12,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 @router.post("/risk-data")
-def ingest_risk_data():
+def ingest_risk_data(tenant: TenantContext = Depends(get_tenant)):
     """Importiert alle Regionen aus risk-data.json als einzelne Dokumente."""
     risk_file = PROJECT_ROOT / "risk-data.json"
     if not risk_file.exists():
@@ -51,7 +53,7 @@ def ingest_risk_data():
 
         # RID mit Datum und Region-Key
         date_prefix = generated_at[:10] if generated_at != "unknown" else "latest"
-        rid = f"ri.svg.risk-report.{date_prefix}-{key.replace('_', '-')}"
+        rid = f"ri.{tenant.tenant_id}.risk-report.{date_prefix}-{key.replace('_', '-')}"
 
         doc = DocumentCreate(
             doc_type="risk-report",
@@ -72,7 +74,7 @@ def ingest_risk_data():
         )
 
         try:
-            result = create_document(doc)
+            result = create_document(doc, tenant=tenant)
             results.append({"rid": result.rid, "title": result.title, "status": "created"})
         except Exception as e:
             results.append({"rid": rid, "title": doc.title, "status": f"error: {e}"})
@@ -85,11 +87,8 @@ def ingest_risk_data():
 
 
 @router.post("/production-data")
-def ingest_production_data():
-    """Importiert Produktionsdaten (Projekte, Kunden, Arbeitsschritte) aus data.js.
-
-    Parst die JavaScript-Datei und extrahiert die relevanten Objekte.
-    """
+def ingest_production_data(tenant: TenantContext = Depends(get_tenant)):
+    """Importiert Produktionsdaten (Projekte, Kunden, Arbeitsschritte) aus data.js."""
     data_file = PROJECT_ROOT / "production-planner" / "data.js"
     if not data_file.exists():
         raise HTTPException(status_code=404, detail="production-planner/data.js nicht gefunden")
@@ -97,10 +96,8 @@ def ingest_production_data():
     content = data_file.read_text(encoding="utf-8")
     results = []
 
-    # Kunden extrahieren und speichern
-    results.extend(_ingest_customers(content))
-    # Projekte extrahieren und speichern
-    results.extend(_ingest_projects(content))
+    results.extend(_ingest_customers(content, tenant))
+    results.extend(_ingest_projects(content, tenant))
 
     return {
         "imported": len([r for r in results if r["status"] == "created"]),
@@ -109,7 +106,7 @@ def ingest_production_data():
     }
 
 
-def _ingest_customers(js_content: str) -> list[dict]:
+def _ingest_customers(js_content: str, tenant: TenantContext) -> list[dict]:
     """Extrahiert Kunden aus data.js und erstellt Dokumente."""
     results = []
 
@@ -128,7 +125,7 @@ def _ingest_customers(js_content: str) -> list[dict]:
 
         from slugify import slugify
         locator = slugify(name, max_length=60)
-        rid = f"ri.svg.customer.{locator}"
+        rid = f"ri.{tenant.tenant_id}.customer.{locator}"
 
         doc = DocumentCreate(
             doc_type="customer",
@@ -140,7 +137,7 @@ def _ingest_customers(js_content: str) -> list[dict]:
         )
 
         try:
-            result = create_document(doc)
+            result = create_document(doc, tenant=tenant)
             results.append({"rid": result.rid, "title": result.title, "status": "created"})
         except Exception as e:
             results.append({"rid": rid, "title": name, "status": f"error: {e}"})
@@ -148,7 +145,7 @@ def _ingest_customers(js_content: str) -> list[dict]:
     return results
 
 
-def _ingest_projects(js_content: str) -> list[dict]:
+def _ingest_projects(js_content: str, tenant: TenantContext) -> list[dict]:
     """Extrahiert Projekte aus data.js und erstellt Dokumente."""
     results = []
     import re
@@ -175,7 +172,7 @@ def _ingest_projects(js_content: str) -> list[dict]:
         name = match.group(2)
 
         locator = slugify(name, max_length=60)
-        rid = f"ri.svg.project.{locator}"
+        rid = f"ri.{tenant.tenant_id}.project.{locator}"
 
         doc = DocumentCreate(
             doc_type="project",
@@ -187,7 +184,7 @@ def _ingest_projects(js_content: str) -> list[dict]:
         )
 
         try:
-            result = create_document(doc)
+            result = create_document(doc, tenant=tenant)
             results.append({"rid": result.rid, "title": result.title, "status": "created"})
         except Exception as e:
             results.append({"rid": rid, "title": name, "status": f"error: {e}"})

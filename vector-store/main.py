@@ -10,8 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from config import API_HOST, API_PORT, EMAIL_POLL_INTERVAL_SECONDS, MSGRAPH_POLL_INTERVAL_SECONDS
 from routers import documents, search, entities
 from routers.ai import router as ai_router
+from routers.auth import router as auth_router
 from routers.email_ingest import router as email_router
 from routers.ingest import router as ingest_router
+from routers.tenants import router as tenants_router
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+app.include_router(tenants_router)
 app.include_router(documents.router)
 app.include_router(search.router)
 app.include_router(entities.router)

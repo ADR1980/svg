@@ -21,6 +21,7 @@ def process_parsed_email(
     source_label: str,
     create_document_fn,
     get_document_fn,
+    tenant_id: str | None = None,
 ) -> dict:
     """Verarbeitet eine geparste E-Mail und erstellt ein Dokument.
 
@@ -36,9 +37,10 @@ def process_parsed_email(
     Returns:
         Dict mit {rid, title, status} und optional weiteren Feldern.
     """
-    # RID generieren (idempotent über Message-ID)
+    # RID generieren (idempotent über Message-ID, mit Tenant-Namespace)
+    namespace = tenant_id or "svg"
     message_id_slug = slugify(parsed.message_id or f"{parsed.sender}-{parsed.subject}", max_length=80)
-    rid = f"ri.svg.email.{message_id_slug}"
+    rid = f"ri.{namespace}.email.{message_id_slug}"
 
     # Prüfen ob bereits verarbeitet
     existing = get_document_fn(rid)

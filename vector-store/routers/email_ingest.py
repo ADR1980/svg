@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from middleware.auth import get_tenant
+from models.tenant import TenantContext
 from services.email_service import (
     poll_and_ingest as imap_poll,
     get_status as imap_get_status,
@@ -38,7 +40,7 @@ def _format_poll_result(results: list[dict]) -> dict:
 
 
 @router.get("/status")
-def email_status():
+def email_status(tenant: TenantContext = Depends(get_tenant)):
     """Gibt den aggregierten Status aller Email-Provider zurück."""
     return {
         "imap": _format_status(imap_get_status()),
@@ -47,19 +49,19 @@ def email_status():
 
 
 @router.post("/poll")
-def poll_all():
-    """Pollt alle aktiven Email-Provider."""
+def poll_all(tenant: TenantContext = Depends(get_tenant)):
+    """Pollt alle aktiven Email-Provider (tenant-scoped)."""
     results = []
 
     if is_imap_enabled():
         try:
-            results.extend(imap_poll())
+            results.extend(imap_poll(tenant_id=tenant.tenant_id))
         except Exception as e:
             results.append({"rid": "imap-error", "title": "IMAP", "status": f"error: {e}"})
 
     if is_msgraph_enabled():
         try:
-            results.extend(msgraph_poll())
+            results.extend(msgraph_poll(tenant_id=tenant.tenant_id))
         except Exception as e:
             results.append({"rid": "msgraph-error", "title": "Microsoft Graph", "status": f"error: {e}"})
 
@@ -73,12 +75,12 @@ def poll_all():
 
 
 @router.post("/imap/poll")
-def poll_imap():
-    """Manuelles IMAP-Polling."""
+def poll_imap(tenant: TenantContext = Depends(get_tenant)):
+    """Manuelles IMAP-Polling (tenant-scoped)."""
     if not is_imap_enabled():
         raise HTTPException(status_code=503, detail="IMAP nicht konfiguriert.")
     try:
-        return _format_poll_result(imap_poll())
+        return _format_poll_result(imap_poll(tenant_id=tenant.tenant_id))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"IMAP-Polling fehlgeschlagen: {e}")
 
@@ -87,11 +89,11 @@ def poll_imap():
 
 
 @router.post("/msgraph/poll")
-def poll_msgraph():
-    """Manuelles Microsoft Graph-Polling."""
+def poll_msgraph(tenant: TenantContext = Depends(get_tenant)):
+    """Manuelles Microsoft Graph-Polling (tenant-scoped)."""
     if not is_msgraph_enabled():
         raise HTTPException(status_code=503, detail="Microsoft Graph nicht konfiguriert.")
     try:
-        return _format_poll_result(msgraph_poll())
+        return _format_poll_result(msgraph_poll(tenant_id=tenant.tenant_id))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Graph-Polling fehlgeschlagen: {e}")

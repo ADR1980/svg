@@ -185,13 +185,25 @@ def _graph_message_to_parsed(msg: dict, attachments: list[ParsedAttachment]) -> 
 # ─── Polling ─────────────────────────────────────────────────────────────────
 
 
-def poll_and_ingest() -> list[dict]:
+def poll_and_ingest(tenant_id: str | None = None) -> list[dict]:
     """Holt ungelesene E-Mails via Microsoft Graph und erstellt Dokumente.
+
+    Args:
+        tenant_id: Tenant-ID für die erstellten Dokumente.
 
     Returns:
         Liste von {rid, title, status} für jede verarbeitete E-Mail.
     """
     from services.document_service import create_document, get_document
+    from models.tenant import TenantContext
+
+    _tenant = TenantContext(
+        tenant_id=tenant_id or "svg",
+        tenant_name="",
+        visible_tenant_ids=[tenant_id or "svg"],
+        role="admin",
+        auth_method="api_key",
+    )
 
     if not is_msgraph_enabled():
         raise RuntimeError(
@@ -219,8 +231,9 @@ def poll_and_ingest() -> list[dict]:
                     result = process_parsed_email(
                         parsed,
                         source_label=f"msgraph:{MSGRAPH_MAILBOX}",
-                        create_document_fn=create_document,
-                        get_document_fn=get_document,
+                        create_document_fn=lambda doc, **kw: create_document(doc, tenant=_tenant, **kw),
+                        get_document_fn=lambda rid: get_document(rid, tenant=_tenant),
+                        tenant_id=_tenant.tenant_id,
                     )
                     results.append(result)
 

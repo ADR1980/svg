@@ -6,17 +6,20 @@ from config import RID_NAMESPACE
 from models.rid import RID, DocType
 
 
-def generate_rid(doc_type: str, title: str, suffix: str | None = None) -> str:
+def generate_rid(doc_type: str, title: str, suffix: str | None = None, tenant_id: str | None = None) -> str:
     """Generiert eine Palantir-inspirierte RID aus Dokumenttyp und Titel.
 
-    Format: ri.svg.<type>.<locator>
-    Beispiel: ri.svg.risk-report.2026-03-27-eastern-europe
+    Format: ri.<tenant>.<type>.<locator>
+    Beispiel: ri.acme-corp.risk-report.2026-03-27-eastern-europe
+
+    Falls kein tenant_id angegeben, wird der konfigurierte RID_NAMESPACE verwendet.
     """
+    namespace = tenant_id or RID_NAMESPACE
     locator = slugify(title, max_length=80, word_boundary=True)
     if suffix:
         locator = f"{locator}-{slugify(suffix, max_length=30)}"
 
-    rid = RID(namespace=RID_NAMESPACE, doc_type=doc_type, locator=locator)
+    rid = RID(namespace=namespace, doc_type=doc_type, locator=locator)
     return str(rid)
 
 

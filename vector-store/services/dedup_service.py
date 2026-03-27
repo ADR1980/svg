@@ -35,18 +35,14 @@ def compute_content_hash(content: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
-def check_exact_duplicate(doc_type: str, content_hash: str) -> DedupResult:
-    """Prüft ob exakt gleicher Inhalt im selben Dokumenttyp existiert."""
+def check_exact_duplicate(doc_type: str, content_hash: str, tenant_id: str | None = None) -> DedupResult:
+    """Prüft ob exakt gleicher Inhalt im selben Dokumenttyp (und Tenant) existiert."""
     client = _get_client()
 
-    result = (
-        client.table("documents")
-        .select("rid")
-        .eq("doc_type", doc_type)
-        .eq("content_hash", content_hash)
-        .limit(1)
-        .execute()
-    )
+    query = client.table("documents").select("rid").eq("doc_type", doc_type).eq("content_hash", content_hash)
+    if tenant_id:
+        query = query.eq("tenant_id", tenant_id)
+    result = query.limit(1).execute()
 
     if result.data:
         return DedupResult(
@@ -82,14 +78,14 @@ def check_rid_duplicate(rid: str) -> DedupResult:
     return DedupResult(is_duplicate=False, duplicate_type=None, existing_rid=None, similarity=None)
 
 
-def check_near_duplicate(content: str, doc_type: str | None = None) -> DedupResult:
+def check_near_duplicate(content: str, doc_type: str | None = None, tenant_ids: list[str] | None = None) -> DedupResult:
     """Prüft ob ein sehr ähnliches Dokument existiert (Cosine Similarity > 0.95).
 
-    Nutzt die bestehende match_documents RPC-Funktion.
+    Nutzt die bestehende match_documents RPC-Funktion, tenant-scoped.
     """
     from services.embedding_service import generate_embedding
 
-    embedding = generate_embedding(content[:2000])  # Nur erste 2000 Zeichen für Effizienz
+    embedding = generate_embedding(content[:2000])
 
     client = _get_client()
     result = client.rpc(
@@ -99,6 +95,7 @@ def check_near_duplicate(content: str, doc_type: str | None = None) -> DedupResu
             "match_threshold": NEAR_DUPLICATE_THRESHOLD,
             "match_count": 1,
             "filter_type": doc_type,
+            "tenant_ids": tenant_ids,
         },
     ).execute()
 

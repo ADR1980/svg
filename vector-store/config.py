@@ -39,3 +39,8 @@ MSGRAPH_CLIENT_ID = os.getenv("MSGRAPH_CLIENT_ID", "")
 MSGRAPH_CLIENT_SECRET = os.getenv("MSGRAPH_CLIENT_SECRET", "")
 MSGRAPH_MAILBOX = os.getenv("MSGRAPH_MAILBOX", "")
 MSGRAPH_POLL_INTERVAL_SECONDS = int(os.getenv("MSGRAPH_POLL_INTERVAL_SECONDS", "300"))
+
+# JWT Authentifizierung
+JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production-please")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_HOURS = float(os.getenv("JWT_EXPIRATION_HOURS", "24"))

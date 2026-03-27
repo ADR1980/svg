@@ -49,13 +49,26 @@ def get_status() -> EmailIngestionStatus:
     return _status
 
 
-def poll_and_ingest() -> list[dict]:
+def poll_and_ingest(tenant_id: str | None = None) -> list[dict]:
     """Holt ungelesene E-Mails und erstellt Dokumente.
+
+    Args:
+        tenant_id: Tenant-ID für die erstellten Dokumente.
 
     Returns:
         Liste von {rid, title, status} für jede verarbeitete E-Mail.
     """
     from services.document_service import create_document, get_document
+    from models.tenant import TenantContext
+
+    # Tenant-Kontext für Dokument-Erstellung
+    _tenant = TenantContext(
+        tenant_id=tenant_id or "svg",
+        tenant_name="",
+        visible_tenant_ids=[tenant_id or "svg"],
+        role="admin",
+        auth_method="api_key",
+    )
 
     if not is_email_enabled():
         raise RuntimeError("Email-Ingestion nicht konfiguriert (IMAP_HOST, IMAP_EMAIL, IMAP_PASSWORD fehlen)")
@@ -82,7 +95,7 @@ def poll_and_ingest() -> list[dict]:
 
             for msg_id, msg_data in raw_messages.items():
                 try:
-                    result = _process_single_email(msg_id, msg_data, create_document, get_document)
+                    result = _process_single_email(msg_id, msg_data, _tenant, create_document, get_document)
                     results.append(result)
 
                     # Als gelesen markieren: bei Erfolg, Duplikat ODER Spam
@@ -112,12 +125,13 @@ def poll_and_ingest() -> list[dict]:
     return results
 
 
-def _process_single_email(msg_id, msg_data, create_document_fn, get_document_fn) -> dict:
+def _process_single_email(msg_id, msg_data, tenant, create_document_fn, get_document_fn) -> dict:
     """Verarbeitet eine einzelne IMAP-E-Mail via shared Processor."""
     parsed = parse_email_message(msg_data[b"RFC822"])
     return process_parsed_email(
         parsed,
         source_label=f"imap:{IMAP_EMAIL}",
-        create_document_fn=create_document_fn,
-        get_document_fn=get_document_fn,
+        create_document_fn=lambda doc, **kw: create_document_fn(doc, tenant=tenant, **kw),
+        get_document_fn=lambda rid: get_document_fn(rid, tenant=tenant),
+        tenant_id=tenant.tenant_id,
     )
