@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import Response
 
 from middleware.auth import get_tenant
 from models.document import (
@@ -12,7 +11,7 @@ from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from models.tenant import TenantContext
 from services import document_service
 from services.email_parser_service import extract_attachment_text
-from services.file_storage_service import save_file, get_file, get_file_info
+from services.file_storage_service import save_file
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Dokumente"])
 
@@ -107,51 +106,6 @@ def upload_file(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
-# ─── Datei-Download (RID als Query-Parameter) ───────────────────────────────
-
-
-@router.get("/file/download")
-def download_file(rid: str = Query(...), tenant: TenantContext = Depends(get_tenant)):
-    """Lädt die Original-Datei eines Dokuments herunter."""
-    file_data = get_file(rid, tenant.visible_tenant_ids)
-    if not file_data:
-        raise HTTPException(status_code=404, detail="Keine Original-Datei vorhanden")
-
-    return Response(
-        content=file_data["data"],
-        media_type=file_data["content_type"],
-        headers={
-            "Content-Disposition": f'attachment; filename="{file_data["filename"]}"',
-            "Content-Length": str(file_data["file_size"]),
-        },
-    )
-
-
-@router.get("/file/info")
-def file_info(rid: str = Query(...), tenant: TenantContext = Depends(get_tenant)):
-    """Gibt Metadaten der Original-Datei zurück (ohne Inhalt)."""
-    info = get_file_info(rid, tenant.visible_tenant_ids)
-    if not info:
-        return {"has_file": False}
-    return {"has_file": True, **info}
-
-
-@router.get("/file/preview")
-def file_preview(rid: str = Query(...), tenant: TenantContext = Depends(get_tenant)):
-    """Gibt die Original-Datei inline zurück (für PDF-Vorschau im Browser)."""
-    file_data = get_file(rid, tenant.visible_tenant_ids)
-    if not file_data:
-        raise HTTPException(status_code=404, detail="Keine Original-Datei vorhanden")
-
-    return Response(
-        content=file_data["data"],
-        media_type=file_data["content_type"],
-        headers={
-            "Content-Disposition": f'inline; filename="{file_data["filename"]}"',
-        },
-    )
 
 
 # ─── Dokument-Detail & Links (MUSS nach /file/* Routen stehen) ──────────────

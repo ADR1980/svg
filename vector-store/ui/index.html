@@ -874,14 +874,14 @@ async function loadFilePreview(rid) {
   if (!section) return;
 
   try {
-    const info = await api('GET', '/api/v1/documents/file/info?rid=' + encodeURIComponent(rid));
+    const info = await api('GET', '/api/v1/files/info?rid=' + encodeURIComponent(rid));
     if (!info.has_file) {
       section.innerHTML = '';
       return;
     }
 
-    const downloadUrl = API + '/api/v1/documents/file/download?rid=' + encodeURIComponent(rid);
-    const previewUrl = API + '/api/v1/documents/file/preview?rid=' + encodeURIComponent(rid);
+    const downloadUrl = API + '/api/v1/files/download?rid=' + encodeURIComponent(rid);
+    const previewUrl = API + '/api/v1/files/preview?rid=' + encodeURIComponent(rid);
 
     // Auth-Header für Download-Links (als Query-Param nicht möglich, also fetch + blob)
     const isPdf = info.content_type === 'application/pdf';
@@ -923,7 +923,7 @@ async function downloadFile(rid, filename) {
     if (authMethod === 'jwt' && authToken) headers['Authorization'] = 'Bearer ' + authToken;
     else if (authMethod === 'api_key' && authToken) headers['X-API-Key'] = authToken;
 
-    const res = await fetch(API + '/api/v1/documents/file/download?rid=' + encodeURIComponent(rid), { headers });
+    const res = await fetch(API + '/api/v1/files/download?rid=' + encodeURIComponent(rid), { headers });
     if (!res.ok) throw new Error('Download fehlgeschlagen');
 
     const blob = await res.blob();
@@ -948,7 +948,7 @@ async function loadPdfPreview(rid) {
     if (authMethod === 'jwt' && authToken) headers['Authorization'] = 'Bearer ' + authToken;
     else if (authMethod === 'api_key' && authToken) headers['X-API-Key'] = authToken;
 
-    const res = await fetch(API + '/api/v1/documents/file/preview?rid=' + encodeURIComponent(rid), { headers });
+    const res = await fetch(API + '/api/v1/files/preview?rid=' + encodeURIComponent(rid), { headers });
     if (!res.ok) throw new Error('Vorschau fehlgeschlagen');
 
     const blob = await res.blob();
