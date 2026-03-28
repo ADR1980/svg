@@ -36,8 +36,14 @@ def extract_and_link_entities(
     entities = extract_entities(content, language)
     results = []
 
+    # Namespace aus Document-RID extrahieren (ri.<namespace>.<type>.<locator>)
+    namespace = "svg"
+    rid_parts = document_rid.split(".")
+    if len(rid_parts) >= 2:
+        namespace = rid_parts[1]
+
     for entity in entities:
-        entity_rid = _build_entity_rid(entity)
+        entity_rid = _build_entity_rid(entity, namespace=namespace)
 
         # Prüfe ob Entität bereits existiert
         existing = get_document_fn(entity_rid)
@@ -92,10 +98,10 @@ def extract_and_link_entities(
     return results
 
 
-def _build_entity_rid(entity: ExtractedEntity) -> str:
+def _build_entity_rid(entity: ExtractedEntity, namespace: str = "svg") -> str:
     """Generiert eine RID für eine Entität."""
     locator = slugify(entity.name, max_length=80, word_boundary=True)
-    return f"ri.svg.{entity.entity_type}.{locator}"
+    return f"ri.{namespace}.{entity.entity_type}.{locator}"
 
 
 def _build_entity_content(entity: ExtractedEntity) -> str:
