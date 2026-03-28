@@ -756,13 +756,85 @@ async function openDocument(rid) {
           ${doc.source ? '<span>Quelle: ' + escapeHtml(doc.source) + '</span>' : ''}
         </div>
       </div>
+      ${(doc.doc_type === 'person' || doc.doc_type === 'company') ? `
+      <div class="modal-section" id="osint-section">
+        <div class="modal-section-title" style="display:flex;align-items:center;gap:10px">
+          OSINT Intelligence
+          <button class="btn btn-gold btn-sm" onclick="startOSINT('${escapeHtml(doc.rid)}', '${escapeHtml(doc.title)}', '${escapeHtml(doc.doc_type)}')" id="osint-btn">Recherche starten</button>
+        </div>
+        <div id="osint-results" style="margin-top:12px"></div>
+      </div>` : ''}
       <div style="margin-top:16px;display:flex;gap:10px">
         <button class="btn btn-danger btn-sm" onclick="deleteDocument('${escapeHtml(doc.rid)}')">L&ouml;schen</button>
       </div>
     `;
+    // OSINT-Report automatisch laden falls Entity
+    if (doc.doc_type === 'person' || doc.doc_type === 'company') {
+      loadOSINTReport(doc.rid);
+    }
   } catch (e) {
     bodyEl.innerHTML = '<div style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div>';
   }
+}
+
+// ── OSINT ────────────────────────────────────────────────
+async function startOSINT(entityRid, entityName, entityType) {
+  const btn = document.getElementById('osint-btn');
+  const resultsEl = document.getElementById('osint-results');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Recherchiere...';
+  resultsEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Suche im Internet und in der Datenbank...</div>';
+
+  try {
+    const report = await api('POST', '/api/v1/osint/investigate', {
+      entity_rid: entityRid,
+      entity_name: entityName,
+      entity_type: entityType,
+    });
+    renderOSINTReport(report, resultsEl);
+    showToast('OSINT-Bericht erstellt: ' + report.report_rid);
+  } catch (e) {
+    resultsEl.innerHTML = '<div style="color:#ef4444;font-size:13px">Fehler: ' + escapeHtml(e.message) + '</div>';
+    showToast('OSINT fehlgeschlagen', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Recherche starten';
+  }
+}
+
+async function loadOSINTReport(entityRid) {
+  const resultsEl = document.getElementById('osint-results');
+  if (!resultsEl) return;
+  try {
+    const report = await api('GET', '/api/v1/osint/report/' + entityRid);
+    renderOSINTReport(report, resultsEl);
+  } catch (_) {
+    resultsEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px">Noch kein OSINT-Bericht vorhanden.</div>';
+  }
+}
+
+function renderOSINTReport(report, container) {
+  const renderList = (items, icon) => items.length
+    ? items.map(i => '<div style="padding:4px 0;font-size:13px">' + icon + ' ' + escapeHtml(i) + '</div>').join('')
+    : '<div style="color:var(--text-muted);font-size:12px">Keine Daten</div>';
+
+  const renderSources = (sources) => sources.slice(0, 8).map(s =>
+    '<div style="font-size:11px;padding:2px 0">'
+    + (s.url ? '<a href="' + escapeHtml(s.url) + '" target="_blank" style="color:var(--gold)">' + escapeHtml(s.title) + '</a>' : escapeHtml(s.title))
+    + ' <span style="color:var(--text-muted)">(' + s.source_type + ')</span></div>'
+  ).join('');
+
+  container.innerHTML = `
+    <div style="background:var(--bg-secondary);border-radius:8px;padding:16px;border:1px solid var(--border)">
+      <div style="font-size:14px;margin-bottom:12px;color:var(--text-primary)">${escapeHtml(report.summary)}</div>
+      ${report.key_facts.length ? '<div style="margin-bottom:10px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px">Fakten</div>' + renderList(report.key_facts, '&#8226;') + '</div>' : ''}
+      ${report.recent_news.length ? '<div style="margin-bottom:10px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px">Nachrichten</div>' + renderList(report.recent_news, '&#128240;') + '</div>' : ''}
+      ${report.connections.length ? '<div style="margin-bottom:10px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px">Verbindungen</div>' + renderList(report.connections, '&#128279;') + '</div>' : ''}
+      ${report.risk_indicators.length ? '<div style="margin-bottom:10px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#ef4444;margin-bottom:4px">Risikoindikatoren</div>' + renderList(report.risk_indicators, '&#9888;') + '</div>' : ''}
+      ${report.sources.length ? '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px">Quellen (' + report.sources.length + ')</div>' + renderSources(report.sources) + '</div>' : ''}
+      <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">Erstellt: ${formatDate(report.created_at)} | Modell: ${report.model} | RID: ${escapeHtml(report.report_rid)}</div>
+    </div>
+  `;
 }
 
 function closeModal() {
