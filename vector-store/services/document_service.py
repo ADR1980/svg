@@ -53,7 +53,7 @@ def create_document(
     client = _get_client()
     tenant_id = tenant.tenant_id
 
-    validate_doc_type(doc.doc_type)
+    validate_doc_type(doc.doc_type, tenant_id=tenant_id)
 
     # ── 1. Spam-Check ────────────────────────────────────────────────────────
     if not skip_checks:

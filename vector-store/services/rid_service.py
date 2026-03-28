@@ -28,8 +28,12 @@ def validate_rid(rid_string: str) -> RID:
     return RID.parse(rid_string)
 
 
-def validate_doc_type(doc_type: str) -> str:
-    """Prüft ob ein Dokumenttyp gültig ist."""
+def validate_doc_type(doc_type: str, tenant_id: str | None = None) -> str:
+    """Prüft ob ein Dokumenttyp gültig ist (aus DB oder Fallback auf Enum)."""
+    if tenant_id:
+        from services.doctype_service import validate_doc_type as db_validate
+        return db_validate(doc_type, tenant_id)
+    # Fallback auf hartkodierte Typen
     valid_types = {t.value for t in DocType}
     if doc_type not in valid_types:
         raise ValueError(

@@ -263,6 +263,7 @@
       <button class="nav-tab" data-tab="upload">Upload</button>
       <button class="nav-tab" data-tab="entities">Entit&auml;ten</button>
       <button class="nav-tab" data-tab="ai" id="nav-tab-ai">KI-Analyse</button>
+      <button class="nav-tab" data-tab="settings">Einstellungen</button>
     </nav>
     <div class="navbar-status" id="status-bar">
       <span class="status-dot"></span>
@@ -383,6 +384,9 @@
       </div>
     </form>
 
+    <!-- Upload-Ergebnis -->
+    <div id="upload-result" style="margin-top:16px;display:none"></div>
+
     <!-- Batch Import -->
     <div class="batch-section">
       <h2 class="section-title" style="font-size:18px">Batch-Import</h2>
@@ -454,6 +458,40 @@
       <div class="chat-input-row">
         <input class="input chat-input" type="text" id="ai-input" placeholder="Frage an die Wissensdatenbank...">
         <button class="btn btn-gold" id="ai-send" onclick="sendAIQuery()">Senden</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Tab: Einstellungen -->
+  <main class="tab-content" id="tab-settings">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Einstellungen</h1>
+        <p class="section-subtitle">Dokumenttypen verwalten</p>
+      </div>
+    </div>
+
+    <div style="max-width:700px">
+      <div class="modal-section-title" style="margin-bottom:12px">Dokumenttypen</div>
+      <div id="doctype-list" style="margin-bottom:16px">Lade...</div>
+
+      <div style="padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-primary)">Neuen Typ hinzuf&uuml;gen</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end">
+          <div>
+            <label class="form-label">ID (slug)</label>
+            <input class="input" type="text" id="new-dt-id" placeholder="z.B. invoice" style="width:100%">
+          </div>
+          <div>
+            <label class="form-label">Anzeigename</label>
+            <input class="input" type="text" id="new-dt-label" placeholder="z.B. Rechnung" style="width:100%">
+          </div>
+          <div>
+            <label class="form-label">Farbe</label>
+            <input type="color" id="new-dt-color" value="#6b7280" style="width:40px;height:34px;border:1px solid var(--border);border-radius:4px;background:transparent;cursor:pointer">
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="addDocType()" style="height:34px">Hinzuf&uuml;gen</button>
+        </div>
       </div>
     </div>
   </main>
@@ -574,6 +612,7 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
     // Lazy-load tab data
     if (tab.dataset.tab === 'documents') loadDocuments();
     if (tab.dataset.tab === 'entities') loadEntities();
+    if (tab.dataset.tab === 'settings') loadDocTypeSettings();
   });
 });
 
@@ -1012,7 +1051,28 @@ document.getElementById('upload-form').addEventListener('submit', async function
       result = await api('POST', '/api/v1/documents', payload);
     }
 
-    showToast('Gespeichert: ' + result.rid);
+    // Erfolgsanzeige
+    const entities = (result.metadata && result.metadata.extracted_entities) || [];
+    const persons = entities.filter(e => e.type === 'person');
+    const companies = entities.filter(e => e.type === 'company');
+    const resultEl = document.getElementById('upload-result');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:var(--radius);padding:16px">
+        <div style="color:#22c55e;font-weight:600;font-size:14px;margin-bottom:8px">&#10003; Dokument erfolgreich gespeichert und analysiert</div>
+        <div style="font-size:13px;color:var(--text-primary);margin-bottom:4px">
+          <strong>${escapeHtml(result.title)}</strong>
+          <span class="${badgeClass(result.doc_type)}" style="margin-left:6px">${escapeHtml(result.doc_type)}</span>
+        </div>
+        <div style="font-family:monospace;font-size:11px;color:var(--gold);margin-bottom:8px">${escapeHtml(result.rid)}</div>
+        ${entities.length ? '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px"><strong>Erkannte Entit&auml;ten (' + entities.length + '):</strong></div><div style="display:flex;flex-wrap:wrap;gap:4px">' +
+          persons.map(e => '<span style="font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(168,85,247,0.15);color:#a855f7">&#128100; ' + escapeHtml(e.name) + '</span>').join('') +
+          companies.map(e => '<span style="font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,0.15);color:#f59e0b">&#127970; ' + escapeHtml(e.name) + '</span>').join('') +
+        '</div>' : '<div style="font-size:12px;color:var(--text-muted)">Keine Personen oder Unternehmen im Text erkannt</div>'}
+        <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="openDocument('${escapeHtml(result.rid)}')">Dokument anzeigen</button>
+      </div>
+    `;
+    showToast('Dokument gespeichert und analysiert');
     this.reset();
     pendingFileUpload = null;
     document.getElementById('up-content').disabled = false;
@@ -1250,6 +1310,97 @@ async function sendAIQuery() {
 }
 
 // ══════════════════════════════════════════════════════════
+// DOKUMENTTYPEN (Settings + dynamische Dropdowns)
+// ══════════════════════════════════════════════════════════
+let cachedDocTypes = [];
+
+async function loadDocTypes() {
+  try {
+    cachedDocTypes = await api('GET', '/api/v1/doc-types');
+  } catch (_) {
+    cachedDocTypes = [];
+  }
+  populateDocTypeDropdowns();
+  return cachedDocTypes;
+}
+
+function populateDocTypeDropdowns() {
+  const userTypes = cachedDocTypes.filter(t => !t.is_system);
+  const allTypes = cachedDocTypes;
+
+  // Upload-Typ Dropdown
+  const upType = document.getElementById('up-type');
+  if (upType) {
+    const current = upType.value;
+    upType.innerHTML = userTypes.map(t =>
+      '<option value="' + escapeHtml(t.id) + '">' + escapeHtml(t.label) + '</option>'
+    ).join('');
+    if (current) upType.value = current;
+  }
+
+  // Filter-Dropdown (Dokumente-Tab)
+  const docFilter = document.getElementById('doc-filter');
+  if (docFilter) {
+    const current = docFilter.value;
+    docFilter.innerHTML = '<option value="">Alle Typen</option>' + allTypes.map(t =>
+      '<option value="' + escapeHtml(t.id) + '">' + escapeHtml(t.label) + '</option>'
+    ).join('');
+    if (current) docFilter.value = current;
+  }
+}
+
+async function loadDocTypeSettings() {
+  const list = document.getElementById('doctype-list');
+  await loadDocTypes();
+
+  if (!cachedDocTypes.length) {
+    list.innerHTML = '<div style="color:var(--text-muted)">Keine Dokumenttypen konfiguriert</div>';
+    return;
+  }
+
+  list.innerHTML = cachedDocTypes.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="width:14px;height:14px;border-radius:3px;background:${escapeHtml(t.color)};flex-shrink:0"></div>
+      <div style="flex:1">
+        <span style="font-size:14px;color:var(--text-primary)">${escapeHtml(t.label)}</span>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:6px;font-family:monospace">${escapeHtml(t.id)}</span>
+      </div>
+      ${t.is_system ? '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(100,116,139,0.2);color:var(--text-muted)">System</span>' :
+        '<button class="btn btn-outline btn-sm" style="font-size:11px;padding:2px 8px" onclick="deleteDocType(\'' + escapeHtml(t.id) + '\')">Entfernen</button>'}
+    </div>
+  `).join('');
+}
+
+async function addDocType() {
+  const id = document.getElementById('new-dt-id').value.trim().toLowerCase().replace(/\s+/g, '-');
+  const label = document.getElementById('new-dt-label').value.trim();
+  const color = document.getElementById('new-dt-color').value;
+
+  if (!id || !label) { showToast('ID und Anzeigename erforderlich', 'error'); return; }
+
+  try {
+    await api('POST', '/api/v1/doc-types', { id, label, color });
+    showToast('Dokumenttyp "' + label + '" erstellt');
+    document.getElementById('new-dt-id').value = '';
+    document.getElementById('new-dt-label').value = '';
+    await loadDocTypeSettings();
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+async function deleteDocType(typeId) {
+  if (!confirm('Dokumenttyp "' + typeId + '" wirklich entfernen?')) return;
+  try {
+    await api('DELETE', '/api/v1/doc-types/' + typeId);
+    showToast('Dokumenttyp entfernt');
+    await loadDocTypeSettings();
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 async function init() {
@@ -1271,6 +1422,7 @@ async function init() {
     }
   } catch (_) {}
 
+  await loadDocTypes();
   loadDocuments();
   loadEmailStatus();
 }

@@ -13,6 +13,7 @@ from routers.ai import router as ai_router
 from routers.auth import router as auth_router
 from routers.email_ingest import router as email_router
 from routers.ingest import router as ingest_router
+from routers.doctypes import router as doctypes_router
 from routers.osint import router as osint_router
 from routers.setup import router as setup_router
 from routers.tenants import router as tenants_router
@@ -113,6 +114,7 @@ app.include_router(documents.router)
 app.include_router(search.router)
 app.include_router(entities.router)
 app.include_router(ai_router)
+app.include_router(doctypes_router)
 app.include_router(email_router)
 app.include_router(osint_router)
 app.include_router(ingest_router)
