@@ -17,6 +17,41 @@ router = APIRouter(tags=["Setup"])
 SETUP_SECRET = os.getenv("SETUP_SECRET", "svg-initial-setup-2026")
 
 
+@router.get("/setup/debug")
+def debug_connection():
+    """Prüft die Verbindung zur Supabase-Datenbank."""
+    import socket
+    results = {}
+
+    # 1. DNS-Auflösung testen
+    host = SUPABASE_URL.replace("https://", "").replace("http://", "").rstrip("/")
+    results["supabase_host"] = host
+    try:
+        ip = socket.getaddrinfo(host, 443)
+        results["dns"] = f"OK: {ip[0][4]}"
+    except Exception as e:
+        results["dns"] = f"FAILED: {e}"
+
+    # 2. Supabase-Client testen
+    try:
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        # Einfachster Test: app_data Tabelle (existiert von der alten Migration)
+        r = client.table("app_data").select("key").limit(1).execute()
+        results["supabase_rest"] = f"OK (app_data: {len(r.data)} rows)"
+    except Exception as e:
+        results["supabase_rest"] = f"FAILED: {e}"
+
+    # 3. Tenants-Tabelle testen
+    try:
+        r = client.table("tenants").select("id").limit(1).execute()
+        results["tenants_table"] = f"OK ({len(r.data)} rows)"
+    except Exception as e:
+        results["tenants_table"] = f"FAILED: {e}"
+
+    return results
+
+
 def _hash(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
