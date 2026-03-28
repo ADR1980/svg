@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 
 from middleware.auth import get_tenant
 from models.document import (
@@ -11,6 +12,7 @@ from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from models.tenant import TenantContext
 from services import document_service
 from services.email_parser_service import extract_attachment_text
+from services.file_storage_service import save_file, get_file, get_file_info
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Dokumente"])
 
@@ -111,7 +113,10 @@ def upload_file(
     )
 
     try:
-        return document_service.create_document(doc, tenant=tenant)
+        result = document_service.create_document(doc, tenant=tenant)
+        # Original-Datei speichern
+        save_file(result.rid, tenant.tenant_id, filename, payload)
+        return result
     except SpamRejectedError as e:
         raise HTTPException(status_code=422, detail={"error": "spam", "reason": e.reason, "score": e.score})
     except DuplicateDocumentError as e:
@@ -121,6 +126,51 @@ def upload_file(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ─── Datei-Download ─────────────────────────────────────────────────────────
+
+
+@router.get("/{rid:path}/file")
+def download_file(rid: str, tenant: TenantContext = Depends(get_tenant)):
+    """Lädt die Original-Datei eines Dokuments herunter."""
+    file_data = get_file(rid, tenant.visible_tenant_ids)
+    if not file_data:
+        raise HTTPException(status_code=404, detail="Keine Original-Datei vorhanden")
+
+    return Response(
+        content=file_data["data"],
+        media_type=file_data["content_type"],
+        headers={
+            "Content-Disposition": f'attachment; filename="{file_data["filename"]}"',
+            "Content-Length": str(file_data["file_size"]),
+        },
+    )
+
+
+@router.get("/{rid:path}/file/info")
+def file_info(rid: str, tenant: TenantContext = Depends(get_tenant)):
+    """Gibt Metadaten der Original-Datei zurück (ohne Inhalt)."""
+    info = get_file_info(rid, tenant.visible_tenant_ids)
+    if not info:
+        return {"has_file": False}
+    return {"has_file": True, **info}
+
+
+@router.get("/{rid:path}/file/preview")
+def file_preview(rid: str, tenant: TenantContext = Depends(get_tenant)):
+    """Gibt die Original-Datei inline zurück (für PDF-Vorschau im Browser)."""
+    file_data = get_file(rid, tenant.visible_tenant_ids)
+    if not file_data:
+        raise HTTPException(status_code=404, detail="Keine Original-Datei vorhanden")
+
+    return Response(
+        content=file_data["data"],
+        media_type=file_data["content_type"],
+        headers={
+            "Content-Disposition": f'inline; filename="{file_data["filename"]}"',
+        },
+    )
 
 
 # ─── Dokument-Links ──────────────────────────────────────────────────────────

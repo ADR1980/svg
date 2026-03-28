@@ -756,6 +756,7 @@ async function openDocument(rid) {
           ${doc.source ? '<span>Quelle: ' + escapeHtml(doc.source) + '</span>' : ''}
         </div>
       </div>
+      <div class="modal-section" id="file-section"></div>
       ${(doc.doc_type === 'person' || doc.doc_type === 'company') ? `
       <div class="modal-section" id="osint-section">
         <div class="modal-section-title" style="display:flex;align-items:center;gap:10px">
@@ -768,12 +769,106 @@ async function openDocument(rid) {
         <button class="btn btn-danger btn-sm" onclick="deleteDocument('${escapeHtml(doc.rid)}')">L&ouml;schen</button>
       </div>
     `;
+    // Datei-Vorschau + Download laden
+    loadFilePreview(doc.rid);
+
     // OSINT-Report automatisch laden falls Entity
     if (doc.doc_type === 'person' || doc.doc_type === 'company') {
       loadOSINTReport(doc.rid);
     }
   } catch (e) {
     bodyEl.innerHTML = '<div style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+// ── Datei-Vorschau + Download ─────────────────────────────
+async function loadFilePreview(rid) {
+  const section = document.getElementById('file-section');
+  if (!section) return;
+
+  try {
+    const info = await api('GET', '/api/v1/documents/' + rid + '/file/info');
+    if (!info.has_file) {
+      section.innerHTML = '';
+      return;
+    }
+
+    const downloadUrl = API + '/api/v1/documents/' + encodeURIComponent(rid) + '/file';
+    const previewUrl = API + '/api/v1/documents/' + encodeURIComponent(rid) + '/file/preview';
+
+    // Auth-Header für Download-Links (als Query-Param nicht möglich, also fetch + blob)
+    const isPdf = info.content_type === 'application/pdf';
+    const sizeKb = Math.round(info.file_size / 1024);
+
+    let previewHtml = '';
+    if (isPdf) {
+      // PDF inline-Vorschau via iframe mit blob URL
+      previewHtml = `<div id="pdf-preview-container" style="margin-top:8px">
+        <div style="color:var(--text-muted);font-size:12px"><span class="spinner"></span> Lade PDF-Vorschau...</div>
+      </div>`;
+    }
+
+    section.innerHTML = `
+      <div class="modal-section-title">Original-Datei</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+        <span style="font-size:24px">${isPdf ? '&#128196;' : info.filename.endsWith('.xlsx') ? '&#128202;' : '&#128209;'}</span>
+        <div>
+          <div style="font-size:14px;color:var(--text-primary)">${escapeHtml(info.filename)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${sizeKb} KB &middot; ${escapeHtml(info.content_type)}</div>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="downloadFile('${escapeHtml(rid)}', '${escapeHtml(info.filename)}')">Download</button>
+      </div>
+      ${previewHtml}
+    `;
+
+    // PDF-Vorschau laden
+    if (isPdf) {
+      loadPdfPreview(rid);
+    }
+  } catch (_) {
+    section.innerHTML = '';
+  }
+}
+
+async function downloadFile(rid, filename) {
+  try {
+    const headers = {};
+    if (authMethod === 'jwt' && authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    else if (authMethod === 'api_key' && authToken) headers['X-API-Key'] = authToken;
+
+    const res = await fetch(API + '/api/v1/documents/' + encodeURIComponent(rid) + '/file', { headers });
+    if (!res.ok) throw new Error('Download fehlgeschlagen');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Download: ' + filename);
+  } catch (e) {
+    showToast('Download fehlgeschlagen: ' + e.message, 'error');
+  }
+}
+
+async function loadPdfPreview(rid) {
+  const container = document.getElementById('pdf-preview-container');
+  if (!container) return;
+
+  try {
+    const headers = {};
+    if (authMethod === 'jwt' && authToken) headers['Authorization'] = 'Bearer ' + authToken;
+    else if (authMethod === 'api_key' && authToken) headers['X-API-Key'] = authToken;
+
+    const res = await fetch(API + '/api/v1/documents/' + encodeURIComponent(rid) + '/file/preview', { headers });
+    if (!res.ok) throw new Error('Vorschau fehlgeschlagen');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    container.innerHTML = '<iframe src="' + url + '" style="width:100%;height:500px;border:1px solid var(--border);border-radius:8px;background:#fff" title="PDF-Vorschau"></iframe>';
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px">PDF-Vorschau nicht verfügbar</div>';
   }
 }
 
