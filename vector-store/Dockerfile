@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir --no-deps sentence-transformers && \
     pip install --no-cache-dir -r requirements.txt
 
 # spaCy + Embedding Modell vorinstallieren
-RUN python -m spacy download de_core_news_sm
+RUN python -m spacy download de_core_news_md
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 # Anwendungscode

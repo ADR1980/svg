@@ -36,29 +36,30 @@ def _load_model(model_name: str):
 
 
 def _get_model(language: str):
-    """Wählt das passende spaCy-Modell anhand der Sprache."""
-    models = {
-        "de": "de_core_news_lg",
-        "en": "en_core_web_sm",
+    """Wählt das passende spaCy-Modell anhand der Sprache.
+
+    Versucht Modelle in absteigender Qualität: lg → md → sm.
+    """
+    model_chains = {
+        "de": ["de_core_news_lg", "de_core_news_md", "de_core_news_sm"],
+        "en": ["en_core_web_lg", "en_core_web_md", "en_core_web_sm"],
     }
-    model_name = models.get(language, "de_core_news_lg")
+    candidates = model_chains.get(language, model_chains["de"])
+
+    for model_name in candidates:
+        try:
+            return _load_model(model_name)
+        except OSError:
+            continue
+
+    # Letzter Versuch mit explizitem Fehler
+    last = candidates[-1]
     try:
-        return _load_model(model_name)
+        return _load_model(last)
     except OSError:
-        # Fallback: kleineres Modell versuchen
-        fallbacks = {
-            "de_core_news_lg": "de_core_news_md",
-            "de_core_news_md": "de_core_news_sm",
-        }
-        fallback = fallbacks.get(model_name)
-        if fallback:
-            try:
-                return _load_model(fallback)
-            except OSError:
-                pass
         raise RuntimeError(
             f"Kein spaCy-Modell für Sprache '{language}' gefunden. "
-            f"Installiere mit: python -m spacy download {model_name}"
+            f"Installiere mit: python -m spacy download {candidates[0]}"
         )
 
 
