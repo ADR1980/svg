@@ -129,7 +129,7 @@ def run_setup(secret: str = Query(..., description="Setup-Secret zur Absicherung
     admin_password = secrets.token_urlsafe(12)
     try:
         from passlib.hash import bcrypt
-        pw_hash = bcrypt.hash(admin_password)
+        pw_hash = bcrypt.hash(admin_password[:60])
 
         existing = client.table("users").select("id").eq("email", "andreas@del.re").execute()
         if existing.data:
