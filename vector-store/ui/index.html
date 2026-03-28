@@ -270,6 +270,29 @@
     </div>
   </header>
 
+  <!-- Login-Overlay -->
+  <div id="login-overlay" style="position:fixed;inset:0;z-index:9999;background:var(--bg-primary);display:flex;align-items:center;justify-content:center">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:40px;width:360px;text-align:center">
+      <h1 style="font-family:'Rajdhani';color:var(--gold);font-size:28px;margin-bottom:4px">SVG Vector Store</h1>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">Dokumenten-Management &amp; KI-Analyse</p>
+      <div style="text-align:left;margin-bottom:12px">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Email</label>
+        <input class="input" type="email" id="login-email" placeholder="email@firma.de" style="width:100%;margin-top:4px">
+      </div>
+      <div style="text-align:left;margin-bottom:20px">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Passwort</label>
+        <input class="input" type="password" id="login-password" placeholder="Passwort" style="width:100%;margin-top:4px" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-gold" onclick="doLogin()" style="width:100%" id="login-btn">Anmelden</button>
+      <div id="login-error" style="color:#ef4444;font-size:13px;margin-top:12px;display:none"></div>
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Oder API-Key</label>
+        <input class="input" type="text" id="login-apikey" placeholder="sk_live_..." style="width:100%;margin-top:4px" onkeydown="if(event.key==='Enter')doApiKeyLogin()">
+        <button class="btn btn-outline" onclick="doApiKeyLogin()" style="width:100%;margin-top:8px">Mit API-Key verbinden</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Tab: Dokumente -->
   <main class="tab-content active" id="tab-documents">
     <div class="section-header">
@@ -452,16 +475,91 @@
 // ══════════════════════════════════════════════════════════
 const API = window.location.origin;
 let aiAvailable = false;
+let authToken = sessionStorage.getItem('svg_token') || '';
+let authMethod = sessionStorage.getItem('svg_auth_method') || '';
 
 async function api(method, path, body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (authMethod === 'jwt' && authToken) {
+    opts.headers['Authorization'] = 'Bearer ' + authToken;
+  } else if (authMethod === 'api_key' && authToken) {
+    opts.headers['X-API-Key'] = authToken;
+  }
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(API + path, opts);
+  if (res.status === 401) {
+    sessionStorage.clear();
+    document.getElementById('login-overlay').style.display = 'flex';
+    throw new Error('Sitzung abgelaufen');
+  }
   if (!res.ok) {
     const err = await res.text();
     throw new Error(err);
   }
   return res.status === 204 ? null : res.json();
+}
+
+// ── Login ──────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Anmelden...';
+
+  try {
+    const res = await fetch(API + '/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Login fehlgeschlagen' }));
+      throw new Error(err.detail || 'Login fehlgeschlagen');
+    }
+    const data = await res.json();
+    authToken = data.access_token;
+    authMethod = 'jwt';
+    sessionStorage.setItem('svg_token', authToken);
+    sessionStorage.setItem('svg_auth_method', 'jwt');
+    document.getElementById('login-overlay').style.display = 'none';
+    init();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Anmelden';
+  }
+}
+
+async function doApiKeyLogin() {
+  const key = document.getElementById('login-apikey').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!key) return;
+
+  try {
+    const res = await fetch(API + '/api/v1/auth/me', {
+      headers: { 'X-API-Key': key },
+    });
+    if (!res.ok) throw new Error('Ungültiger API-Key');
+    authToken = key;
+    authMethod = 'api_key';
+    sessionStorage.setItem('svg_token', authToken);
+    sessionStorage.setItem('svg_auth_method', 'api_key');
+    document.getElementById('login-overlay').style.display = 'none';
+    init();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// Prüfe ob bereits eingeloggt
+if (authToken) {
+  document.getElementById('login-overlay').style.display = 'none';
 }
 
 // ══════════════════════════════════════════════════════════

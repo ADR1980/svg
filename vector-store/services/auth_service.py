@@ -7,23 +7,24 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
+import bcrypt as _bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ─── Password ────────────────────────────────────────────────────────────────
 
 
 def hash_password(password: str) -> str:
-    return _pwd_context.hash(password)
+    return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_context.verify(plain, hashed)
+    try:
+        return _bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 # ─── API Keys ────────────────────────────────────────────────────────────────
