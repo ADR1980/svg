@@ -148,6 +148,18 @@
     }
 
     /* ── Drop Zone ────────────────────────────────────────── */
+    /* ── Document Table ─────────────────────────────────── */
+    .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .doc-table thead th {
+      background: var(--bg-secondary); color: var(--text-muted); padding: 10px 12px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      text-align: left; position: sticky; top: 0; border-bottom: 1px solid var(--border);
+    }
+    .doc-table tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+    .doc-table tbody tr { cursor: pointer; transition: background 0.15s; }
+    .doc-table tbody tr:hover { background: var(--bg-card-hover); }
+    .doc-table .rid-cell { font-family: monospace; font-size: 11px; color: var(--gold); }
+
     .drop-zone {
       border: 2px dashed var(--border); border-radius: var(--radius);
       padding: 32px; text-align: center; color: var(--text-muted);
@@ -302,26 +314,30 @@
         <p class="section-subtitle" id="doc-count">Lade...</p>
       </div>
       <div class="toolbar">
-        <input class="input" type="text" id="doc-search" placeholder="Suche (semantisch)..." style="width:220px">
+        <input class="input" type="text" id="doc-search" placeholder="Volltextsuche..." style="width:250px">
         <select class="select" id="doc-filter">
           <option value="">Alle Typen</option>
-          <option value="risk-report">Risiko-Bericht</option>
-          <option value="project">Projekt</option>
-          <option value="customer">Kunde</option>
-          <option value="person">Person</option>
-          <option value="company">Unternehmen</option>
-          <option value="intelligence">Intelligence</option>
-          <option value="employee">Mitarbeiter</option>
-          <option value="product">Produkt</option>
-          <option value="order">Auftrag</option>
-          <option value="work-step">Arbeitsschritt</option>
-          <option value="machine">Maschine</option>
-          <option value="email">E-Mail</option>
         </select>
+        <button class="btn btn-outline btn-sm" id="view-toggle" onclick="toggleDocView()" title="Ansicht wechseln" style="font-size:16px;padding:4px 10px">&#9776;</button>
         <button class="btn btn-outline btn-sm" onclick="loadDocuments()">Aktualisieren</button>
       </div>
     </div>
     <div class="card-grid" id="doc-grid"></div>
+    <div id="doc-table-wrap" style="display:none;overflow-x:auto">
+      <table class="doc-table" id="doc-table">
+        <thead>
+          <tr>
+            <th style="width:30%">Titel</th>
+            <th style="width:12%">Typ</th>
+            <th style="width:25%">RID</th>
+            <th style="width:8%">Sprache</th>
+            <th style="width:15%">Erstellt</th>
+            <th style="width:10%">Quelle</th>
+          </tr>
+        </thead>
+        <tbody id="doc-tbody"></tbody>
+      </table>
+    </div>
   </main>
 
   <!-- Tab: Upload -->
@@ -659,66 +675,97 @@ function escapeHtml(text) {
 // TAB 1: DOKUMENTE
 // ══════════════════════════════════════════════════════════
 let searchTimeout;
+let docViewMode = localStorage.getItem('svg_doc_view') || 'table'; // 'cards' oder 'table'
+let allDocs = []; // Cache für Volltextsuche
 const docSearch = document.getElementById('doc-search');
 const docFilter = document.getElementById('doc-filter');
 
 docSearch.addEventListener('input', () => {
   clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => loadDocuments(), 400);
+  searchTimeout = setTimeout(() => loadDocuments(), 300);
 });
 docFilter.addEventListener('change', () => loadDocuments());
 
+function toggleDocView() {
+  docViewMode = docViewMode === 'table' ? 'cards' : 'table';
+  localStorage.setItem('svg_doc_view', docViewMode);
+  document.getElementById('view-toggle').innerHTML = docViewMode === 'table' ? '&#9776;' : '&#9638;';
+  renderDocs(allDocs);
+}
+
 async function loadDocuments() {
   const grid = document.getElementById('doc-grid');
+  const tableWrap = document.getElementById('doc-table-wrap');
   const countEl = document.getElementById('doc-count');
   const searchTerm = docSearch.value.trim();
   const filterType = docFilter.value;
 
   grid.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  tableWrap.style.display = 'none';
 
   try {
-    let docs;
+    // Immer alle Dokumente laden (für Volltextsuche client-seitig)
+    const params = new URLSearchParams();
+    if (filterType) params.set('type', filterType);
+    params.set('limit', '200');
+    let docs = await api('GET', '/api/v1/documents?' + params.toString());
+
+    // Client-seitige Volltextsuche
     if (searchTerm.length >= 2) {
-      // Semantische Suche
-      const results = await api('POST', '/api/v1/search', {
-        query: searchTerm,
-        doc_type: filterType || null,
-        threshold: 0.4,
-        limit: 50,
-      });
-      // Deduplizieren nach RID
-      const seen = new Set();
-      docs = [];
-      for (const r of results) {
-        if (!seen.has(r.document_rid)) {
-          seen.add(r.document_rid);
-          docs.push({
-            rid: r.document_rid, doc_type: r.doc_type, title: r.title,
-            content: r.chunk_text, metadata: r.metadata,
-            similarity: r.similarity,
-          });
-        }
-      }
-    } else {
-      // Normale Liste
-      const params = new URLSearchParams();
-      if (filterType) params.set('type', filterType);
-      params.set('limit', '100');
-      docs = await api('GET', '/api/v1/documents?' + params.toString());
+      const term = searchTerm.toLowerCase();
+      docs = docs.filter(d =>
+        (d.title || '').toLowerCase().includes(term) ||
+        (d.content || '').toLowerCase().includes(term) ||
+        (d.rid || '').toLowerCase().includes(term) ||
+        (d.source || '').toLowerCase().includes(term)
+      );
     }
 
+    allDocs = docs;
     countEl.textContent = docs.length + ' Dokument' + (docs.length !== 1 ? 'e' : '');
 
-    if (docs.length === 0) {
-      grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128196;</div><div class="empty-state-text">Keine Dokumente gefunden</div></div>';
-      return;
-    }
+    renderDocs(docs);
+  } catch (e) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-text" style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div></div>';
+  }
+}
 
-    grid.innerHTML = docs.map(doc => `
-      <div class="card" onclick="openDocument('${escapeHtml(doc.rid)}')">
+function renderDocs(docs) {
+  const grid = document.getElementById('doc-grid');
+  const tableWrap = document.getElementById('doc-table-wrap');
+  const tbody = document.getElementById('doc-tbody');
+
+  if (docs.length === 0) {
+    grid.style.display = 'grid';
+    tableWrap.style.display = 'none';
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128196;</div><div class="empty-state-text">Keine Dokumente gefunden</div></div>';
+    return;
+  }
+
+  if (docViewMode === 'table') {
+    grid.style.display = 'none';
+    tableWrap.style.display = 'block';
+    tbody.innerHTML = docs.map(doc => {
+      const isEntity = doc.doc_type === 'person' || doc.doc_type === 'company';
+      const onclick = isEntity ? `openEntityDetail('${escapeHtml(doc.rid)}')` : `openDocument('${escapeHtml(doc.rid)}')`;
+      return `<tr onclick="${onclick}">
+        <td><strong>${escapeHtml(doc.title)}</strong></td>
+        <td><span class="${badgeClass(doc.doc_type)}">${escapeHtml(doc.doc_type)}</span></td>
+        <td class="rid-cell">${escapeHtml(doc.rid)}</td>
+        <td>${escapeHtml((doc.language || '').toUpperCase())}</td>
+        <td>${doc.created_at ? formatDate(doc.created_at) : ''}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${escapeHtml(doc.source || '')}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    grid.style.display = 'grid';
+    tableWrap.style.display = 'none';
+    grid.innerHTML = docs.map(doc => {
+      const isEntity = doc.doc_type === 'person' || doc.doc_type === 'company';
+      const onclick = isEntity ? `openEntityDetail('${escapeHtml(doc.rid)}')` : `openDocument('${escapeHtml(doc.rid)}')`;
+      return `<div class="card" onclick="${onclick}">
         <div class="card-top">
           <span class="${badgeClass(doc.doc_type)}">${escapeHtml(doc.doc_type)}</span>
-          ${doc.similarity ? '<span style="font-size:11px;color:var(--gold)">' + Math.round(doc.similarity * 100) + '%</span>' : ''}
         </div>
         <div class="card-title">${escapeHtml(doc.title)}</div>
         <div class="card-rid">${escapeHtml(doc.rid)}</div>
@@ -727,12 +774,13 @@ async function loadDocuments() {
           ${doc.created_at ? '<span>' + formatDate(doc.created_at) + '</span>' : ''}
           ${doc.language ? '<span>' + escapeHtml(doc.language).toUpperCase() + '</span>' : ''}
         </div>
-      </div>
-    `).join('');
-  } catch (e) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-text" style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div></div>';
+      </div>`;
+    }).join('');
   }
 }
+
+// View-Toggle initialisieren
+document.getElementById('view-toggle').innerHTML = docViewMode === 'table' ? '&#9776;' : '&#9638;';
 
 // ── Detail-Modal ─────────────────────────────────────────
 async function openDocument(rid) {
