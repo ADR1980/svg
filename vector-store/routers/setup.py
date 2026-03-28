@@ -126,10 +126,10 @@ def run_setup(secret: str = Query(..., description="Setup-Secret zur Absicherung
         results.append({"step": "svg_tenant", "status": f"error: {e}"})
 
     # ── 4. Admin-User anlegen ────────────────────────────────────────────
-    admin_password = secrets.token_urlsafe(12)
+    admin_password = "Koa2026!"
     try:
-        from passlib.hash import bcrypt
-        pw_hash = bcrypt.hash(admin_password[:60])
+        import bcrypt as _bcrypt
+        pw_hash = _bcrypt.hashpw(admin_password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
         existing = client.table("users").select("id").eq("email", "andreas@del.re").execute()
         if existing.data:
