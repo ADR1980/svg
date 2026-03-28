@@ -52,23 +52,6 @@ def list_documents(
     return document_service.list_documents(tenant=tenant, doc_type=type, limit=limit, offset=offset)
 
 
-@router.get("/{rid:path}", response_model=DocumentResponse)
-def get_document(rid: str, tenant: TenantContext = Depends(get_tenant)):
-    """Ruft ein Dokument per RID ab (tenant-scoped)."""
-    doc = document_service.get_document(rid, tenant=tenant)
-    if not doc:
-        raise HTTPException(status_code=404, detail=f"Dokument nicht gefunden: {rid}")
-    return doc
-
-
-@router.delete("/{rid:path}", status_code=204)
-def delete_document(rid: str, tenant: TenantContext = Depends(get_tenant)):
-    """Löscht ein Dokument (nur eigener Tenant)."""
-    deleted = document_service.delete_document(rid, tenant=tenant)
-    if not deleted:
-        raise HTTPException(status_code=404, detail=f"Dokument nicht gefunden: {rid}")
-
-
 # ─── Datei-Upload ────────────────────────────────────────────────────────────
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".txt", ".md", ".csv"}
@@ -97,7 +80,6 @@ def upload_file(
     if not payload:
         raise HTTPException(status_code=400, detail="Datei ist leer")
 
-    # Text extrahieren
     content = extract_attachment_text(filename, payload)
     if not content or content.startswith("(Textextraktion fehlgeschlagen"):
         raise HTTPException(status_code=422, detail=f"Text konnte nicht aus '{filename}' extrahiert werden")
@@ -114,7 +96,6 @@ def upload_file(
 
     try:
         result = document_service.create_document(doc, tenant=tenant)
-        # Original-Datei speichern
         save_file(result.rid, tenant.tenant_id, filename, payload)
         return result
     except SpamRejectedError as e:
@@ -128,11 +109,11 @@ def upload_file(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ─── Datei-Download ─────────────────────────────────────────────────────────
+# ─── Datei-Download (RID als Query-Parameter) ───────────────────────────────
 
 
-@router.get("/{rid:path}/file")
-def download_file(rid: str, tenant: TenantContext = Depends(get_tenant)):
+@router.get("/file/download")
+def download_file(rid: str = Query(...), tenant: TenantContext = Depends(get_tenant)):
     """Lädt die Original-Datei eines Dokuments herunter."""
     file_data = get_file(rid, tenant.visible_tenant_ids)
     if not file_data:
@@ -148,8 +129,8 @@ def download_file(rid: str, tenant: TenantContext = Depends(get_tenant)):
     )
 
 
-@router.get("/{rid:path}/file/info")
-def file_info(rid: str, tenant: TenantContext = Depends(get_tenant)):
+@router.get("/file/info")
+def file_info(rid: str = Query(...), tenant: TenantContext = Depends(get_tenant)):
     """Gibt Metadaten der Original-Datei zurück (ohne Inhalt)."""
     info = get_file_info(rid, tenant.visible_tenant_ids)
     if not info:
@@ -157,8 +138,8 @@ def file_info(rid: str, tenant: TenantContext = Depends(get_tenant)):
     return {"has_file": True, **info}
 
 
-@router.get("/{rid:path}/file/preview")
-def file_preview(rid: str, tenant: TenantContext = Depends(get_tenant)):
+@router.get("/file/preview")
+def file_preview(rid: str = Query(...), tenant: TenantContext = Depends(get_tenant)):
     """Gibt die Original-Datei inline zurück (für PDF-Vorschau im Browser)."""
     file_data = get_file(rid, tenant.visible_tenant_ids)
     if not file_data:
@@ -173,7 +154,13 @@ def file_preview(rid: str, tenant: TenantContext = Depends(get_tenant)):
     )
 
 
-# ─── Dokument-Links ──────────────────────────────────────────────────────────
+# ─── Dokument-Detail & Links (MUSS nach /file/* Routen stehen) ──────────────
+
+
+@router.get("/{rid:path}/links", response_model=list[DocumentLinkResponse])
+def get_links(rid: str, tenant: TenantContext = Depends(get_tenant)):
+    """Gibt alle Verknüpfungen eines Dokuments zurück."""
+    return document_service.get_links(rid, tenant=tenant)
 
 
 @router.post("/{rid:path}/links", response_model=DocumentLinkResponse, status_code=201)
@@ -185,7 +172,18 @@ def create_link(rid: str, link: DocumentLinkCreate, tenant: TenantContext = Depe
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{rid:path}/links", response_model=list[DocumentLinkResponse])
-def get_links(rid: str, tenant: TenantContext = Depends(get_tenant)):
-    """Gibt alle Verknüpfungen eines Dokuments zurück."""
-    return document_service.get_links(rid, tenant=tenant)
+@router.delete("/{rid:path}", status_code=204)
+def delete_document(rid: str, tenant: TenantContext = Depends(get_tenant)):
+    """Löscht ein Dokument (nur eigener Tenant)."""
+    deleted = document_service.delete_document(rid, tenant=tenant)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Dokument nicht gefunden: {rid}")
+
+
+@router.get("/{rid:path}", response_model=DocumentResponse)
+def get_document(rid: str, tenant: TenantContext = Depends(get_tenant)):
+    """Ruft ein Dokument per RID ab (tenant-scoped). MUSS letzte GET-Route sein."""
+    doc = document_service.get_document(rid, tenant=tenant)
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Dokument nicht gefunden: {rid}")
+    return doc
