@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 from middleware.auth import get_tenant
 from models.document import (
@@ -10,6 +10,7 @@ from models.document import (
 from models.exceptions import SpamRejectedError, DuplicateDocumentError
 from models.tenant import TenantContext
 from services import document_service
+from services.email_parser_service import extract_attachment_text
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Dokumente"])
 
@@ -64,6 +65,62 @@ def delete_document(rid: str, tenant: TenantContext = Depends(get_tenant)):
     deleted = document_service.delete_document(rid, tenant=tenant)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Dokument nicht gefunden: {rid}")
+
+
+# ─── Datei-Upload ────────────────────────────────────────────────────────────
+
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".xlsx", ".txt", ".md", ".csv"}
+
+
+@router.post("/upload", response_model=DocumentResponse, status_code=201)
+def upload_file(
+    tenant: TenantContext = Depends(get_tenant),
+    file: UploadFile = File(...),
+    doc_type: str = Form("intelligence"),
+    title: str = Form(None),
+    language: str = Form("de"),
+    source: str = Form(None),
+):
+    """Lädt eine Datei hoch (PDF, DOCX, XLSX, TXT, MD, CSV) und erstellt ein Dokument."""
+    filename = file.filename or "upload"
+    ext = ("." + filename.rsplit(".", 1)[-1]).lower() if "." in filename else ""
+
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dateityp '{ext}' nicht unterstützt. Erlaubt: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+        )
+
+    payload = file.file.read()
+    if not payload:
+        raise HTTPException(status_code=400, detail="Datei ist leer")
+
+    # Text extrahieren
+    content = extract_attachment_text(filename, payload)
+    if not content or content.startswith("(Textextraktion fehlgeschlagen"):
+        raise HTTPException(status_code=422, detail=f"Text konnte nicht aus '{filename}' extrahiert werden")
+
+    doc_title = title or filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ")
+
+    doc = DocumentCreate(
+        doc_type=doc_type,
+        title=doc_title,
+        content=content,
+        language=language,
+        source=source or f"upload:{filename}",
+    )
+
+    try:
+        return document_service.create_document(doc, tenant=tenant)
+    except SpamRejectedError as e:
+        raise HTTPException(status_code=422, detail={"error": "spam", "reason": e.reason, "score": e.score})
+    except DuplicateDocumentError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "duplicate", "type": e.dup_type, "existing_rid": e.existing_rid, "similarity": e.similarity},
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ─── Dokument-Links ──────────────────────────────────────────────────────────

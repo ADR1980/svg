@@ -39,7 +39,7 @@ class ParsedEmail:
 
 # Unterstützte Anhang-Typen für Textextraktion
 SUPPORTED_ATTACHMENT_TYPES = {
-    ".pdf", ".txt", ".md", ".docx", ".csv",
+    ".pdf", ".txt", ".md", ".docx", ".csv", ".xlsx",
 }
 
 
@@ -165,6 +165,9 @@ def _extract_text_from_attachment(filename: str, ext: str, payload: bytes) -> st
         if ext == ".docx":
             return _extract_docx_text(payload)
 
+        if ext == ".xlsx":
+            return _extract_xlsx_text(payload)
+
     except Exception as e:
         logger.warning("Textextraktion fehlgeschlagen für %s: %s", filename, e)
         return f"(Textextraktion fehlgeschlagen: {e})"
@@ -204,3 +207,22 @@ def _extract_docx_text(payload: bytes) -> str:
     doc = Document(io.BytesIO(payload))
     paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
     return "\n\n".join(paragraphs)
+
+
+def _extract_xlsx_text(payload: bytes) -> str:
+    """Extrahiert Text aus einem XLSX (alle Sheets, Tab-separiert)."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(io.BytesIO(payload), read_only=True, data_only=True)
+    sheets = []
+    for ws in wb.worksheets:
+        rows = []
+        for row in ws.iter_rows(values_only=True):
+            cells = [str(c) if c is not None else "" for c in row]
+            if any(cells):
+                rows.append("\t".join(cells))
+        if rows:
+            header = f"--- Sheet: {ws.title} ---"
+            sheets.append(header + "\n" + "\n".join(rows))
+    wb.close()
+    return "\n\n".join(sheets)
