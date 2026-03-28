@@ -1239,7 +1239,7 @@ async function loadEntities() {
 
 function entityCard(entity, type) {
   return `
-    <div class="card entity-card" onclick="openDocument('${escapeHtml(entity.rid)}')">
+    <div class="card entity-card" onclick="openEntityDetail('${escapeHtml(entity.rid)}')">
       <div class="entity-avatar ${type}">${initials(entity.title)}</div>
       <div class="entity-info">
         <div class="card-title">${escapeHtml(entity.title)}</div>
@@ -1247,6 +1247,177 @@ function entityCard(entity, type) {
       </div>
     </div>
   `;
+}
+
+// ── Entity-Detail-Ansicht ────────────────────────────────
+async function openEntityDetail(rid) {
+  const overlay = document.getElementById('modal-overlay');
+  const titleEl = document.getElementById('modal-title');
+  const bodyEl = document.getElementById('modal-body');
+
+  overlay.style.display = 'flex';
+  titleEl.textContent = 'Lade...';
+  bodyEl.innerHTML = '<div class="spinner" style="margin:30px auto;display:block"></div>';
+
+  try {
+    const detail = await api('GET', '/api/v1/entities/' + rid + '/detail');
+    const entity = detail.entity;
+    const meta = entity.metadata || {};
+    const isPersona = entity.doc_type === 'person';
+
+    titleEl.textContent = entity.title;
+
+    // Metadaten-Felder (editierbar)
+    const metaFields = isPersona
+      ? [['role','Rolle/Position'],['organization','Organisation'],['location','Standort'],['phone','Telefon'],['email_addr','E-Mail'],['nationality','Nationalität']]
+      : [['industry','Branche'],['location','Standort/Sitz'],['website','Website'],['founded','Gegründet'],['employees_count','Mitarbeiter'],['revenue','Umsatz']];
+
+    bodyEl.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+        <span class="${badgeClass(entity.doc_type)}">${escapeHtml(entity.doc_type)}</span>
+        <span style="font-family:monospace;font-size:11px;color:var(--gold)">${escapeHtml(entity.rid)}</span>
+        <span style="font-size:11px;color:var(--text-muted)">Erstellt: ${formatDate(entity.created_at)}</span>
+      </div>
+
+      <!-- Metadaten -->
+      <div class="modal-section">
+        <div class="modal-section-title">Stammdaten</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px" id="entity-meta-grid">
+          ${metaFields.map(([key, label]) => `
+            <div>
+              <label style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">${label}</label>
+              <input class="input" type="text" data-meta-key="${key}" value="${escapeHtml(meta[key] || '')}" placeholder="${label}..." style="width:100%;margin-top:2px;font-size:13px">
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="saveEntityMetadata('${escapeHtml(rid)}')">Stammdaten speichern</button>
+      </div>
+
+      <!-- Kontext aus Dokumenten -->
+      ${entity.content && entity.content !== 'Person: ' + entity.title && entity.content !== 'Unternehmen/Organisation: ' + entity.title ? `
+      <div class="modal-section">
+        <div class="modal-section-title">Beschreibung</div>
+        <div style="font-size:13px;color:var(--text-secondary);white-space:pre-wrap">${escapeHtml(entity.content)}</div>
+      </div>` : ''}
+
+      <!-- Notizen -->
+      <div class="modal-section">
+        <div class="modal-section-title">Notizen (${detail.notes.length})</div>
+        <div id="entity-notes">
+          ${detail.notes.map(n => `
+            <div style="padding:10px;margin-top:6px;background:var(--bg-secondary);border-radius:6px;border-left:3px solid var(--gold)">
+              <div style="font-size:13px;color:var(--text-primary);white-space:pre-wrap">${escapeHtml(n.content)}</div>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:4px">${n.author || 'Unbekannt'} &middot; ${formatDate(n.created_at)}
+                <span style="cursor:pointer;color:#ef4444;margin-left:8px" onclick="deleteEntityNote('${escapeHtml(rid)}', ${n.id})">Löschen</span>
+              </div>
+            </div>
+          `).join('') || '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Noch keine Notizen</div>'}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input class="input" type="text" id="new-note-input" placeholder="Neue Notiz eingeben..." style="flex:1" onkeydown="if(event.key==='Enter')addEntityNote('${escapeHtml(rid)}')">
+          <button class="btn btn-gold btn-sm" onclick="addEntityNote('${escapeHtml(rid)}')">Hinzufügen</button>
+        </div>
+      </div>
+
+      <!-- Erwähnungen in Dokumenten -->
+      <div class="modal-section">
+        <div class="modal-section-title">Erw&auml;hnt in Dokumenten (${detail.mentions.length})</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          ${detail.mentions.map(m => `
+            <div class="modal-link-chip" onclick="openDocument('${escapeHtml(m.rid)}')" style="cursor:pointer;padding:6px 10px">
+              <span class="${badgeClass(m.doc_type || 'default')}" style="font-size:10px">${escapeHtml(m.doc_type || '?')}</span>
+              <span style="margin-left:6px;font-size:13px">${escapeHtml(m.title || m.rid)}</span>
+            </div>
+          `).join('') || '<div style="font-size:12px;color:var(--text-muted)">Keine Dokument-Erwähnungen</div>'}
+        </div>
+      </div>
+
+      <!-- OSINT Intelligence -->
+      ${detail.intelligence.length ? `
+      <div class="modal-section">
+        <div class="modal-section-title">Intelligence-Berichte (${detail.intelligence.length})</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          ${detail.intelligence.map(i => `
+            <div class="modal-link-chip" onclick="openDocument('${escapeHtml(i.rid)}')" style="cursor:pointer;padding:6px 10px">
+              <span style="color:var(--c-intelligence);font-size:12px">&#128269;</span>
+              <span style="margin-left:6px;font-size:13px">${escapeHtml(i.title || i.rid)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Beziehungen -->
+      <div class="modal-section">
+        <div class="modal-section-title">Beziehungen (${detail.related.length})</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+          ${detail.related.map(r => `
+            <div class="modal-link-chip" onclick="openEntityDetail('${escapeHtml(r.rid)}')" style="cursor:pointer;padding:6px 10px">
+              <span style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.link_type)}</span>
+              <span style="margin-left:6px;font-size:13px">${escapeHtml(r.title || r.rid)}</span>
+            </div>
+          `).join('') || '<div style="font-size:12px;color:var(--text-muted)">Keine manuellen Beziehungen</div>'}
+        </div>
+      </div>
+
+      <!-- OSINT Button -->
+      <div class="modal-section" id="osint-section">
+        <div class="modal-section-title" style="display:flex;align-items:center;gap:10px">
+          OSINT Intelligence
+          <button class="btn btn-gold btn-sm" onclick="startOSINT('${escapeHtml(entity.rid)}', '${escapeHtml(entity.title)}', '${escapeHtml(entity.doc_type)}')" id="osint-btn">Recherche starten</button>
+        </div>
+        <div id="osint-results" style="margin-top:12px"></div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn btn-danger btn-sm" onclick="deleteDocument('${escapeHtml(entity.rid)}')">Entit&auml;t l&ouml;schen</button>
+      </div>
+    `;
+
+    // OSINT Report laden
+    loadOSINTReport(rid);
+
+  } catch (e) {
+    bodyEl.innerHTML = '<div style="color:#ef4444">Fehler: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+async function saveEntityMetadata(rid) {
+  const inputs = document.querySelectorAll('#entity-meta-grid input[data-meta-key]');
+  const metadata = {};
+  inputs.forEach(inp => {
+    if (inp.value.trim()) metadata[inp.dataset.metaKey] = inp.value.trim();
+  });
+  try {
+    await api('PUT', '/api/v1/entities/' + rid + '/metadata', { metadata });
+    showToast('Stammdaten gespeichert');
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+async function addEntityNote(rid) {
+  const input = document.getElementById('new-note-input');
+  const content = input.value.trim();
+  if (!content) return;
+  try {
+    await api('POST', '/api/v1/entities/' + rid + '/notes', { content });
+    input.value = '';
+    showToast('Notiz hinzugefügt');
+    openEntityDetail(rid); // Refresh
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+async function deleteEntityNote(rid, noteId) {
+  if (!confirm('Notiz wirklich löschen?')) return;
+  try {
+    await api('DELETE', '/api/v1/entities/' + rid + '/notes/' + noteId);
+    showToast('Notiz gelöscht');
+    openEntityDetail(rid); // Refresh
+  } catch (e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
 }
 
 // ══════════════════════════════════════════════════════════
