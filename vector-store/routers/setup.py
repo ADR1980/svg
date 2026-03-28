@@ -32,17 +32,26 @@ def run_setup(secret: str = Query(..., description="Setup-Secret zur Absicherung
 
     results = []
 
-    # ── 1. Tenants-Tabelle prüfen/erstellen ──────────────────────────────
-    try:
-        client.table("tenants").select("id").limit(1).execute()
-        results.append({"step": "tenants_table", "status": "exists"})
-    except Exception:
-        results.append({"step": "tenants_table", "status": "not_found",
-                        "note": "Bitte Migration 001-003 im Supabase SQL Editor ausführen"})
-        # Versuche trotzdem den Default-Tenant anzulegen
+    # ── 1. Tabellen prüfen ──────────────────────────────────────────────
+    tables_ok = True
+    for table in ["tenants", "users", "documents"]:
+        try:
+            client.table(table).select("*").limit(1).execute()
+            results.append({"step": f"check_{table}", "status": "exists"})
+        except Exception as e:
+            err = str(e)
+            results.append({"step": f"check_{table}", "status": "not_found", "error": err[:200]})
+            tables_ok = False
+
+    if not tables_ok:
+        # Prüfe ob es ein Schema-Cache-Problem ist (Tabelle existiert aber PostgREST kennt sie nicht)
+        # Supabase braucht manchmal einen Reload: Dashboard > Settings > API > Reload schema
         return {
             "success": False,
-            "message": "Datenbank-Tabellen fehlen. Bitte die SQL-Migrationen im Supabase SQL Editor ausführen.",
+            "message": "Einige Tabellen fehlen oder sind nicht via REST API sichtbar. "
+                       "Falls die Migrationen bereits ausgeführt wurden: "
+                       "Supabase Dashboard > Project Settings > API > 'Reload Schema' klicken, "
+                       "dann /setup erneut aufrufen.",
             "migration_urls": {
                 "001": "https://github.com/ADR1980/svg/blob/claude/vector-db-document-storage-SwEiT/vector-store/migrations/001_pgvector_setup.sql",
                 "002": "https://github.com/ADR1980/svg/blob/claude/vector-db-document-storage-SwEiT/vector-store/migrations/002_content_hash.sql",
