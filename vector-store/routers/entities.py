@@ -163,6 +163,33 @@ def delete_note(rid: str, note_id: int, tenant: TenantContext = Depends(get_tena
 
 # ─── Beziehungen ─────────────────────────────────────────────────────────────
 
+@router.post("/auto-link")
+def auto_link_all_entities(tenant: TenantContext = Depends(get_tenant)):
+    """Durchsucht alle Dokumente des Tenants und erstellt Person-Unternehmen-Zuordnungen."""
+    from services.ner_service import extract_entities
+    from services.entity_linker_service import auto_link_entities
+
+    docs = document_service.list_documents(tenant=tenant, limit=200)
+    total_links = []
+
+    namespace = tenant.tenant_id
+    for doc in docs:
+        if doc.doc_type in ("person", "company"):
+            continue
+        entities = extract_entities(doc.content, doc.language)
+        if len(entities) >= 2:
+            links = auto_link_entities(
+                entities, namespace,
+                create_link_fn=lambda src, lnk: document_service.create_link(src, lnk, tenant=tenant),
+            )
+            total_links.extend([l for l in links if l["status"] == "linked"])
+
+    return {
+        "links_created": len(total_links),
+        "details": total_links,
+    }
+
+
 @router.get("/{rid:path}/mentions", response_model=list[DocumentLinkResponse])
 def get_entity_mentions(rid: str, tenant: TenantContext = Depends(get_tenant)):
     """Gibt alle Dokumente zurück, die diese Entität erwähnen."""

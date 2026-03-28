@@ -8,6 +8,7 @@ from slugify import slugify
 
 from models.document import DocumentCreate, DocumentLinkCreate
 from services.ner_service import ExtractedEntity, extract_entities
+from services.entity_linker_service import auto_link_entities
 
 
 def extract_and_link_entities(
@@ -94,6 +95,18 @@ def extract_and_link_entities(
             "type": entity.entity_type,
             "status": status,
         })
+
+    # Automatische Person-Unternehmen-Zuordnung
+    if len(entities) >= 2:
+        auto_links = auto_link_entities(entities, namespace, create_link_fn)
+        for al in auto_links:
+            if al["status"] == "linked":
+                results.append({
+                    "rid": al["person_rid"],
+                    "name": f"{al['person']} → {al['company']}",
+                    "type": al["relationship"],
+                    "status": "auto-linked",
+                })
 
     return results
 
