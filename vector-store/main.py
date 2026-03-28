@@ -13,6 +13,7 @@ from routers.ai import router as ai_router
 from routers.auth import router as auth_router
 from routers.email_ingest import router as email_router
 from routers.ingest import router as ingest_router
+from routers.setup import router as setup_router
 from routers.tenants import router as tenants_router
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(setup_router)
 app.include_router(auth_router)
 app.include_router(tenants_router)
 app.include_router(documents.router)
