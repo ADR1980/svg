@@ -44,3 +44,6 @@ MSGRAPH_POLL_INTERVAL_SECONDS = int(os.getenv("MSGRAPH_POLL_INTERVAL_SECONDS", "
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production-please")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRATION_HOURS = float(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+
+# Ragie.ai Dokumenten-API (optional - ohne Key wird Ragie deaktiviert)
+RAGIE_API_KEY = os.getenv("RAGIE_API_KEY", "")
