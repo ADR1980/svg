@@ -46,3 +46,38 @@ def test_connection() -> dict:
     except Exception as e:
         logger.error("Ragie.ai Verbindungsfehler: %s", e)
         return {"connected": False, "error": str(e)}
+
+
+def search_documents(query: str, max_chunks_per_document: int = 3) -> dict:
+    """Durchsucht alle Ragie-Dokumente per semantischer Suche."""
+    if not is_ragie_enabled():
+        return {"error": "RAGIE_API_KEY nicht konfiguriert", "results": []}
+
+    try:
+        resp = httpx.post(
+            f"{RAGIE_BASE_URL}/retrievals",
+            headers={**_get_headers(), "Content-Type": "application/json"},
+            json={"query": query, "max_chunks_per_document": max_chunks_per_document},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        chunks = data.get("scored_chunks", [])
+        results = [
+            {
+                "document_name": c.get("document_name"),
+                "text": c.get("text"),
+                "score": c.get("score"),
+                "document_id": c.get("document_id"),
+                "metadata": c.get("document_metadata", {}),
+            }
+            for c in chunks
+        ]
+        logger.info("Ragie-Suche '%s': %d Treffer", query, len(results))
+        return {"query": query, "result_count": len(results), "results": results}
+    except httpx.HTTPStatusError as e:
+        logger.error("Ragie.ai Suche fehlgeschlagen: %s", e.response.status_code)
+        return {"error": f"HTTP {e.response.status_code}", "results": []}
+    except Exception as e:
+        logger.error("Ragie.ai Suche Fehler: %s", e)
+        return {"error": str(e), "results": []}

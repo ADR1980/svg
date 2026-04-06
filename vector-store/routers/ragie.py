@@ -4,7 +4,9 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from services.ragie_service import is_ragie_enabled, test_connection
+from pydantic import BaseModel, Field
+
+from services.ragie_service import is_ragie_enabled, test_connection, search_documents
 
 logger = logging.getLogger(__name__)
 
@@ -36,3 +38,20 @@ def ragie_health():
     except Exception as e:
         logger.error("Ragie.ai Health-Check Fehler: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="Suchbegriff")
+    max_chunks_per_document: int = Field(3, ge=1, le=10, description="Max. Textabschnitte pro Dokument")
+
+
+@router.post("/search")
+def ragie_search(req: SearchRequest):
+    """Durchsucht Ragie-Dokumente per semantischer Suche."""
+    if not is_ragie_enabled():
+        raise HTTPException(status_code=503, detail="Ragie.ai nicht konfiguriert.")
+
+    result = search_documents(req.query, req.max_chunks_per_document)
+    if "error" in result:
+        raise HTTPException(status_code=502, detail=result["error"])
+    return result
