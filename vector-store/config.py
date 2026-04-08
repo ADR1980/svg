@@ -44,3 +44,13 @@ MSGRAPH_POLL_INTERVAL_SECONDS = int(os.getenv("MSGRAPH_POLL_INTERVAL_SECONDS", "
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production-please")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRATION_HOURS = float(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+
+# Alpaca Markets API
+ALPACA_API_KEY = os.getenv("ALPACA_API_KEY", "")
+ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY", "")
+ALPACA_PAPER = os.getenv("ALPACA_PAPER", "true").lower() == "true"
+ALPACA_BASE_URL = (
+    "https://paper-api.alpaca.markets"
+    if os.getenv("ALPACA_PAPER", "true").lower() == "true"
+    else "https://api.alpaca.markets"
+)
