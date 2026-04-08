@@ -54,3 +54,10 @@ ALPACA_BASE_URL = (
     if os.getenv("ALPACA_PAPER", "true").lower() == "true"
     else "https://api.alpaca.markets"
 )
+
+# Alpaca Trailing-Stop Strategie
+TRAILING_STOP_PCT = float(os.getenv("TRAILING_STOP_PCT", "3.0"))          # Stop-Loss in % unter Höchstkurs
+TRAILING_MIN_PROFIT_PCT = float(os.getenv("TRAILING_MIN_PROFIT_PCT", "1.0"))  # Mindest-Gewinn bevor Trailing aktiviert wird
+TRAILING_CHECK_INTERVAL = int(os.getenv("TRAILING_CHECK_INTERVAL", "30"))  # Prüfintervall in Sekunden
+TRAILING_COST_PER_TRADE = float(os.getenv("TRAILING_COST_PER_TRADE", "0.0"))  # Fixkosten pro Trade (Alpaca = 0)
+TRAILING_SPREAD_PCT = float(os.getenv("TRAILING_SPREAD_PCT", "0.05"))      # Geschätzter Spread-Verlust in %

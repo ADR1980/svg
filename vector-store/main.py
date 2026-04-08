@@ -7,13 +7,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from config import API_HOST, API_PORT, EMAIL_POLL_INTERVAL_SECONDS, MSGRAPH_POLL_INTERVAL_SECONDS
+from config import API_HOST, API_PORT, EMAIL_POLL_INTERVAL_SECONDS, MSGRAPH_POLL_INTERVAL_SECONDS, TRAILING_CHECK_INTERVAL
 from routers import documents, search, entities
 from routers.ai import router as ai_router
 from routers.auth import router as auth_router
 from routers.email_ingest import router as email_router
 from routers.ingest import router as ingest_router
 from routers.alpaca import router as alpaca_router
+from routers.alpaca_strategy import router as strategy_router
 from routers.tenants import router as tenants_router
 
 logger = logging.getLogger(__name__)
@@ -35,16 +36,30 @@ def _make_poll_job(poll_fn, label: str):
     return _job
 
 
+def _trailing_stop_job():
+    """Background-Job: Trailing-Stop Prüfung."""
+    from services.alpaca_strategy_service import check_and_update
+    try:
+        events = check_and_update()
+        if events:
+            for e in events:
+                logger.info("Trailing-Stop Event: %s %s", e.get("type"), e.get("symbol"))
+    except Exception as e:
+        logger.error("Trailing-Stop Fehler: %s", e)
+
+
 def _start_email_scheduler():
-    """Startet den Background-Scheduler für automatisches Email-Polling (IMAP + Graph)."""
+    """Startet den Background-Scheduler für Email-Polling + Trailing-Stop Monitor."""
     from services.email_service import is_email_enabled, poll_and_ingest as imap_poll
     from services.msgraph_email_service import is_msgraph_enabled, poll_and_ingest as msgraph_poll
+    from services.alpaca_service import is_alpaca_configured
 
     imap_on = is_email_enabled()
     msgraph_on = is_msgraph_enabled()
+    alpaca_on = is_alpaca_configured()
 
-    if not imap_on and not msgraph_on:
-        logger.info("Email-Polling deaktiviert (weder IMAP noch Microsoft Graph konfiguriert)")
+    if not imap_on and not msgraph_on and not alpaca_on:
+        logger.info("Kein Background-Job konfiguriert")
         return
 
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -71,6 +86,16 @@ def _start_email_scheduler():
             name="Graph-Polling",
         )
         logger.info("Graph-Polling gestartet (Intervall: %ds)", MSGRAPH_POLL_INTERVAL_SECONDS)
+
+    if alpaca_on:
+        _scheduler.add_job(
+            _trailing_stop_job,
+            "interval",
+            seconds=TRAILING_CHECK_INTERVAL,
+            id="trailing_stop_monitor",
+            name="Trailing-Stop Monitor",
+        )
+        logger.info("Trailing-Stop Monitor gestartet (Intervall: %ds)", TRAILING_CHECK_INTERVAL)
 
     _scheduler.start()
 
@@ -114,6 +139,7 @@ app.include_router(ai_router)
 app.include_router(email_router)
 app.include_router(ingest_router)
 app.include_router(alpaca_router)
+app.include_router(strategy_router)
 
 # Static Files für UI
 ui_dir = Path(__file__).parent / "ui"
