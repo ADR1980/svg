@@ -1,0 +1,4 @@
+# Sensible Konfiguration
+.mcp.json
+.env
+odoo-mcp-server/.env
