@@ -3,6 +3,13 @@
 MCP (Model Context Protocol) Server für die Integration von Odoo in Claude Code.
 Ermöglicht direkten Zugriff auf beliebige Odoo-Modelle via XML-RPC.
 
+## Zwei Betriebsmodi
+
+| Modus | Datei | Anleitung | Wann |
+|-------|-------|-----------|------|
+| **Lokal (stdio)** | `server.py` | Diese README | Auf dem eigenen Rechner, einfach |
+| **Remote (HTTP)** | `server_http.py` | [README-server.md](README-server.md) | Auf VPS/Server, von überall erreichbar |
+
 ## Verfügbare Tools
 
 | Tool | Beschreibung |
