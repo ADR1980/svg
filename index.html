@@ -4,694 +4,718 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SVG — Sentinal Venguard Global</title>
+<meta name="description" content="Strategische Beschaffung sicherheitsrelevanter Güter, geostrategische Beratung und tägliche Lieferketten-Risikoanalyse für Behörden und Hersteller.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg-primary: #0a0e14;
-  --bg-secondary: #111827;
-  --bg-card: #1a2332;
-  --bg-card-hover: #1f2b3d;
-  --gold: #c8a84e;
-  --gold-light: #e0c76a;
-  --gold-dark: #a08030;
-  --navy: #1e3a5f;
-  --navy-light: #2a4f7a;
-  --text-primary: #e8e8e8;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --accent-red: #ef4444;
-  --accent-orange: #f59e0b;
-  --accent-green: #22c55e;
-  --accent-blue: #3b82f6;
-  --border: #2a3444;
-  --glow-gold: 0 0 20px rgba(200,168,78,0.15);
+  --bg: #ffffff;
+  --bg-alt: #f7f8fa;
+  --bg-muted: #f1f3f6;
+  --ink: #0b1622;
+  --ink-2: #1f2a37;
+  --text: #364150;
+  --text-muted: #6b7785;
+  --text-faint: #98a2b3;
+  --line: #e5e8ec;
+  --line-strong: #cfd4db;
+  --accent: #0b1622;
+  --accent-hover: #1f2a37;
+  --risk-critical: #c0392b;
+  --risk-high: #d97706;
+  --risk-mod: #2563eb;
+  --risk-low: #059669;
+  --shadow-sm: 0 1px 2px rgba(11,22,34,0.04);
+  --shadow-md: 0 4px 16px rgba(11,22,34,0.06);
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-html { scroll-behavior: smooth; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
   line-height: 1.6;
+  font-size: 16px;
+  font-weight: 400;
   overflow-x: hidden;
 }
-h1,h2,h3,h4 { font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: 0.5px; }
+h1, h2, h3, h4 { color: var(--ink); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+
+/* ─── LAYOUT ─── */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+section { padding: 96px 0; border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: none; }
 
 /* ─── NAVBAR ─── */
 .navbar {
-  position: fixed; top:0; left:0; right:0; z-index:1000;
-  background: rgba(10,14,20,0.92);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 40px;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
 }
-.nav-logo {
-  display: flex; align-items: center; gap: 14px;
-  text-decoration: none;
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 32px;
+  height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
 }
-.nav-logo-icon {
-  width: 44px; height: 44px;
-  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-  border-radius: 8px;
+.nav-logo { display: flex; align-items: center; gap: 12px; }
+.nav-logo-mark {
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--ink);
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Rajdhani'; font-weight: 700; font-size: 18px;
-  color: var(--bg-primary);
-  box-shadow: var(--glow-gold);
+  font-weight: 700; font-size: 12px; letter-spacing: 0.5px;
+  color: var(--ink);
 }
-.nav-logo-text { font-family:'Rajdhani'; font-size:22px; font-weight:700; color:var(--text-primary); }
-.nav-logo-text span { color: var(--gold); }
-.nav-links { display:flex; gap:30px; align-items:center; }
+.nav-logo-text { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+.nav-logo-text .muted { color: var(--text-muted); font-weight: 400; }
+
+.nav-links { display: flex; gap: 32px; align-items: center; }
 .nav-links a {
-  color: var(--text-secondary);
-  text-decoration: none;
+  color: var(--text);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  transition: color 0.3s;
+  transition: color 0.15s ease;
 }
-.nav-links a:hover { color: var(--gold); }
-.lang-switch {
-  display: flex; gap: 4px;
-  background: var(--bg-card);
-  border-radius: 6px;
-  padding: 3px;
-  border: 1px solid var(--border);
-}
+.nav-links a:hover { color: var(--ink); }
+
+.lang-switch { display: flex; gap: 2px; margin-left: 8px; }
 .lang-btn {
-  padding: 5px 12px;
+  padding: 6px 10px;
   border: none;
-  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all 0.3s;
-  background: transparent;
+  border-radius: 4px;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.lang-btn:hover { color: var(--ink); }
+.lang-btn.active { color: var(--ink); background: var(--bg-muted); }
+
+.hamburger {
+  display: none;
+  background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; padding: 0;
+  flex-direction: column; justify-content: center; align-items: center; gap: 4px;
+}
+.hamburger span { display: block; width: 18px; height: 1.5px; background: var(--ink); transition: 0.2s; }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.btn-primary { background: var(--ink); color: var(--bg); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-outline { background: transparent; color: var(--ink); border-color: var(--ink); }
+.btn-outline:hover { background: var(--ink); color: var(--bg); }
+.btn .arrow { transition: transform 0.2s; }
+.btn:hover .arrow { transform: translateX(3px); }
+
+/* ─── SECTION HEADER ─── */
+.section-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--text-muted);
+  margin-bottom: 16px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--ink);
 }
-.lang-btn.active {
-  background: var(--gold);
-  color: var(--bg-primary);
+.section-title {
+  font-size: clamp(28px, 3.6vw, 40px);
+  margin-bottom: 16px;
+  max-width: 720px;
 }
+.section-lead {
+  font-size: 17px;
+  color: var(--text-muted);
+  max-width: 640px;
+  line-height: 1.6;
+}
+.section-header { margin-bottom: 56px; }
 
 /* ─── HERO ─── */
-.hero {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  padding-top: 70px;
+.hero { padding: 120px 0 100px; border-bottom: 1px solid var(--line); }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 28px;
 }
-.hero-bg {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 30%, rgba(30,58,95,0.4) 0%, transparent 70%),
-    radial-gradient(circle at 20% 80%, rgba(200,168,78,0.05) 0%, transparent 50%),
-    linear-gradient(180deg, var(--bg-primary) 0%, #0d1520 100%);
-}
-.hero-grid {
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(200,168,78,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(200,168,78,0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 80%);
-}
-.hero-content {
-  position: relative; z-index:2;
-  text-align: center;
-  max-width: 900px;
-  padding: 0 30px;
-}
-.hero-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: rgba(200,168,78,0.1);
-  border: 1px solid rgba(200,168,78,0.25);
-  border-radius: 50px;
-  padding: 8px 20px;
-  margin-bottom: 30px;
-  font-size: 13px;
-  color: var(--gold);
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-.hero-badge-dot {
-  width: 8px; height: 8px;
-  background: var(--gold);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity:1; }
-  50% { opacity:0.4; }
+.hero-eyebrow::before {
+  content: ''; width: 24px; height: 1.5px; background: var(--ink);
 }
 .hero h1 {
-  font-size: clamp(42px, 6vw, 72px);
-  line-height: 1.1;
-  margin-bottom: 24px;
-  color: #fff;
+  font-size: clamp(36px, 5.8vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 28px;
+  max-width: 920px;
 }
-.hero h1 .gold { color: var(--gold); }
+.hero h1 .accent { color: var(--text-muted); font-weight: 400; }
 .hero-sub {
   font-size: 18px;
-  color: var(--text-secondary);
-  max-width: 650px;
-  margin: 0 auto 40px;
-  line-height: 1.7;
+  color: var(--text);
+  max-width: 680px;
+  margin-bottom: 40px;
+  line-height: 1.6;
 }
-.hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-.btn {
-  padding: 14px 32px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.3s;
-  cursor: pointer;
-  border: none;
-}
-.btn-primary {
-  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-  color: var(--bg-primary);
-  box-shadow: 0 4px 20px rgba(200,168,78,0.3);
-}
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(200,168,78,0.4); }
-.btn-outline {
-  background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-}
-.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-/* ─── SECTION LAYOUT ─── */
-section { padding: 100px 40px; }
-.section-header { text-align: center; margin-bottom: 60px; }
-.section-tag {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-.section-header h2 {
-  font-size: 38px;
-  color: #fff;
-  margin-bottom: 16px;
-}
-.section-header p {
-  color: var(--text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
-  font-size: 16px;
-}
-.container { max-width: 1200px; margin: 0 auto; }
-
-/* ─── RISK DASHBOARD ─── */
-#risk-dashboard { background: var(--bg-secondary); }
-.dashboard-grid {
+/* ─── COMPETENCIES (Icon Row) ─── */
+.competencies {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  margin-top: 56px;
 }
-.dashboard-full { grid-column: 1 / -1; }
-.dash-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  transition: border-color 0.3s;
+.comp-item {
+  padding: 24px 0;
+  border-top: 1.5px solid var(--ink);
 }
-.dash-card:hover { border-color: rgba(200,168,78,0.3); }
-.dash-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.dash-card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-.dash-card-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 50px;
-  font-weight: 600;
-}
-.badge-live { background: rgba(34,197,94,0.15); color: var(--accent-green); }
-.badge-updated { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.comp-num { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 12px; }
+.comp-item h3 { font-size: 17px; margin-bottom: 8px; }
+.comp-item p { font-size: 14px; color: var(--text-muted); line-height: 1.55; }
 
-.risk-score-display {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-.risk-score-number {
-  font-family: 'Rajdhani';
-  font-size: 72px;
-  font-weight: 700;
-  line-height: 1;
-}
-.risk-score-meta { flex: 1; }
-.risk-score-label { font-size: 15px; color: var(--text-secondary); margin-bottom: 8px; }
-.risk-bar-bg {
-  height: 8px;
-  background: var(--bg-primary);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-.risk-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 1s ease;
-}
-.risk-change {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-/* Region risk list */
-.region-list { display: flex; flex-direction: column; gap: 12px; }
-.region-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--bg-primary);
-  border-radius: 8px;
-  border: 1px solid transparent;
-  transition: border-color 0.3s;
-}
-.region-item:hover { border-color: var(--border); }
-.region-flag { font-size: 20px; }
-.region-name { flex:1; font-size:14px; font-weight:500; }
-.region-score {
-  font-family: 'Rajdhani';
-  font-size: 20px;
-  font-weight: 700;
-  min-width: 36px;
-  text-align: right;
-}
-.region-bar {
-  width: 80px; height: 6px;
-  background: var(--bg-secondary);
-  border-radius: 3px;
-  overflow: hidden;
-}
-.region-bar-fill { height:100%; border-radius:3px; }
-
-/* Map */
-#risk-map { height: 420px; border-radius: 10px; overflow: hidden; }
-.leaflet-container { background: var(--bg-primary) !important; }
-.leaflet-tile { filter: grayscale(90%) invert(100%) contrast(90%) brightness(0.4) sepia(20%); }
-.risk-marker {
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
-  animation: markerPulse 3s infinite;
-}
-@keyframes markerPulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
-}
-
-/* News feed */
-.news-feed { display: flex; flex-direction: column; gap: 14px; max-height: 420px; overflow-y: auto; }
-.news-feed::-webkit-scrollbar { width: 4px; }
-.news-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.news-item {
-  display: flex; gap: 14px;
-  padding: 14px;
-  background: var(--bg-primary);
-  border-radius: 8px;
-  border-left: 3px solid var(--border);
-  transition: border-color 0.3s;
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-}
-.news-item:hover { border-left-color: var(--gold); }
-.news-item.risk-high { border-left-color: var(--accent-red); }
-.news-item.risk-medium { border-left-color: var(--accent-orange); }
-.news-item.risk-low { border-left-color: var(--accent-green); }
-.news-time {
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  min-width: 50px;
-}
-.news-content h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; line-height: 1.4; }
-.news-content p { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
-.news-tag {
-  display: inline-block;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-top: 6px;
-}
-
-/* Chart */
-.chart-container { position: relative; height: 300px; }
-
-/* ─── SERVICES ─── */
+/* ─── SERVICES GRID ─── */
 .services-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
 .service-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
+  background: var(--bg);
+  padding: 36px 32px;
+  transition: background 0.2s;
 }
-.service-card:hover {
-  border-color: rgba(200,168,78,0.3);
-  transform: translateY(-4px);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-}
-.service-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--gold), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.service-card:hover::before { opacity: 1; }
-.service-icon {
-  width: 52px; height: 52px;
-  background: rgba(200,168,78,0.1);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px;
+.service-card:hover { background: var(--bg-alt); }
+.service-marker {
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
   margin-bottom: 20px;
 }
-.service-card h3 { font-size: 20px; margin-bottom: 12px; color: #fff; }
-.service-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+.service-card h3 { font-size: 19px; margin-bottom: 12px; line-height: 1.3; }
+.service-card p { font-size: 14.5px; color: var(--text); line-height: 1.6; }
+.service-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.service-tag {
+  font-size: 11px; font-weight: 500;
+  padding: 4px 9px;
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+}
 
-/* ─── NETWORK / STATS ─── */
+/* ─── STATS ─── */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-top: 60px;
+  gap: 32px;
+  margin-top: 64px;
+  padding-top: 48px;
+  border-top: 1px solid var(--line);
 }
-.stat-card {
-  text-align: center;
-  padding: 30px 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-.stat-number {
-  font-family: 'Rajdhani';
-  font-size: 48px;
-  font-weight: 700;
-  color: var(--gold);
+.stat-item { }
+.stat-num {
+  font-size: 40px; font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
   line-height: 1;
   margin-bottom: 8px;
 }
-.stat-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
+.stat-label { font-size: 13px; color: var(--text-muted); letter-spacing: 0.02em; }
 
-/* ─── APPROACH / PROCESS ─── */
-#approach { background: var(--bg-secondary); }
+/* ─── PROCESS ─── */
 .process-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.process-step {
+  padding: 32px 28px 32px 0;
+  border-top: 1.5px solid var(--ink);
+  position: relative;
+}
+.process-step:not(:last-child) { padding-right: 32px; border-right: 1px solid var(--line); padding-left: 28px; }
+.process-step:first-child { padding-left: 0; }
+.process-step:not(:first-child) { padding-left: 28px; }
+.step-num {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 18px;
+  display: block;
+}
+.process-step h3 { font-size: 19px; margin-bottom: 10px; }
+.process-step p { font-size: 14px; color: var(--text-muted); line-height: 1.55; }
+
+/* ─── RISK DASHBOARD ─── */
+.dash-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap; gap: 12px;
+}
+.dash-date { font-size: 13px; color: var(--text-muted); }
+.live-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--risk-low);
+}
+.live-pill::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--risk-low);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
   gap: 24px;
-  position: relative;
 }
-.process-steps::before {
-  content: '';
-  position: absolute;
-  top: 40px;
-  left: 12.5%;
-  right: 12.5%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--gold), var(--gold), transparent);
-  opacity: 0.2;
+.dash-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 28px;
 }
-.process-step { text-align: center; position: relative; }
-.step-number {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  border: 2px solid var(--gold);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Rajdhani';
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--gold);
-  margin: 0 auto 16px;
-  background: var(--bg-secondary);
-  position: relative;
-  z-index: 1;
+.dash-card-wide { grid-column: 1 / -1; }
+.dash-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
-.process-step h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
-.process-step p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.dash-card-title { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
+.dash-card-badge { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+.risk-score { display: flex; align-items: flex-end; gap: 24px; }
+.risk-score-num { font-size: 72px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; color: var(--ink); }
+.risk-score-meta { flex: 1; padding-bottom: 8px; }
+.risk-score-label { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+.risk-bar-bg { width: 100%; height: 4px; background: var(--bg-muted); border-radius: 0; overflow: hidden; }
+.risk-bar-fill { height: 100%; transition: width 0.8s ease; }
+.risk-change { font-size: 12px; margin-top: 8px; color: var(--text-muted); }
+
+.region-list { display: flex; flex-direction: column; gap: 12px; }
+.region-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 80px 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.region-row:last-child { border-bottom: none; }
+.region-flag { font-size: 16px; }
+.region-name { font-size: 13.5px; color: var(--ink); font-weight: 500; }
+.region-bar-bg { width: 80px; height: 3px; background: var(--bg-muted); }
+.region-bar-fill { height: 100%; transition: width 0.6s; }
+.region-score { font-size: 13px; font-weight: 600; text-align: right; }
+
+#risk-map { width: 100%; height: 420px; border: 1px solid var(--line); }
+
+.chart-wrap { height: 240px; position: relative; }
+
+.news-feed { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+.news-feed::-webkit-scrollbar { width: 4px; }
+.news-feed::-webkit-scrollbar-thumb { background: var(--line-strong); }
+.news-item {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+.news-item:hover { background: var(--bg-alt); padding-left: 8px; padding-right: 8px; }
+.news-item:last-child { border-bottom: none; }
+.news-time { font-size: 11px; color: var(--text-faint); font-weight: 500; letter-spacing: 0.04em; padding-top: 2px; }
+.news-content h4 { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 6px; line-height: 1.4; }
+.news-content p { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.news-tag {
+  display: inline-block;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.loading-spinner { display: flex; align-items: center; gap: 12px; padding: 20px 0; color: var(--text-muted); font-size: 13px; }
+.spinner { width: 14px; height: 14px; border: 1.5px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── SECTORS ─── */
+.sectors-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.sector-item {
+  padding: 32px 28px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.sector-marker { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 14px; letter-spacing: 0.1em; }
+.sector-item h3 { font-size: 17px; margin-bottom: 8px; }
+.sector-item p { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; }
 
 /* ─── CONTACT ─── */
 .contact-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 64px;
 }
-.contact-info-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 36px;
+.contact-info h3 { font-size: 20px; margin-bottom: 24px; }
+.contact-line {
+  display: flex; gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14.5px;
 }
-.contact-info-box h3 { font-size: 24px; color: #fff; margin-bottom: 20px; }
-.contact-detail {
-  display: flex; gap: 14px; margin-bottom: 18px;
-  font-size: 14px; color: var(--text-secondary);
+.contact-line-label { color: var(--text-muted); min-width: 110px; font-size: 13px; font-weight: 500; }
+.contact-line-value { color: var(--ink); flex: 1; }
+.contact-note {
+  margin-top: 28px;
+  padding: 18px 20px;
+  background: var(--bg-alt);
+  border-left: 2px solid var(--ink);
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.6;
 }
-.contact-detail-icon { font-size: 18px; min-width: 24px; text-align: center; }
-.contact-form {
-  display: flex; flex-direction: column; gap: 16px;
-}
+
+.contact-form { display: flex; flex-direction: column; gap: 18px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 12px; font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 6px;
 }
-.form-group input, .form-group textarea, .form-group select {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  transition: border-color 0.3s;
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--ink);
+  border-radius: 2px;
+  transition: border-color 0.15s, background 0.15s;
 }
-.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
-  border-color: var(--gold);
+  border-color: var(--ink);
+  background: var(--bg-alt);
 }
-.form-group textarea { min-height: 120px; resize: vertical; }
+.form-group textarea { resize: vertical; min-height: 120px; }
 
 /* ─── FOOTER ─── */
 .footer {
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border);
-  padding: 40px;
+  background: var(--ink);
+  color: #b1b9c4;
+  padding: 56px 0 32px;
 }
-.footer-content {
-  max-width: 1200px; margin: 0 auto;
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 48px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #1f2a37;
+}
+.footer-brand .nav-logo-text { color: #fff; }
+.footer-brand .nav-logo-mark { border-color: #fff; color: #fff; }
+.footer-brand p { margin-top: 16px; font-size: 13.5px; color: #8b94a3; max-width: 280px; line-height: 1.6; }
+.footer-col h4 { font-size: 13px; color: #fff; margin-bottom: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.footer-col a { display: block; font-size: 13.5px; color: #b1b9c4; padding: 5px 0; transition: color 0.15s; }
+.footer-col a:hover { color: #fff; }
+.footer-bottom {
   display: flex; justify-content: space-between; align-items: center;
-  flex-wrap: wrap; gap: 20px;
+  font-size: 12.5px; color: #8b94a3;
+  flex-wrap: wrap; gap: 12px;
 }
-.footer-copy { font-size: 13px; color: var(--text-muted); }
-.footer-links { display: flex; gap: 20px; }
-.footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; }
-.footer-links a:hover { color: var(--gold); }
+.footer-legal { display: flex; gap: 24px; }
+.footer-legal a { color: #b1b9c4; transition: color 0.15s; }
+.footer-legal a:hover { color: #fff; }
 
-/* ─── LOADING SPINNER ─── */
-.loading-spinner {
-  display: flex; align-items: center; justify-content: center;
-  padding: 40px; color: var(--text-muted); font-size: 14px;
-}
-.spinner {
-  width: 24px; height: 24px;
-  border: 3px solid var(--border);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 12px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ─── RISK COLOR HELPERS ─── */
+.text-risk-critical { color: var(--risk-critical); }
+.text-risk-high { color: var(--risk-high); }
+.text-risk-mod { color: var(--risk-mod); }
+.text-risk-low { color: var(--risk-low); }
+.tag-high { background: rgba(192,57,43,0.08); color: var(--risk-critical); }
+.tag-medium { background: rgba(217,119,6,0.08); color: var(--risk-high); }
+.tag-low { background: rgba(5,150,105,0.08); color: var(--risk-low); }
+
+/* ─── LEAFLET LIGHT THEME OVERRIDES ─── */
+.leaflet-container { background: var(--bg-alt); font-family: inherit; }
+.leaflet-popup-content-wrapper { border-radius: 2px; box-shadow: var(--shadow-md); }
+.leaflet-popup-content { font-family: inherit; margin: 12px 14px; }
+.leaflet-control-zoom a { background: var(--bg) !important; color: var(--ink) !important; border-color: var(--line) !important; }
 
 /* ─── RESPONSIVE ─── */
-@media (max-width: 1024px) {
-  .services-grid { grid-template-columns: repeat(2, 1fr); }
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
-  .process-steps { grid-template-columns: repeat(2, 1fr); }
-  .process-steps::before { display: none; }
-  .dashboard-grid { grid-template-columns: 1fr; }
-}
-/* ─── HAMBURGER MENU ─── */
-.hamburger {
-  display: none;
-  flex-direction: column;
-  gap: 5px;
-  cursor: pointer;
-  padding: 8px;
-  z-index: 1001;
-  background: none;
-  border: none;
-}
-.hamburger span {
-  display: block;
-  width: 24px;
-  height: 2px;
-  background: var(--text-primary);
-  border-radius: 2px;
-  transition: all 0.3s;
-}
-.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-.hamburger.active span:nth-child(2) { opacity: 0; }
-.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
-
-@media (max-width: 768px) {
-  section { padding: 60px 20px; }
-  .navbar { padding: 0 20px; }
+@media (max-width: 960px) {
   .hamburger { display: flex; }
   .nav-links {
-    display: none;
-    position: fixed;
-    top: 70px;
-    left: 0;
-    right: 0;
-    background: rgba(10,14,20,0.98);
-    backdrop-filter: blur(20px);
-    flex-direction: column;
-    padding: 20px;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: absolute; top: 68px; left: 0; right: 0;
+    flex-direction: column; align-items: flex-start; gap: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 20px 32px;
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease;
   }
-  .nav-links.open { display: flex; }
-  .nav-links a {
-    padding: 14px 0;
-    font-size: 16px;
-    border-bottom: 1px solid var(--border);
+  .nav-links.open { max-height: 400px; padding: 20px 32px; }
+  .nav-links a { width: 100%; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .lang-switch { margin-top: 12px; }
+
+  .competencies, .services-grid, .stats-row, .process-steps, .sectors-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
-  .nav-links .lang-switch {
-    margin-top: 12px;
-    align-self: flex-start;
+  .process-step { padding: 24px 16px; border-right: none; border-left: none !important; }
+  .process-step:nth-child(odd) { border-right: 1px solid var(--line); }
+
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .contact-grid { grid-template-columns: 1fr; gap: 40px; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .form-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  section { padding: 64px 0; }
+  .container { padding: 0 20px; }
+  .nav-inner { padding: 0 20px; }
+  .competencies, .services-grid, .stats-row, .sectors-grid, .process-steps, .footer-grid {
+    grid-template-columns: 1fr;
   }
-  .services-grid { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .contact-grid { grid-template-columns: 1fr; }
-  .hero h1 { font-size: 36px; }
+  .hero { padding: 72px 0 64px; }
+  .risk-score { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .risk-score-num { font-size: 56px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
 }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════ NAVBAR ═══════════════ -->
+<!-- ─── NAVBAR ─── -->
 <nav class="navbar">
-  <a href="#" class="nav-logo">
-    <div class="nav-logo-icon">SVG</div>
-    <div class="nav-logo-text">Sentinal <span>Venguard</span> Global</div>
-  </a>
-  <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
-  <div class="nav-links" id="nav-links">
-    <a href="#risk-dashboard" data-de="Risikoanalyse" data-en="Risk Analysis" onclick="closeMobileMenu()">Risikoanalyse</a>
-    <a href="#services" data-de="Leistungen" data-en="Services" onclick="closeMobileMenu()">Leistungen</a>
-    <a href="#approach" data-de="Ansatz" data-en="Approach" onclick="closeMobileMenu()">Ansatz</a>
-    <a href="#contact" data-de="Kontakt" data-en="Contact" onclick="closeMobileMenu()">Kontakt</a>
-    <div class="lang-switch">
-      <button class="lang-btn active" onclick="setLang('de')">DE</button>
-      <button class="lang-btn" onclick="setLang('en')">EN</button>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-mark">SVG</div>
+      <div class="nav-logo-text">Sentinal Venguard <span class="muted">Global</span></div>
+    </a>
+    <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="nav-links">
+      <a href="#leistungen" data-de="Leistungen" data-en="Services" onclick="closeMobileMenu()">Leistungen</a>
+      <a href="#dashboard" data-de="Risikoanalyse" data-en="Risk Analysis" onclick="closeMobileMenu()">Risikoanalyse</a>
+      <a href="#branchen" data-de="Branchen" data-en="Sectors" onclick="closeMobileMenu()">Branchen</a>
+      <a href="#prozess" data-de="Prozess" data-en="Process" onclick="closeMobileMenu()">Prozess</a>
+      <a href="#kontakt" data-de="Kontakt" data-en="Contact" onclick="closeMobileMenu()">Kontakt</a>
+      <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('de')">DE</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+      </div>
     </div>
   </div>
 </nav>
 
-<!-- ═══════════════ HERO ═══════════════ -->
+<!-- ─── HERO ─── -->
 <section class="hero" id="home">
-  <div class="hero-bg"></div>
-  <div class="hero-grid"></div>
-  <div class="hero-content">
-    <div class="hero-badge">
-      <span class="hero-badge-dot"></span>
-      <span data-de="Strategische Sicherheitsbeschaffung" data-en="Strategic Security Procurement">Strategische Sicherheitsbeschaffung</span>
-    </div>
+  <div class="container">
+    <div class="hero-eyebrow" data-de="Strategische Sicherheitsbeschaffung" data-en="Strategic Security Procurement">Strategische Sicherheitsbeschaffung</div>
     <h1>
-      <span data-de="Sicherheit beschaffen." data-en="Procuring Security.">Sicherheit beschaffen.</span><br>
-      <span class="gold" data-de="Risiken voraussehen." data-en="Anticipating Risks.">Risiken voraussehen.</span><br>
-      <span data-de="Zukunft sichern." data-en="Securing the Future.">Zukunft sichern.</span>
+      <span data-de="Sicherheit beschaffen." data-en="Procuring security.">Sicherheit beschaffen.</span>
+      <span class="accent" data-de="Risiken voraussehen." data-en="Anticipating risks.">Risiken voraussehen.</span>
     </h1>
     <p class="hero-sub" data-de="SVG unterstützt Sicherheitsbehörden und Hersteller weltweit bei der Beschaffung sicherheitsrelevanter Güter — mit geostrategischem Weitblick, globalen Lieferketten-Analysen und kompromissloser Prozesssicherheit." data-en="SVG supports security agencies and manufacturers worldwide in procuring security-relevant goods — with geostrategic foresight, global supply chain analysis, and uncompromising process integrity.">
       SVG unterstützt Sicherheitsbehörden und Hersteller weltweit bei der Beschaffung sicherheitsrelevanter Güter — mit geostrategischem Weitblick, globalen Lieferketten-Analysen und kompromissloser Prozesssicherheit.
     </p>
     <div class="hero-actions">
-      <a href="#risk-dashboard" class="btn btn-primary" data-de="▶ Live-Risikoanalyse" data-en="▶ Live Risk Analysis">▶ Live-Risikoanalyse</a>
-      <a href="#contact" class="btn btn-outline" data-de="Kontakt aufnehmen" data-en="Get in Touch">Kontakt aufnehmen</a>
+      <a href="#kontakt" class="btn btn-primary"><span data-de="Anfrage senden" data-en="Send inquiry">Anfrage senden</span><span class="arrow">→</span></a>
+      <a href="#dashboard" class="btn btn-outline"><span data-de="Live-Risikoanalyse" data-en="Live risk analysis">Live-Risikoanalyse</span></a>
+    </div>
+
+    <!-- Competencies row -->
+    <div class="competencies">
+      <div class="comp-item">
+        <div class="comp-num">01</div>
+        <h3 data-de="Vergaberecht" data-en="Procurement law">Vergaberecht</h3>
+        <p data-de="EU-konforme Ausschreibungen, GWB, VgV, UVgO." data-en="EU-compliant tenders, GWB, VgV, UVgO.">EU-konforme Ausschreibungen, GWB, VgV, UVgO.</p>
+      </div>
+      <div class="comp-item">
+        <div class="comp-num">02</div>
+        <h3 data-de="Geostrategie" data-en="Geostrategy">Geostrategie</h3>
+        <p data-de="Tägliche Bewertung von 8 Risikoregionen weltweit." data-en="Daily assessment of 8 risk regions worldwide.">Tägliche Bewertung von 8 Risikoregionen weltweit.</p>
+      </div>
+      <div class="comp-item">
+        <div class="comp-num">03</div>
+        <h3 data-de="Globales Netzwerk" data-en="Global network">Globales Netzwerk</h3>
+        <p data-de="40+ Länder, 250+ verifizierte Partner und Hersteller." data-en="40+ countries, 250+ verified partners and producers.">40+ Länder, 250+ verifizierte Partner und Hersteller.</p>
+      </div>
+      <div class="comp-item">
+        <div class="comp-num">04</div>
+        <h3 data-de="Compliance" data-en="Compliance">Compliance</h3>
+        <p data-de="Exportkontrolle, Dual-Use, ITAR, EU-Sanktionsrecht." data-en="Export control, dual-use, ITAR, EU sanctions law.">Exportkontrolle, Dual-Use, ITAR, EU-Sanktionsrecht.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════ RISK DASHBOARD ═══════════════ -->
-<section id="risk-dashboard">
+<!-- ─── LEISTUNGEN ─── -->
+<section id="leistungen">
   <div class="container">
     <div class="section-header">
-      <div class="section-tag" data-de="Tägliches Update" data-en="Daily Update">Tägliches Update</div>
-      <h2 data-de="Globale Lieferrisiko-Analyse" data-en="Global Supply Risk Analysis">Globale Lieferrisiko-Analyse</h2>
-      <p data-de="Echtzeitbewertung geopolitischer Risiken und Lieferkettenunterbrechungen weltweit" data-en="Real-time assessment of geopolitical risks and supply chain disruptions worldwide">Echtzeitbewertung geopolitischer Risiken und Lieferkettenunterbrechungen weltweit</p>
-      <p style="font-size:13px;color:var(--text-muted);margin-top:8px;" id="dashboard-date"></p>
+      <div class="section-eyebrow" data-de="Leistungen" data-en="Services">Leistungen</div>
+      <h2 class="section-title" data-de="Umfassende Sicherheitsbeschaffung." data-en="Comprehensive security procurement.">Umfassende Sicherheitsbeschaffung.</h2>
+      <p class="section-lead" data-de="Von der Ausschreibung bis zur Auslieferung — ein Partner für die gesamte Beschaffungskette." data-en="From tender to delivery — one partner for the entire procurement chain.">Von der Ausschreibung bis zur Auslieferung — ein Partner für die gesamte Beschaffungskette.</p>
+    </div>
+
+    <div class="services-grid">
+      <div class="service-card">
+        <div class="service-marker">— 01</div>
+        <h3 data-de="Öffentliche Ausschreibungen" data-en="Public tenders">Öffentliche Ausschreibungen</h3>
+        <p data-de="Vollständige Bearbeitung, Begleitung und Durchführung öffentlicher Ausschreibungen im Sicherheits- und Behördenumfeld mit höchster Rechtssicherheit." data-en="Complete processing, support and execution of public tenders in the security and government sector with highest legal compliance.">Vollständige Bearbeitung, Begleitung und Durchführung öffentlicher Ausschreibungen im Sicherheits- und Behördenumfeld mit höchster Rechtssicherheit.</p>
+        <div class="service-tags">
+          <span class="service-tag">VgV</span>
+          <span class="service-tag">UVgO</span>
+          <span class="service-tag">EU-Richtlinien</span>
+        </div>
+      </div>
+      <div class="service-card">
+        <div class="service-marker">— 02</div>
+        <h3 data-de="Europäischer Marktzugang" data-en="European market access">Europäischer Marktzugang</h3>
+        <p data-de="Wir öffnen internationalen Herstellern den Zugang zum europäischen Sicherheits- und Behördenmarkt — ohne eigene Ausschreibungs- oder Compliance-Strukturen." data-en="We open the European security and government market to international manufacturers — without requiring their own tender or compliance structures.">Wir öffnen internationalen Herstellern den Zugang zum europäischen Sicherheits- und Behördenmarkt — ohne eigene Ausschreibungs- oder Compliance-Strukturen.</p>
+        <div class="service-tags">
+          <span class="service-tag">EU/EEA</span>
+          <span class="service-tag">Lokalisierung</span>
+        </div>
+      </div>
+      <div class="service-card">
+        <div class="service-marker">— 03</div>
+        <h3 data-de="Beschaffung &amp; Fertigung" data-en="Procurement & manufacturing">Beschaffung &amp; Fertigung</h3>
+        <p data-de="Durch unser globales Netzwerk beschaffen, fertigen oder lassen wir sicherheitsrelevante Güter nach höchsten Standards herstellen." data-en="Through our global network, we procure, manufacture or commission the production of security-relevant goods to highest standards.">Durch unser globales Netzwerk beschaffen, fertigen oder lassen wir sicherheitsrelevante Güter nach höchsten Standards herstellen.</p>
+        <div class="service-tags">
+          <span class="service-tag">OEM/ODM</span>
+          <span class="service-tag">Quality Control</span>
+        </div>
+      </div>
+      <div class="service-card">
+        <div class="service-marker">— 04</div>
+        <h3 data-de="Geostrategische Beratung" data-en="Geostrategic advisory">Geostrategische Beratung</h3>
+        <p data-de="Bewertung von Beschaffungen im Kontext geostrategischer Entwicklungen, internationaler Abhängigkeiten und zukünftiger Sicherheitslagen." data-en="Assessment of procurements in the context of geostrategic developments, international dependencies, and future security landscapes.">Bewertung von Beschaffungen im Kontext geostrategischer Entwicklungen, internationaler Abhängigkeiten und zukünftiger Sicherheitslagen.</p>
+        <div class="service-tags">
+          <span class="service-tag">Risk Briefings</span>
+          <span class="service-tag">Scenario Planning</span>
+        </div>
+      </div>
+      <div class="service-card">
+        <div class="service-marker">— 05</div>
+        <h3 data-de="Supply-Chain-Analyse" data-en="Supply chain analysis">Supply-Chain-Analyse</h3>
+        <p data-de="Tägliche Analyse globaler Lieferkettenrisiken mit Echtzeitdaten. Vorausschauende Identifikation von Engpässen und Abhängigkeiten." data-en="Daily analysis of global supply chain risks with real-time data. Proactive identification of bottlenecks and dependencies.">Tägliche Analyse globaler Lieferkettenrisiken mit Echtzeitdaten. Vorausschauende Identifikation von Engpässen und Abhängigkeiten.</p>
+        <div class="service-tags">
+          <span class="service-tag">Real-time</span>
+          <span class="service-tag">8 Regionen</span>
+        </div>
+      </div>
+      <div class="service-card">
+        <div class="service-marker">— 06</div>
+        <h3 data-de="Herstellerintegration" data-en="Manufacturer integration">Herstellerintegration</h3>
+        <p data-de="Strukturierung und Durchführung von Vergabeverfahren für Hersteller ohne Erfahrung mit europäischen behördlichen Prozessen." data-en="Structuring and executing procurement procedures for manufacturers without experience in European governmental processes.">Strukturierung und Durchführung von Vergabeverfahren für Hersteller ohne Erfahrung mit europäischen behördlichen Prozessen.</p>
+        <div class="service-tags">
+          <span class="service-tag">Onboarding</span>
+          <span class="service-tag">Compliance</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-num">40+</div>
+        <div class="stat-label" data-de="Länder im Netzwerk" data-en="Countries in network">Länder im Netzwerk</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">250+</div>
+        <div class="stat-label" data-de="Partner &amp; Zulieferer" data-en="Partners & suppliers">Partner &amp; Zulieferer</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">98%</div>
+        <div class="stat-label" data-de="Liefertreue" data-en="Delivery reliability">Liefertreue</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">24/7</div>
+        <div class="stat-label" data-de="Risikomonitoring" data-en="Risk monitoring">Risikomonitoring</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── RISK DASHBOARD ─── -->
+<section id="dashboard" style="background: var(--bg-alt);">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow" data-de="Live-Dashboard" data-en="Live dashboard">Live-Dashboard</div>
+      <h2 class="section-title" data-de="Globale Lieferketten-Risikoanalyse." data-en="Global supply chain risk analysis.">Globale Lieferketten-Risikoanalyse.</h2>
+      <p class="section-lead" data-de="Echtzeitbewertung geopolitischer Risiken und Lieferkettenunterbrechungen — tägliches Update durch SVG-Analyseteam." data-en="Real-time assessment of geopolitical risks and supply chain disruptions — daily update by the SVG analysis team.">Echtzeitbewertung geopolitischer Risiken und Lieferkettenunterbrechungen — tägliches Update durch SVG-Analyseteam.</p>
+    </div>
+
+    <div class="dash-meta">
+      <div class="dash-date" id="dashboard-date">—</div>
+      <div class="live-pill" data-de="Live" data-en="Live">Live</div>
     </div>
 
     <div class="dashboard-grid">
       <!-- Global Risk Score -->
       <div class="dash-card">
         <div class="dash-card-header">
-          <span class="dash-card-title" data-de="Globaler Risikoindex" data-en="Global Risk Index">Globaler Risikoindex</span>
-          <span class="dash-card-badge badge-live" data-de="● Live" data-en="● Live">● Live</span>
+          <span class="dash-card-title" data-de="Globaler Risikoindex" data-en="Global risk index">Globaler Risikoindex</span>
+          <span class="dash-card-badge" data-de="Skala 0–100" data-en="Scale 0–100">Skala 0–100</span>
         </div>
-        <div class="risk-score-display">
-          <div class="risk-score-number" id="global-risk-score" style="color:var(--accent-orange)">—</div>
+        <div class="risk-score">
+          <div class="risk-score-num" id="global-risk-score">—</div>
           <div class="risk-score-meta">
-            <div class="risk-score-label" id="risk-level-label" data-de="Erhöhtes Risiko" data-en="Elevated Risk">Erhöhtes Risiko</div>
-            <div class="risk-bar-bg"><div class="risk-bar-fill" id="global-risk-bar" style="width:0%;background:var(--accent-orange)"></div></div>
+            <div class="risk-score-label" id="risk-level-label" data-de="Erhöhtes Risiko" data-en="Elevated risk">Erhöhtes Risiko</div>
+            <div class="risk-bar-bg"><div class="risk-bar-fill" id="global-risk-bar" style="width:0%;background:var(--risk-high)"></div></div>
             <div class="risk-change" id="risk-change"></div>
           </div>
         </div>
@@ -700,17 +724,17 @@ section { padding: 100px 40px; }
       <!-- Regional Risks -->
       <div class="dash-card">
         <div class="dash-card-header">
-          <span class="dash-card-title" data-de="Regionale Risikolevel" data-en="Regional Risk Levels">Regionale Risikolevel</span>
-          <span class="dash-card-badge badge-updated" id="update-badge">—</span>
+          <span class="dash-card-title" data-de="Regionale Risikolevel" data-en="Regional risk levels">Regionale Risikolevel</span>
+          <span class="dash-card-badge" id="update-badge">—</span>
         </div>
         <div class="region-list" id="region-list"></div>
       </div>
 
       <!-- Map -->
-      <div class="dash-card dashboard-full">
+      <div class="dash-card dash-card-wide">
         <div class="dash-card-header">
-          <span class="dash-card-title" data-de="Globale Risikokarte" data-en="Global Risk Map">Globale Risikokarte</span>
-          <span class="dash-card-badge badge-live" data-de="● Interaktiv" data-en="● Interactive">● Interaktiv</span>
+          <span class="dash-card-title" data-de="Globale Risikokarte" data-en="Global risk map">Globale Risikokarte</span>
+          <span class="dash-card-badge" data-de="Interaktiv" data-en="Interactive">Interaktiv</span>
         </div>
         <div id="risk-map"></div>
       </div>
@@ -718,202 +742,214 @@ section { padding: 100px 40px; }
       <!-- Trend Chart -->
       <div class="dash-card">
         <div class="dash-card-header">
-          <span class="dash-card-title" data-de="Risikotrend (30 Tage)" data-en="Risk Trend (30 Days)">Risikotrend (30 Tage)</span>
+          <span class="dash-card-title" data-de="Risikotrend — 30 Tage" data-en="Risk trend — 30 days">Risikotrend — 30 Tage</span>
         </div>
-        <div class="chart-container"><canvas id="trend-chart"></canvas></div>
+        <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
       </div>
 
       <!-- Live News Feed -->
       <div class="dash-card">
         <div class="dash-card-header">
-          <span class="dash-card-title" data-de="Aktuelle Risikomeldungen" data-en="Current Risk Alerts">Aktuelle Risikomeldungen</span>
-          <span class="dash-card-badge badge-live" data-de="● Live-Feed" data-en="● Live Feed">● Live-Feed</span>
+          <span class="dash-card-title" data-de="Aktuelle Risikomeldungen" data-en="Current risk alerts">Aktuelle Risikomeldungen</span>
+          <span class="dash-card-badge live-pill" data-de="Feed" data-en="Feed">Feed</span>
         </div>
         <div class="news-feed" id="news-feed">
-          <div class="loading-spinner"><div class="spinner"></div><span data-de="Lade aktuelle Meldungen..." data-en="Loading current alerts...">Lade aktuelle Meldungen...</span></div>
+          <div class="loading-spinner"><div class="spinner"></div><span data-de="Lade aktuelle Meldungen…" data-en="Loading current alerts…">Lade aktuelle Meldungen…</span></div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════ SERVICES ═══════════════ -->
-<section id="services">
+<!-- ─── BRANCHEN ─── -->
+<section id="branchen">
   <div class="container">
     <div class="section-header">
-      <div class="section-tag" data-de="Unsere Leistungen" data-en="Our Services">Unsere Leistungen</div>
-      <h2 data-de="Umfassende Sicherheitsbeschaffung" data-en="Comprehensive Security Procurement">Umfassende Sicherheitsbeschaffung</h2>
-      <p data-de="Von der Ausschreibung bis zur Auslieferung — ein Partner für alles" data-en="From tender to delivery — one partner for everything">Von der Ausschreibung bis zur Auslieferung — ein Partner für alles</p>
+      <div class="section-eyebrow" data-de="Branchen" data-en="Sectors">Branchen</div>
+      <h2 class="section-title" data-de="Wer mit SVG arbeitet." data-en="Who works with SVG.">Wer mit SVG arbeitet.</h2>
+      <p class="section-lead" data-de="Behörden, Hersteller und Integratoren in regulierten Hochsicherheitsmärkten." data-en="Government agencies, manufacturers and integrators in regulated high-security markets.">Behörden, Hersteller und Integratoren in regulierten Hochsicherheitsmärkten.</p>
     </div>
 
-    <div class="services-grid">
-      <div class="service-card">
-        <div class="service-icon">📋</div>
-        <h3 data-de="Öffentliche Ausschreibungen" data-en="Public Tenders">Öffentliche Ausschreibungen</h3>
-        <p data-de="Vollständige Bearbeitung, Begleitung und Durchführung öffentlicher Ausschreibungen im Sicherheits- und Behördenumfeld mit höchster Qualität und Rechtssicherheit." data-en="Complete processing, support, and execution of public tenders in the security and government sector with the highest quality and legal compliance.">Vollständige Bearbeitung, Begleitung und Durchführung öffentlicher Ausschreibungen im Sicherheits- und Behördenumfeld mit höchster Qualität und Rechtssicherheit.</p>
+    <div class="sectors-grid">
+      <div class="sector-item">
+        <div class="sector-marker">A.01</div>
+        <h3 data-de="Sicherheitsbehörden" data-en="Security agencies">Sicherheitsbehörden</h3>
+        <p data-de="Polizei, Bundesbehörden und Spezialeinheiten in EU und NATO." data-en="Police, federal agencies and special units across EU and NATO.">Polizei, Bundesbehörden und Spezialeinheiten in EU und NATO.</p>
       </div>
-      <div class="service-card">
-        <div class="service-icon">🌐</div>
-        <h3 data-de="Europäischer Marktzugang" data-en="European Market Access">Europäischer Marktzugang</h3>
-        <p data-de="Wir öffnen internationalen Herstellern den Zugang zum europäischen Sicherheits- und Behördenmarkt — ohne eigene Ausschreibungs- oder Compliance-Strukturen." data-en="We open the European security and government market to international manufacturers — without requiring their own tender or compliance structures.">Wir öffnen internationalen Herstellern den Zugang zum europäischen Sicherheits- und Behördenmarkt — ohne eigene Ausschreibungs- oder Compliance-Strukturen.</p>
+      <div class="sector-item">
+        <div class="sector-marker">A.02</div>
+        <h3 data-de="Verteidigung" data-en="Defense">Verteidigung</h3>
+        <p data-de="Streitkräfte, Beschaffungsämter und Tier-1-Systemhäuser." data-en="Armed forces, procurement offices and Tier-1 system integrators.">Streitkräfte, Beschaffungsämter und Tier-1-Systemhäuser.</p>
       </div>
-      <div class="service-card">
-        <div class="service-icon">🏭</div>
-        <h3 data-de="Beschaffung & Fertigung" data-en="Procurement & Manufacturing">Beschaffung & Fertigung</h3>
-        <p data-de="Durch unser globales Netzwerk beschaffen, fertigen oder lassen wir sicherheitsrelevante Güter nach höchsten Standards herstellen." data-en="Through our global network, we procure, manufacture, or commission the production of security-relevant goods to the highest standards.">Durch unser globales Netzwerk beschaffen, fertigen oder lassen wir sicherheitsrelevante Güter nach höchsten Standards herstellen.</p>
+      <div class="sector-item">
+        <div class="sector-marker">A.03</div>
+        <h3 data-de="Kritische Infrastruktur" data-en="Critical infrastructure">Kritische Infrastruktur</h3>
+        <p data-de="Betreiber kritischer Infrastrukturen mit erhöhten Sicherheitsanforderungen." data-en="Operators of critical infrastructure with elevated security requirements.">Betreiber kritischer Infrastrukturen mit erhöhten Sicherheitsanforderungen.</p>
       </div>
-      <div class="service-card">
-        <div class="service-icon">🛡️</div>
-        <h3 data-de="Geostrategische Beratung" data-en="Geostrategic Advisory">Geostrategische Beratung</h3>
-        <p data-de="Bewertung von Beschaffungen im Kontext geostrategischer Entwicklungen, internationaler Abhängigkeiten und zukünftiger Sicherheitslagen." data-en="Assessment of procurements in the context of geostrategic developments, international dependencies, and future security landscapes.">Bewertung von Beschaffungen im Kontext geostrategischer Entwicklungen, internationaler Abhängigkeiten und zukünftiger Sicherheitslagen.</p>
-      </div>
-      <div class="service-card">
-        <div class="service-icon">📊</div>
-        <h3 data-de="Supply-Chain-Analyse" data-en="Supply Chain Analysis">Supply-Chain-Analyse</h3>
-        <p data-de="Tägliche Analyse globaler Lieferkettenrisiken mit Echtzeitdaten. Vorausschauende Identifikation von Engpässen und Abhängigkeiten." data-en="Daily analysis of global supply chain risks with real-time data. Proactive identification of bottlenecks and dependencies.">Tägliche Analyse globaler Lieferkettenrisiken mit Echtzeitdaten. Vorausschauende Identifikation von Engpässen und Abhängigkeiten.</p>
-      </div>
-      <div class="service-card">
-        <div class="service-icon">🤝</div>
-        <h3 data-de="Herstellerintegration" data-en="Manufacturer Integration">Herstellerintegration</h3>
-        <p data-de="Strukturierung und Durchführung von Vergabeverfahren für Hersteller ohne Erfahrung mit europäischen behördlichen Prozessen." data-en="Structuring and executing procurement procedures for manufacturers without experience in European governmental processes.">Strukturierung und Durchführung von Vergabeverfahren für Hersteller ohne Erfahrung mit europäischen behördlichen Prozessen.</p>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-number">40+</div>
-        <div class="stat-label" data-de="Länder im Netzwerk" data-en="Countries in Network">Länder im Netzwerk</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">250+</div>
-        <div class="stat-label" data-de="Partner & Zulieferer" data-en="Partners & Suppliers">Partner & Zulieferer</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">98%</div>
-        <div class="stat-label" data-de="Liefertreue" data-en="Delivery Reliability">Liefertreue</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">24/7</div>
-        <div class="stat-label" data-de="Risikomonitoring" data-en="Risk Monitoring">Risikomonitoring</div>
+      <div class="sector-item">
+        <div class="sector-marker">A.04</div>
+        <h3 data-de="Hersteller &amp; OEMs" data-en="Manufacturers & OEMs">Hersteller &amp; OEMs</h3>
+        <p data-de="Internationale Produzenten mit Bedarf an europäischem Marktzugang." data-en="International producers seeking entry into the European market.">Internationale Produzenten mit Bedarf an europäischem Marktzugang.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════ APPROACH ═══════════════ -->
-<section id="approach">
+<!-- ─── PROZESS ─── -->
+<section id="prozess" style="background: var(--bg-alt);">
   <div class="container">
     <div class="section-header">
-      <div class="section-tag" data-de="Unser Ansatz" data-en="Our Approach">Unser Ansatz</div>
-      <h2 data-de="Strategischer Beschaffungsprozess" data-en="Strategic Procurement Process">Strategischer Beschaffungsprozess</h2>
-      <p data-de="Jede Beschaffung wird im Kontext globaler Entwicklungen bewertet" data-en="Every procurement is assessed in the context of global developments">Jede Beschaffung wird im Kontext globaler Entwicklungen bewertet</p>
+      <div class="section-eyebrow" data-de="Prozesskette" data-en="Process chain">Prozesskette</div>
+      <h2 class="section-title" data-de="Strategischer Beschaffungsprozess." data-en="Strategic procurement process.">Strategischer Beschaffungsprozess.</h2>
+      <p class="section-lead" data-de="Jede Beschaffung wird im Kontext globaler Entwicklungen bewertet." data-en="Every procurement is assessed in the context of global developments.">Jede Beschaffung wird im Kontext globaler Entwicklungen bewertet.</p>
     </div>
 
     <div class="process-steps">
       <div class="process-step">
-        <div class="step-number">01</div>
+        <span class="step-num">01 / ANALYSE</span>
         <h3 data-de="Analyse" data-en="Analysis">Analyse</h3>
-        <p data-de="Geostrategische Risikoanalyse, Supply-Chain-Bewertung und Bedarfsermittlung" data-en="Geostrategic risk analysis, supply chain assessment, and requirements determination">Geostrategische Risikoanalyse, Supply-Chain-Bewertung und Bedarfsermittlung</p>
+        <p data-de="Geostrategische Risikoanalyse, Supply-Chain-Bewertung und Bedarfsermittlung." data-en="Geostrategic risk analysis, supply chain assessment and requirements determination.">Geostrategische Risikoanalyse, Supply-Chain-Bewertung und Bedarfsermittlung.</p>
       </div>
       <div class="process-step">
-        <div class="step-number">02</div>
+        <span class="step-num">02 / STRATEGIE</span>
         <h3 data-de="Strategie" data-en="Strategy">Strategie</h3>
-        <p data-de="Entwicklung einer resilienten Beschaffungsstrategie mit Alternativquellen" data-en="Development of a resilient procurement strategy with alternative sources">Entwicklung einer resilienten Beschaffungsstrategie mit Alternativquellen</p>
+        <p data-de="Entwicklung einer resilienten Beschaffungsstrategie mit Alternativquellen." data-en="Development of a resilient procurement strategy with alternative sources.">Entwicklung einer resilienten Beschaffungsstrategie mit Alternativquellen.</p>
       </div>
       <div class="process-step">
-        <div class="step-number">03</div>
+        <span class="step-num">03 / VERGABE</span>
         <h3 data-de="Vergabe" data-en="Tender">Vergabe</h3>
-        <p data-de="Rechtskonforme Durchführung des Vergabeverfahrens gemäß EU-Richtlinien" data-en="Legally compliant execution of the procurement procedure in accordance with EU directives">Rechtskonforme Durchführung des Vergabeverfahrens gemäß EU-Richtlinien</p>
+        <p data-de="Rechtskonforme Durchführung des Vergabeverfahrens gemäß EU-Richtlinien." data-en="Legally compliant execution of the procurement procedure under EU directives.">Rechtskonforme Durchführung des Vergabeverfahrens gemäß EU-Richtlinien.</p>
       </div>
       <div class="process-step">
-        <div class="step-number">04</div>
+        <span class="step-num">04 / LIEFERUNG</span>
         <h3 data-de="Lieferung" data-en="Delivery">Lieferung</h3>
-        <p data-de="Überwachung der Lieferkette mit Echtzeitmonitoring und Qualitätssicherung" data-en="Supply chain oversight with real-time monitoring and quality assurance">Überwachung der Lieferkette mit Echtzeitmonitoring und Qualitätssicherung</p>
+        <p data-de="Überwachung der Lieferkette mit Echtzeitmonitoring und Qualitätssicherung." data-en="Supply chain oversight with real-time monitoring and quality assurance.">Überwachung der Lieferkette mit Echtzeitmonitoring und Qualitätssicherung.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════ CONTACT ═══════════════ -->
-<section id="contact">
+<!-- ─── KONTAKT ─── -->
+<section id="kontakt">
   <div class="container">
     <div class="section-header">
-      <div class="section-tag" data-de="Kontakt" data-en="Contact">Kontakt</div>
-      <h2 data-de="Sprechen Sie mit uns" data-en="Get in Touch">Sprechen Sie mit uns</h2>
-      <p data-de="Für vertrauliche Anfragen und strategische Partnerschaften" data-en="For confidential inquiries and strategic partnerships">Für vertrauliche Anfragen und strategische Partnerschaften</p>
+      <div class="section-eyebrow" data-de="Kontakt" data-en="Contact">Kontakt</div>
+      <h2 class="section-title" data-de="Sprechen Sie mit uns." data-en="Get in touch.">Sprechen Sie mit uns.</h2>
+      <p class="section-lead" data-de="Für vertrauliche Anfragen und strategische Partnerschaften." data-en="For confidential inquiries and strategic partnerships.">Für vertrauliche Anfragen und strategische Partnerschaften.</p>
     </div>
 
     <div class="contact-grid">
-      <div class="contact-info-box">
+      <div class="contact-info">
         <h3 data-de="Sentinal Venguard Global" data-en="Sentinal Venguard Global">Sentinal Venguard Global</h3>
-        <div class="contact-detail"><span class="contact-detail-icon">📍</span><span data-de="Deutschland — Europa" data-en="Germany — Europe">Deutschland — Europa</span></div>
-        <div class="contact-detail"><span class="contact-detail-icon">📧</span><span>info@svg-global.com</span></div>
-        <div class="contact-detail"><span class="contact-detail-icon">🔒</span><span data-de="Gesicherte Kommunikationskanäle auf Anfrage" data-en="Secure communication channels on request">Gesicherte Kommunikationskanäle auf Anfrage</span></div>
-        <div style="margin-top:30px;padding:20px;background:var(--bg-primary);border-radius:8px;border-left:3px solid var(--gold);">
-          <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;" data-de="Alle Anfragen werden vertraulich behandelt. Für klassifizierte Projekte bieten wir gesicherte Kommunikationswege." data-en="All inquiries are treated confidentially. For classified projects, we offer secure communication channels.">Alle Anfragen werden vertraulich behandelt. Für klassifizierte Projekte bieten wir gesicherte Kommunikationswege.</p>
+        <div class="contact-line">
+          <span class="contact-line-label" data-de="Standort" data-en="Location">Standort</span>
+          <span class="contact-line-value" data-de="Deutschland — Europa" data-en="Germany — Europe">Deutschland — Europa</span>
+        </div>
+        <div class="contact-line">
+          <span class="contact-line-label" data-de="E-Mail" data-en="Email">E-Mail</span>
+          <span class="contact-line-value">info@svg.global</span>
+        </div>
+        <div class="contact-line">
+          <span class="contact-line-label" data-de="Sichere Kanäle" data-en="Secure channels">Sichere Kanäle</span>
+          <span class="contact-line-value" data-de="Auf Anfrage" data-en="On request">Auf Anfrage</span>
+        </div>
+        <div class="contact-line">
+          <span class="contact-line-label" data-de="Reaktionszeit" data-en="Response time">Reaktionszeit</span>
+          <span class="contact-line-value" data-de="Werktags &lt; 24 h" data-en="Business days < 24 h">Werktags &lt; 24 h</span>
+        </div>
+        <div class="contact-note" data-de="Alle Anfragen werden vertraulich behandelt. Für klassifizierte Projekte bieten wir gesicherte Kommunikationswege (CellCrypt, GPG, S/MIME)." data-en="All inquiries are treated confidentially. For classified projects we offer secured communication channels (CellCrypt, GPG, S/MIME).">
+          Alle Anfragen werden vertraulich behandelt. Für klassifizierte Projekte bieten wir gesicherte Kommunikationswege (CellCrypt, GPG, S/MIME).
         </div>
       </div>
 
-      <div>
-        <form class="contact-form" onsubmit="event.preventDefault();">
+      <form class="contact-form" onsubmit="event.preventDefault();">
+        <div class="form-row">
           <div class="form-group">
             <label data-de="Organisation" data-en="Organization">Organisation</label>
-            <input type="text" placeholder="">
+            <input type="text">
           </div>
           <div class="form-group">
-            <label data-de="Ansprechpartner" data-en="Contact Person">Ansprechpartner</label>
-            <input type="text" placeholder="">
+            <label data-de="Ansprechpartner" data-en="Contact person">Ansprechpartner</label>
+            <input type="text">
           </div>
-          <div class="form-group">
-            <label>E-Mail</label>
-            <input type="email" placeholder="">
-          </div>
-          <div class="form-group">
-            <label data-de="Betreff" data-en="Subject">Betreff</label>
-            <select>
-              <option value="" data-de="— Bitte wählen —" data-en="— Please select —">— Bitte wählen —</option>
-              <option data-de="Ausschreibungsbegleitung" data-en="Tender Support">Ausschreibungsbegleitung</option>
-              <option data-de="Beschaffungsanfrage" data-en="Procurement Request">Beschaffungsanfrage</option>
-              <option data-de="Herstellerintegration" data-en="Manufacturer Integration">Herstellerintegration</option>
-              <option data-de="Strategische Partnerschaft" data-en="Strategic Partnership">Strategische Partnerschaft</option>
-              <option data-de="Sonstiges" data-en="Other">Sonstiges</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label data-de="Nachricht" data-en="Message">Nachricht</label>
-            <textarea></textarea>
-          </div>
-          <button class="btn btn-primary" type="submit" style="width:100%;" data-de="Nachricht senden" data-en="Send Message">Nachricht senden</button>
-        </form>
-      </div>
+        </div>
+        <div class="form-group">
+          <label>E-Mail</label>
+          <input type="email">
+        </div>
+        <div class="form-group">
+          <label data-de="Betreff" data-en="Subject">Betreff</label>
+          <select>
+            <option value="" data-de="— Bitte wählen —" data-en="— Please select —">— Bitte wählen —</option>
+            <option data-de="Ausschreibungsbegleitung" data-en="Tender support">Ausschreibungsbegleitung</option>
+            <option data-de="Beschaffungsanfrage" data-en="Procurement request">Beschaffungsanfrage</option>
+            <option data-de="Herstellerintegration" data-en="Manufacturer integration">Herstellerintegration</option>
+            <option data-de="Strategische Partnerschaft" data-en="Strategic partnership">Strategische Partnerschaft</option>
+            <option data-de="Sonstiges" data-en="Other">Sonstiges</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label data-de="Nachricht" data-en="Message">Nachricht</label>
+          <textarea></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit" style="align-self:flex-start;">
+          <span data-de="Nachricht senden" data-en="Send message">Nachricht senden</span>
+          <span class="arrow">→</span>
+        </button>
+      </form>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════ FOOTER ═══════════════ -->
+<!-- ─── FOOTER ─── -->
 <footer class="footer">
-  <div class="footer-content">
-    <div class="footer-copy">&copy; 2026 Sentinal Venguard Global. <span data-de="Alle Rechte vorbehalten." data-en="All rights reserved.">Alle Rechte vorbehalten.</span></div>
-    <div class="footer-links">
-      <a href="#" data-de="Impressum" data-en="Legal Notice">Impressum</a>
-      <a href="#" data-de="Datenschutz" data-en="Privacy Policy">Datenschutz</a>
-      <a href="#" data-de="Compliance" data-en="Compliance">Compliance</a>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="nav-logo">
+          <div class="nav-logo-mark">SVG</div>
+          <div class="nav-logo-text">Sentinal Venguard <span class="muted">Global</span></div>
+        </div>
+        <p data-de="Strategische Beschaffung sicherheitsrelevanter Güter mit geostrategischem Weitblick." data-en="Strategic procurement of security-relevant goods with geostrategic foresight.">Strategische Beschaffung sicherheitsrelevanter Güter mit geostrategischem Weitblick.</p>
+      </div>
+      <div class="footer-col">
+        <h4 data-de="Leistungen" data-en="Services">Leistungen</h4>
+        <a href="#leistungen" data-de="Öffentliche Ausschreibungen" data-en="Public tenders">Öffentliche Ausschreibungen</a>
+        <a href="#leistungen" data-de="Marktzugang" data-en="Market access">Marktzugang</a>
+        <a href="#leistungen" data-de="Beschaffung &amp; Fertigung" data-en="Procurement & manufacturing">Beschaffung &amp; Fertigung</a>
+        <a href="#leistungen" data-de="Geostrategische Beratung" data-en="Geostrategic advisory">Geostrategische Beratung</a>
+      </div>
+      <div class="footer-col">
+        <h4 data-de="Unternehmen" data-en="Company">Unternehmen</h4>
+        <a href="#branchen" data-de="Branchen" data-en="Sectors">Branchen</a>
+        <a href="#prozess" data-de="Prozesskette" data-en="Process chain">Prozesskette</a>
+        <a href="#dashboard" data-de="Risikoanalyse" data-en="Risk analysis">Risikoanalyse</a>
+        <a href="#kontakt" data-de="Kontakt" data-en="Contact">Kontakt</a>
+      </div>
+      <div class="footer-col">
+        <h4 data-de="Rechtliches" data-en="Legal">Rechtliches</h4>
+        <a href="#" data-de="Impressum" data-en="Legal notice">Impressum</a>
+        <a href="#" data-de="Datenschutz" data-en="Privacy">Datenschutz</a>
+        <a href="#" data-de="Compliance" data-en="Compliance">Compliance</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2026 Sentinal Venguard Global. <span data-de="Alle Rechte vorbehalten." data-en="All rights reserved.">Alle Rechte vorbehalten.</span></div>
+      <div class="footer-legal">
+        <a href="#" data-de="Impressum" data-en="Legal notice">Impressum</a>
+        <a href="#" data-de="Datenschutz" data-en="Privacy">Datenschutz</a>
+      </div>
     </div>
   </div>
 </footer>
 
-<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
 // ─── Mobile Menu ───
 function toggleMobileMenu() {
-  const nav = document.getElementById('nav-links');
-  const btn = document.querySelector('.hamburger');
-  nav.classList.toggle('open');
-  btn.classList.toggle('active');
+  document.getElementById('nav-links').classList.toggle('open');
 }
 function closeMobileMenu() {
   document.getElementById('nav-links').classList.remove('open');
-  document.querySelector('.hamburger').classList.remove('active');
 }
 
 // ─── Language System ───
@@ -930,10 +966,12 @@ function setLang(lang) {
     else el.textContent = text;
   });
   document.documentElement.lang = lang;
-  loadNewsFeed();
+  if (typeof initDashboard === 'function' && document.getElementById('global-risk-score')) {
+    initDashboard();
+  }
 }
 
-// ─── Risk Data Engine (loads from risk-data.json if available) ───
+// ─── Risk Data Engine ───
 let liveRiskData = null;
 
 const fallbackRegions = [
@@ -952,10 +990,8 @@ async function loadRiskDataJSON() {
     const resp = await fetch('risk-data.json?t=' + Date.now());
     if (!resp.ok) throw new Error('No risk-data.json');
     liveRiskData = await resp.json();
-    console.log('✅ Live risk data loaded from risk-data.json, generated:', liveRiskData.generated_at);
     return true;
   } catch(e) {
-    console.log('ℹ️ No risk-data.json found, using algorithmic fallback');
     liveRiskData = null;
     return false;
   }
@@ -969,7 +1005,6 @@ function getDailyVariation(seed) {
 }
 
 function calculateRisks() {
-  // If live data is available, use it
   if (liveRiskData && liveRiskData.regions) {
     return liveRiskData.regions.map(r => ({
       name_de: r.name_de,
@@ -983,7 +1018,6 @@ function calculateRisks() {
       summary_en: r.summary_en || '',
     })).sort((a, b) => b.score - a.score);
   }
-  // Fallback: algorithmic data
   return fallbackRegions.map((r, i) => {
     const variation = getDailyVariation(i * 137) * 8;
     const score = Math.max(20, Math.min(95, Math.round(r.baseRisk + variation)));
@@ -993,34 +1027,36 @@ function calculateRisks() {
 }
 
 function getRiskColor(score) {
-  if (score >= 75) return 'var(--accent-red)';
-  if (score >= 55) return 'var(--accent-orange)';
-  if (score >= 35) return 'var(--accent-blue)';
-  return 'var(--accent-green)';
+  if (score >= 75) return 'var(--risk-critical)';
+  if (score >= 55) return 'var(--risk-high)';
+  if (score >= 35) return 'var(--risk-mod)';
+  return 'var(--risk-low)';
 }
-
+function getRiskColorHex(score) {
+  if (score >= 75) return '#c0392b';
+  if (score >= 55) return '#d97706';
+  if (score >= 35) return '#2563eb';
+  return '#059669';
+}
 function getRiskLabel(score, lang) {
-  if (score >= 75) return lang === 'de' ? 'Kritisch' : 'Critical';
-  if (score >= 55) return lang === 'de' ? 'Erhöht' : 'Elevated';
-  if (score >= 35) return lang === 'de' ? 'Moderat' : 'Moderate';
-  return lang === 'de' ? 'Niedrig' : 'Low';
+  if (score >= 75) return lang === 'de' ? 'Kritisches Risiko' : 'Critical risk';
+  if (score >= 55) return lang === 'de' ? 'Erhöhtes Risiko' : 'Elevated risk';
+  if (score >= 35) return lang === 'de' ? 'Moderates Risiko' : 'Moderate risk';
+  return lang === 'de' ? 'Niedriges Risiko' : 'Low risk';
 }
 
-// ─── Initialize Dashboard ───
 async function initDashboard() {
   await loadRiskDataJSON();
   const riskData = calculateRisks();
   const globalScore = liveRiskData ? liveRiskData.global_risk_index : Math.round(riskData.reduce((s, r) => s + r.score, 0) / riskData.length);
   const globalChange = liveRiskData ? (liveRiskData.global_risk_change || 0) : Math.round(riskData.reduce((s, r) => s + r.change, 0) / riskData.length);
 
-  // Date
   const now = new Date();
   const dateStr = currentLang === 'de'
     ? `Stand: ${now.toLocaleDateString('de-DE', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} — ${now.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' })} Uhr`
     : `As of: ${now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} — ${now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })}`;
   document.getElementById('dashboard-date').textContent = dateStr;
 
-  // Global Score
   const scoreEl = document.getElementById('global-risk-score');
   scoreEl.textContent = globalScore;
   scoreEl.style.color = getRiskColor(globalScore);
@@ -1030,72 +1066,67 @@ async function initDashboard() {
 
   const changeEl = document.getElementById('risk-change');
   const arrow = globalChange >= 0 ? '▲' : '▼';
-  const changeColor = globalChange >= 0 ? 'var(--accent-red)' : 'var(--accent-green)';
-  changeEl.innerHTML = `<span style="color:${changeColor}">${arrow} ${Math.abs(globalChange)} ${currentLang === 'de' ? 'Punkte vs. Vortag' : 'points vs. previous day'}</span>`;
+  const changeColor = globalChange >= 0 ? 'var(--risk-critical)' : 'var(--risk-low)';
+  changeEl.innerHTML = `<span style="color:${changeColor};font-weight:600;">${arrow} ${Math.abs(globalChange)}</span> ${currentLang === 'de' ? 'Punkte vs. Vortag' : 'points vs. previous day'}`;
 
-  // Update badge
   document.getElementById('update-badge').textContent = now.toLocaleTimeString(currentLang === 'de' ? 'de-DE' : 'en-US', { hour:'2-digit', minute:'2-digit' });
 
-  // Regional list
   const listEl = document.getElementById('region-list');
   listEl.innerHTML = '';
   riskData.forEach(r => {
     const name = currentLang === 'de' ? r.name_de : r.name_en;
     listEl.innerHTML += `
-      <div class="region-item">
+      <div class="region-row">
         <span class="region-flag">${r.flag}</span>
         <span class="region-name">${name}</span>
-        <div class="region-bar"><div class="region-bar-fill" style="width:${r.score}%;background:${getRiskColor(r.score)}"></div></div>
+        <div class="region-bar-bg"><div class="region-bar-fill" style="width:${r.score}%;background:${getRiskColor(r.score)}"></div></div>
         <span class="region-score" style="color:${getRiskColor(r.score)}">${r.score}</span>
       </div>`;
   });
 
-  // Map
   initMap(riskData);
-  // Chart
   initChart(globalScore);
+  loadNewsFeed();
 }
 
-// ─── MAP ───
+// ─── MAP (light theme) ───
 let map;
 function initMap(riskData) {
   if (map) map.remove();
   map = L.map('risk-map', {
-    center: [30, 30], zoom: 2.5, minZoom: 2, maxZoom: 6,
+    center: [30, 30], zoom: 2, minZoom: 2, maxZoom: 6,
     zoomControl: false, attributionControl: false,
-    scrollWheelZoom: true,
+    scrollWheelZoom: false,
+    worldCopyJump: true,
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 19,
   }).addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   riskData.forEach(r => {
-    const size = 14 + (r.score / 100) * 20;
-    const color = r.score >= 75 ? '#ef4444' : r.score >= 55 ? '#f59e0b' : r.score >= 35 ? '#3b82f6' : '#22c55e';
+    const size = 12 + (r.score / 100) * 20;
+    const color = getRiskColorHex(r.score);
     const marker = L.circleMarker([r.lat, r.lng], {
       radius: size / 2,
       fillColor: color,
-      fillOpacity: 0.6,
+      fillOpacity: 0.5,
       color: color,
-      weight: 2,
-      opacity: 0.8,
+      weight: 1.5,
+      opacity: 0.9,
     }).addTo(map);
     const name = currentLang === 'de' ? r.name_de : r.name_en;
-    const label = currentLang === 'de' ? 'Risikoscore' : 'Risk Score';
-    marker.bindPopup(`<div style="font-family:Rajdhani;font-size:16px;font-weight:600;">${name}</div><div style="font-size:13px;">${label}: <strong style="color:${color}">${r.score}/100</strong></div>`, {
-      className: 'dark-popup'
-    });
+    const label = currentLang === 'de' ? 'Risikoscore' : 'Risk score';
+    marker.bindPopup(`<div style="font-family:Inter;font-size:14px;font-weight:600;color:#0b1622;">${name}</div><div style="font-size:12px;color:#6b7785;margin-top:4px;">${label}: <strong style="color:${color}">${r.score}/100</strong></div>`);
   });
 }
 
-// ─── CHART ───
+// ─── CHART (light theme) ───
 function initChart(currentScore) {
   const ctx = document.getElementById('trend-chart').getContext('2d');
   const labels = [];
   let data = [];
 
-  // Use live trend data if available
   if (liveRiskData && liveRiskData.trend_30d && liveRiskData.trend_30d.length === 30) {
     data = liveRiskData.trend_30d;
     for (let i = 29; i >= 0; i--) {
@@ -1119,15 +1150,16 @@ function initChart(currentScore) {
     data: {
       labels,
       datasets: [{
-        label: currentLang === 'de' ? 'Risikoindex' : 'Risk Index',
+        label: currentLang === 'de' ? 'Risikoindex' : 'Risk index',
         data,
-        borderColor: '#c8a84e',
-        backgroundColor: 'rgba(200,168,78,0.1)',
+        borderColor: '#0b1622',
+        backgroundColor: 'rgba(11,22,34,0.06)',
         fill: true,
-        tension: 0.4,
+        tension: 0.35,
         pointRadius: 0,
-        pointHoverRadius: 5,
-        borderWidth: 2,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#0b1622',
+        borderWidth: 1.8,
       }]
     },
     options: {
@@ -1136,22 +1168,23 @@ function initChart(currentScore) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a2332',
-          titleColor: '#e8e8e8',
-          bodyColor: '#c8a84e',
-          borderColor: '#2a3444',
-          borderWidth: 1,
+          backgroundColor: '#0b1622',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          padding: 10,
+          cornerRadius: 2,
+          displayColors: false,
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(42,52,68,0.5)' },
-          ticks: { color: '#6b7280', font: { size: 10 }, maxTicksLimit: 8 }
+          grid: { color: 'rgba(229,232,236,0.7)', drawBorder: false },
+          ticks: { color: '#98a2b3', font: { size: 10, family: 'Inter' }, maxTicksLimit: 7 }
         },
         y: {
           min: 20, max: 100,
-          grid: { color: 'rgba(42,52,68,0.5)' },
-          ticks: { color: '#6b7280', font: { size: 11 } }
+          grid: { color: 'rgba(229,232,236,0.7)', drawBorder: false },
+          ticks: { color: '#98a2b3', font: { size: 10, family: 'Inter' }, stepSize: 20 }
         }
       }
     }
@@ -1161,33 +1194,31 @@ function initChart(currentScore) {
 // ─── NEWS FEED ───
 async function loadNewsFeed() {
   const feedEl = document.getElementById('news-feed');
-  feedEl.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>${currentLang === 'de' ? 'Lade aktuelle Meldungen...' : 'Loading current alerts...'}</span></div>`;
+  feedEl.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>${currentLang === 'de' ? 'Lade aktuelle Meldungen…' : 'Loading current alerts…'}</span></div>`;
 
-  const tagColors = { high: 'background:rgba(239,68,68,0.15);color:#ef4444;', medium: 'background:rgba(245,158,11,0.15);color:#f59e0b;', low: 'background:rgba(34,197,94,0.15);color:#22c55e;' };
+  const tagClass = { high: 'tag-high', medium: 'tag-medium', low: 'tag-low' };
   const tagLabels = { high: currentLang === 'de' ? 'Hoch' : 'High', medium: currentLang === 'de' ? 'Mittel' : 'Medium', low: currentLang === 'de' ? 'Niedrig' : 'Low' };
 
-  // Priority 1: Use news from risk-data.json if available
   if (liveRiskData && liveRiskData.news && liveRiskData.news.length > 0) {
     feedEl.innerHTML = '';
     const genDate = new Date(liveRiskData.generated_at);
-    liveRiskData.news.forEach((n, i) => {
+    liveRiskData.news.forEach((n) => {
       const title = currentLang === 'de' ? n.title_de : n.title_en;
       const timeStr = getTimeAgo(genDate);
       const url = n.url || '#';
       feedEl.innerHTML += `
-        <a href="${url}" target="_blank" rel="noopener" class="news-item risk-${n.risk_level}">
+        <a href="${url}" target="_blank" rel="noopener" class="news-item">
           <div class="news-time">${timeStr}</div>
           <div class="news-content">
             <h4>${truncate(title, 90)}</h4>
             <p>${n.source}</p>
-            <span class="news-tag" style="${tagColors[n.risk_level]}">${tagLabels[n.risk_level]}</span>
+            <span class="news-tag ${tagClass[n.risk_level]}">${tagLabels[n.risk_level]}</span>
           </div>
         </a>`;
     });
     return;
   }
 
-  // Priority 2: Try RSS feed
   try {
     const queries = ['supply+chain+disruption','geopolitical+risk+security','defense+procurement+europe','sanctions+trade+embargo'];
     const rssUrl = `https://news.google.com/rss/search?q=${queries[Math.floor(getDailyVariation(42) * 2 + 2) % queries.length]}&hl=${currentLang === 'de' ? 'de' : 'en'}&gl=${currentLang === 'de' ? 'DE' : 'US'}&ceid=${currentLang === 'de' ? 'DE:de' : 'US:en'}`;
@@ -1209,17 +1240,16 @@ async function loadNewsFeed() {
       const riskLevel = i < 2 ? 'high' : i < 5 ? 'medium' : 'low';
       const timeAgo = getTimeAgo(new Date(pubDate));
       feedEl.innerHTML += `
-        <a href="${escapeHtml(link)}" target="_blank" rel="noopener" class="news-item risk-${riskLevel}">
+        <a href="${escapeHtml(link)}" target="_blank" rel="noopener" class="news-item">
           <div class="news-time">${timeAgo}</div>
           <div class="news-content">
             <h4>${escapeHtml(truncate(title, 90))}</h4>
             <p>${escapeHtml(source)}</p>
-            <span class="news-tag" style="${tagColors[riskLevel]}">${tagLabels[riskLevel]}</span>
+            <span class="news-tag ${tagClass[riskLevel]}">${tagLabels[riskLevel]}</span>
           </div>
         </a>`;
     }
   } catch (err) {
-    // Priority 3: Fallback with static alerts
     feedEl.innerHTML = '';
     const fallbackAlerts = currentLang === 'de' ? [
       { t:'Lieferkettenunterbrechung im Roten Meer eskaliert', s:'Reuters', r:'high' },
@@ -1240,18 +1270,15 @@ async function loadNewsFeed() {
       { t:'Sahel Region: France Withdraws Troops', s:'Le Monde', r:'low' },
       { t:'Pacific Freight Rates Show Stabilization', s:'Lloyd\'s List', r:'low' },
     ];
-    const tagColors = { high: 'background:rgba(239,68,68,0.15);color:#ef4444;', medium: 'background:rgba(245,158,11,0.15);color:#f59e0b;', low: 'background:rgba(34,197,94,0.15);color:#22c55e;' };
-    const tagLabels = { high: currentLang === 'de' ? 'Hoch' : 'High', medium: currentLang === 'de' ? 'Mittel' : 'Medium', low: currentLang === 'de' ? 'Niedrig' : 'Low' };
     const times = ['2h', '3h', '5h', '6h', '8h', '10h', '14h', '18h'];
-
     fallbackAlerts.forEach((a, i) => {
       feedEl.innerHTML += `
-        <div class="news-item risk-${a.r}">
+        <div class="news-item">
           <div class="news-time">${times[i]}</div>
           <div class="news-content">
             <h4>${a.t}</h4>
             <p>${a.s}</p>
-            <span class="news-tag" style="${tagColors[a.r]}">${tagLabels[a.r]}</span>
+            <span class="news-tag ${tagClass[a.r]}">${tagLabels[a.r]}</span>
           </div>
         </div>`;
     });
@@ -1265,40 +1292,29 @@ function getTimeAgo(date) {
   if (diff < 1440) return Math.floor(diff / 60) + 'h';
   return Math.floor(diff / 1440) + 'd';
 }
-
-function truncate(str, max) {
-  return str.length > max ? str.substring(0, max) + '...' : str;
-}
-
+function truncate(str, max) { return str.length > max ? str.substring(0, max) + '…' : str; }
 function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// ─── Popup Styling ───
-const popupStyle = document.createElement('style');
-popupStyle.textContent = `
-  .dark-popup .leaflet-popup-content-wrapper { background:#1a2332; color:#e8e8e8; border:1px solid #2a3444; border-radius:8px; }
-  .dark-popup .leaflet-popup-tip { background:#1a2332; }
-  .leaflet-control-zoom a { background:#1a2332!important; color:#e8e8e8!important; border-color:#2a3444!important; }
-`;
-document.head.appendChild(popupStyle);
-
 // ─── Smooth Scroll ───
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
-    e.preventDefault();
-    const target = document.querySelector(a.getAttribute('href'));
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const href = a.getAttribute('href');
+    if (href === '#') return;
+    const target = document.querySelector(href);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   });
 });
 
 // ─── Init ───
 document.addEventListener('DOMContentLoaded', () => {
-  // Apply saved language preference
   if (currentLang !== 'de') setLang(currentLang);
   initDashboard();
-  // Auto-refresh every 5 minutes
   setInterval(() => { initDashboard(); }, 300000);
 });
 </script>
