@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum — Sentinal Venguard Global</title>
+<meta name="description" content="Impressum, Datenschutzerklärung und Compliance-Hinweise der Sentinal Venguard Global.">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f7f8fa;
+  --bg-muted: #f1f3f6;
+  --ink: #0b1622;
+  --ink-2: #1f2a37;
+  --text: #364150;
+  --text-muted: #6b7785;
+  --text-faint: #98a2b3;
+  --line: #e5e8ec;
+  --line-strong: #cfd4db;
+  --accent: #0b1622;
+  --accent-hover: #1f2a37;
+  --warn: #d97706;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  font-size: 16px;
+  font-weight: 400;
+}
+h1, h2, h3, h4 { color: var(--ink); font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+a { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+
+.container { max-width: 880px; margin: 0 auto; padding: 0 32px; }
+
+/* ─── NAVBAR (same as main) ─── */
+.navbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 32px;
+  height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.nav-logo-mark {
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; letter-spacing: 0.5px;
+  color: var(--ink);
+}
+.nav-logo-text { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+.nav-logo-text .muted { color: var(--text-muted); font-weight: 400; }
+.back-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; color: var(--text); text-decoration: none;
+  font-weight: 500;
+}
+.back-link:hover { color: var(--ink); }
+
+/* ─── HEADER ─── */
+.page-header {
+  padding: 80px 0 48px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 48px;
+}
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--ink);
+}
+.page-header h1 {
+  font-size: clamp(32px, 4.5vw, 48px);
+  letter-spacing: -0.025em;
+  margin-bottom: 14px;
+}
+.page-header .lead { font-size: 16px; color: var(--text-muted); max-width: 640px; }
+
+/* ─── CONTENT ─── */
+main { padding-bottom: 96px; }
+
+section.legal {
+  padding: 40px 0;
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 88px;
+}
+section.legal:last-of-type { border-bottom: none; }
+section.legal h2 {
+  font-size: 24px;
+  margin-bottom: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid var(--ink);
+  display: inline-block;
+}
+section.legal h3 {
+  font-size: 17px;
+  margin-top: 28px;
+  margin-bottom: 10px;
+}
+section.legal p { margin-bottom: 14px; font-size: 15.5px; }
+section.legal ul { margin: 8px 0 14px 22px; }
+section.legal li { margin-bottom: 6px; font-size: 15.5px; }
+
+/* ─── DATA TABLE STYLE ─── */
+.data-block {
+  background: var(--bg-alt);
+  border-left: 2px solid var(--ink);
+  padding: 24px 28px;
+  margin: 16px 0 24px;
+}
+.data-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+.data-row:last-child { border-bottom: none; }
+.data-key { color: var(--text-muted); font-weight: 500; }
+.data-val { color: var(--ink); }
+
+/* ─── TODO MARKERS ─── */
+.todo {
+  background: #fff7ed;
+  color: var(--warn);
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px dashed var(--warn);
+  font-family: 'Inter', monospace;
+}
+.todo-note {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-left: 3px solid var(--warn);
+  padding: 16px 20px;
+  margin: 24px 0;
+  font-size: 14px;
+  color: #7c2d12;
+  line-height: 1.6;
+}
+.todo-note strong { color: var(--warn); font-weight: 600; }
+
+/* ─── TOC ─── */
+.toc {
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
+  padding: 24px 28px;
+  margin-bottom: 32px;
+}
+.toc h4 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.toc ol {
+  list-style: none;
+  counter-reset: toc;
+  padding: 0;
+  margin: 0;
+}
+.toc li {
+  counter-increment: toc;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.toc li:last-child { border-bottom: none; }
+.toc li::before {
+  content: counter(toc, decimal-leading-zero) " ";
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 10px;
+  font-size: 13px;
+}
+.toc a { text-decoration: none; color: var(--ink); font-weight: 500; font-size: 14.5px; }
+.toc a:hover { text-decoration: underline; }
+
+/* ─── FOOTER ─── */
+.footer {
+  background: var(--ink);
+  color: #b1b9c4;
+  padding: 40px 0 32px;
+}
+.footer-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-inner a { color: #b1b9c4; text-decoration: none; }
+.footer-inner a:hover { color: #fff; }
+.footer-legal { display: flex; gap: 20px; }
+
+@media (max-width: 700px) {
+  .container { padding: 0 20px; }
+  .nav-inner { padding: 0 20px; }
+  .data-row { grid-template-columns: 1fr; gap: 4px; }
+  .data-key { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .page-header { padding: 56px 0 32px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─── -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark">SVG</div>
+      <div class="nav-logo-text">Sentinal Venguard <span class="muted">Global</span></div>
+    </a>
+    <a href="/" class="back-link">← Zur Startseite</a>
+  </div>
+</nav>
+
+<header class="page-header">
+  <div class="container">
+    <div class="eyebrow">Rechtliche Hinweise</div>
+    <h1>Impressum &amp; Rechtliches</h1>
+    <p class="lead">Pflichtangaben nach §5 TMG, §18 MStV, Datenschutzerklärung nach DSGVO und Compliance-Hinweise zur Geschäftstätigkeit der Sentinal Venguard Global.</p>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <div class="todo-note">
+      <div>
+        <strong>Hinweis für den Betreiber:</strong> Alle mit <span class="todo">[BITTE AUSFÜLLEN]</span> markierten Felder müssen vor Veröffentlichung mit den tatsächlichen Daten ersetzt werden. Ein unvollständiges Impressum ist abmahnfähig. Vor Live-Schaltung bitte juristisch prüfen lassen — insbesondere die Angaben zu KWKG-Erlaubnis, Aufsichtsbehörde und Berufshaftpflichtversicherung, sofern einschlägig.
+      </div>
+    </div>
+
+    <div class="toc">
+      <h4>Inhalt</h4>
+      <ol>
+        <li><a href="#anbieter">Anbieterkennzeichnung</a></li>
+        <li><a href="#vertretung">Gesetzliche Vertretung</a></li>
+        <li><a href="#register">Handelsregister &amp; Steuer</a></li>
+        <li><a href="#aufsicht">Aufsichtsbehörden &amp; Erlaubnisse</a></li>
+        <li><a href="#verantwortlich">Inhaltlich verantwortlich</a></li>
+        <li><a href="#streitschlichtung">EU-Streitschlichtung</a></li>
+        <li><a href="#haftung">Haftungsausschluss</a></li>
+        <li><a href="#urheberrecht">Urheberrecht</a></li>
+        <li><a href="#datenschutz">Datenschutzerklärung</a></li>
+        <li><a href="#compliance">Compliance &amp; Exportkontrolle</a></li>
+      </ol>
+    </div>
+
+    <!-- ─── 01 ANBIETERKENNZEICHNUNG ─── -->
+    <section class="legal" id="anbieter">
+      <h2>01 Anbieterkennzeichnung</h2>
+      <p>Angaben gemäß §5 TMG (Telemediengesetz) und §18 Abs. 1 MStV (Medienstaatsvertrag):</p>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Firma</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: Vollständige Firmierung, z. B. „Sentinal Venguard Global GmbH"]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Anschrift</span>
+          <span class="data-val">
+            <span class="todo">[BITTE AUSFÜLLEN: Straße, Hausnr.]</span><br>
+            <span class="todo">[PLZ, Ort]</span><br>
+            <span class="todo">[Land, z. B. Deutschland]</span>
+          </span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Telefon</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: +49 …]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">E-Mail</span>
+          <span class="data-val"><a href="mailto:info@svg.global">info@svg.global</a></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Web</span>
+          <span class="data-val">https://svg.global</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 02 GESETZLICHE VERTRETUNG ─── -->
+    <section class="legal" id="vertretung">
+      <h2>02 Gesetzliche Vertretung</h2>
+      <p>Vertretungsberechtigte Person(en) gemäß §5 Abs. 1 Nr. 1 TMG:</p>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Geschäftsführung</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: Vor- und Nachname Geschäftsführer/in]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Weitere Vertretungs­berechtigte</span>
+          <span class="data-val"><span class="todo">[optional: weitere GF, Prokurist:innen]</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 03 REGISTER ─── -->
+    <section class="legal" id="register">
+      <h2>03 Handelsregister &amp; Steuer</h2>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Registergericht</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: z. B. Amtsgericht München]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Registernummer</span>
+          <span class="data-val"><span class="todo">[HRB / HRA Nummer]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Umsatzsteuer-ID</span>
+          <span class="data-val"><span class="todo">[DE… nach §27a UStG]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Wirtschafts-ID</span>
+          <span class="data-val"><span class="todo">[falls vorhanden — §139c AO]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">NCAGE-Code</span>
+          <span class="data-val"><span class="todo">[NATO-Lieferantencode, falls vergeben]</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 04 AUFSICHT ─── -->
+    <section class="legal" id="aufsicht">
+      <h2>04 Aufsichtsbehörden &amp; Erlaubnisse</h2>
+      <p>Aufgrund der Tätigkeit im Bereich sicherheitsrelevanter Güter können je nach Geschäftsmodell folgende Erlaubnisse und Aufsichtsbehörden einschlägig sein. <strong>Vor Live-Schaltung bitte prüfen lassen, welche dieser Angaben tatsächlich erforderlich sind.</strong></p>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">BAFA</span>
+          <span class="data-val">
+            Bundesamt für Wirtschaft und Ausfuhrkontrolle, Eschborn — zuständig für Exportkontrolle (AWG, AWV, Dual-Use-VO (EU) 2021/821).<br>
+            Genehmigungs-/Registrierungsnummer: <span class="todo">[falls vorhanden]</span>
+          </span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">KWKG-Erlaubnis</span>
+          <span class="data-val">
+            Falls SVG mit Kriegswaffen i. S. d. KWKG handelt: Genehmigung nach §3 KWKG.<br>
+            Erlaubnis-Nr.: <span class="todo">[BITTE AUSFÜLLEN oder Zeile löschen, falls nicht einschlägig]</span>
+          </span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Waffenhandelserlaubnis</span>
+          <span class="data-val">
+            Erlaubnis nach §21 WaffG (falls Handel mit Schusswaffen/Munition):<br>
+            Erlaubnis-Nr.: <span class="todo">[BITTE AUSFÜLLEN oder Zeile löschen, falls nicht einschlägig]</span><br>
+            Zuständige Behörde: <span class="todo">[zuständige Waffenbehörde]</span>
+          </span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">IHK</span>
+          <span class="data-val"><span class="todo">[Kammerzugehörigkeit, z. B. IHK für München und Oberbayern]</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 05 VERANTWORTLICH ─── -->
+    <section class="legal" id="verantwortlich">
+      <h2>05 Inhaltlich verantwortlich</h2>
+      <p>Verantwortlich für den Inhalt nach §18 Abs. 2 MStV:</p>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Name</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: Vor- und Nachname]</span></span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">Anschrift</span>
+          <span class="data-val"><span class="todo">[i. d. R. identisch mit Firmenanschrift]</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 06 EU STREITSCHLICHTUNG ─── -->
+    <section class="legal" id="streitschlichtung">
+      <h2>06 EU-Streitschlichtung</h2>
+      <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">https://ec.europa.eu/consumers/odr</a>.</p>
+      <p>Unsere E-Mail-Adresse finden Sie oben im Impressum.</p>
+      <p>Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen. SVG ist im B2B-Bereich tätig; Geschäftsbeziehungen mit Verbrauchern bestehen nicht.</p>
+    </section>
+
+    <!-- ─── 07 HAFTUNG ─── -->
+    <section class="legal" id="haftung">
+      <h2>07 Haftungsausschluss</h2>
+
+      <h3>Haftung für Inhalte</h3>
+      <p>Als Diensteanbieter sind wir gemäß §7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§8 bis 10 TMG sind wir jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.</p>
+      <p>Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich.</p>
+
+      <h3>Haftung für Links</h3>
+      <p>Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.</p>
+
+      <h3>Risikodaten</h3>
+      <p>Die im Bereich „Live-Dashboard" dargestellten geopolitischen Risikoeinschätzungen dienen ausschließlich Informationszwecken. Sie stellen keine Anlageberatung, keine Versicherungsempfehlung und keine sicherheitsbehördliche Empfehlung dar. SVG übernimmt keine Haftung für Entscheidungen, die auf Basis dieser Daten getroffen werden.</p>
+    </section>
+
+    <!-- ─── 08 URHEBERRECHT ─── -->
+    <section class="legal" id="urheberrecht">
+      <h2>08 Urheberrecht</h2>
+      <p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.</p>
+    </section>
+
+    <!-- ─── 09 DATENSCHUTZ ─── -->
+    <section class="legal" id="datenschutz">
+      <h2>09 Datenschutzerklärung</h2>
+
+      <h3>Verantwortlicher i. S. d. DSGVO</h3>
+      <p>Verantwortlicher für die Datenverarbeitung auf dieser Website ist der unter „Anbieterkennzeichnung" genannte Betreiber.</p>
+
+      <h3>Datenschutzbeauftragter</h3>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Kontakt DSB</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN, sofern bestellungs­pflichtig nach §38 BDSG — oder Zeile streichen]</span></span>
+        </div>
+      </div>
+
+      <h3>Erhebung personenbezogener Daten beim Besuch</h3>
+      <p>Beim rein informatorischen Besuch dieser Website werden keine Cookies gesetzt und keine personenbezogenen Daten in einer Datenbank gespeichert. Aus technischen Gründen werden beim Abruf der Seite durch unseren Hosting-Provider Logdaten verarbeitet:</p>
+      <ul>
+        <li>IP-Adresse (gekürzt, sofern technisch möglich)</li>
+        <li>Datum und Uhrzeit des Zugriffs</li>
+        <li>Referrer-URL</li>
+        <li>User-Agent (Browser, Betriebssystem)</li>
+        <li>aufgerufene Ressource</li>
+      </ul>
+      <p>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem stabilen und sicheren Betrieb der Website).</p>
+
+      <h3>Hosting</h3>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Hosting-Provider</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: z. B. GitHub Pages, Inc., 88 Colin P Kelly Jr St, San Francisco, CA 94107, USA — bei US-Hosting ggf. zusätzlich Hinweis auf Drittlandübermittlung]</span></span>
+        </div>
+      </div>
+
+      <h3>Externe Inhalte</h3>
+      <p>Diese Website lädt folgende Drittanbieter-Ressourcen nach. Damit wird Ihre IP-Adresse an den jeweiligen Anbieter übermittelt:</p>
+      <ul>
+        <li><strong>Google Fonts</strong> (Google Ireland Limited) — Webschrift „Inter" via fonts.googleapis.com.</li>
+        <li><strong>Cloudflare CDN</strong> (Cloudflare, Inc.) — Auslieferung der Bibliotheken Leaflet und Chart.js.</li>
+        <li><strong>CARTO Basemaps</strong> — Kartenkacheln für die interaktive Risikokarte.</li>
+        <li><strong>AllOrigins / Google News RSS</strong> — Abruf öffentlicher Nachrichten-Feeds für den News-Bereich.</li>
+      </ul>
+      <p>Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Eine Einbindung lokaler Kopien dieser Ressourcen wird derzeit geprüft, um Drittlandübermittlungen zu reduzieren.</p>
+
+      <h3>Kontaktformular</h3>
+      <p>Bei Nutzung des Kontaktformulars verarbeiten wir die von Ihnen eingegebenen Daten (Organisation, Ansprechpartner, E-Mail, Betreff, Nachricht) zur Bearbeitung Ihrer Anfrage auf Grundlage Art. 6 Abs. 1 lit. b DSGVO (vorvertragliche Maßnahmen) oder Art. 6 Abs. 1 lit. f DSGVO. Speicherdauer: bis zur Erledigung der Anfrage zzgl. gesetzlicher Aufbewahrungsfristen.</p>
+
+      <h3>Ihre Rechte</h3>
+      <p>Sie haben jederzeit das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21 DSGVO). Außerdem steht Ihnen ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu.</p>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Zuständige Aufsicht</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: zuständige Landes-Datenschutzbehörde am Sitz der Firma]</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 10 COMPLIANCE ─── -->
+    <section class="legal" id="compliance">
+      <h2>10 Compliance &amp; Exportkontrolle</h2>
+
+      <h3>Geschäftsmodell</h3>
+      <p>Sentinal Venguard Global agiert als Markteintritts- und Vertretungs-Partner für internationale Hersteller sicherheitsrelevanter Güter im europäischen Behörden- und Verteidigungsmarkt. SVG ist <strong>kein Berater von Behörden</strong> und nimmt keine hoheitlichen Aufgaben wahr.</p>
+
+      <h3>Exportkontrolle</h3>
+      <p>SVG beachtet die einschlägigen Vorschriften der Exportkontrolle, insbesondere:</p>
+      <ul>
+        <li>Außenwirtschaftsgesetz (AWG) und Außenwirtschaftsverordnung (AWV)</li>
+        <li>EU Dual-Use-Verordnung (EU) 2021/821</li>
+        <li>Kriegswaffenkontrollgesetz (KWKG), soweit einschlägig</li>
+        <li>EU- und US-Sanktionslisten sowie Restriktionen nach UN-Resolutionen</li>
+        <li>U.S. International Traffic in Arms Regulations (ITAR) bei Re-Export</li>
+      </ul>
+      <p>Anfragen aus Embargo-Ländern oder von gelisteten Personen/Organisationen werden nicht bearbeitet.</p>
+
+      <h3>Anti-Korruption</h3>
+      <p>SVG bekennt sich zur Korruptions- und Bestechungsfreiheit nach §299 StGB sowie zum UK Bribery Act und FCPA, soweit anwendbar. Zuwendungen, Provisionen oder Vermittlungsleistungen an Amtsträger werden weder gewährt noch in Aussicht gestellt.</p>
+
+      <h3>Vertraulichkeit</h3>
+      <p>Sämtliche Mandantenbeziehungen werden vertraulich behandelt. Für klassifizierte Vorgänge stehen gesicherte Kommunikationswege (CellCrypt, GPG/S/MIME, persönliche Übergabe) auf Anfrage zur Verfügung.</p>
+
+      <h3>Beschwerdestelle / Hinweisgebersystem</h3>
+      <p>Hinweise auf Compliance-Verstöße können vertraulich an folgende Adresse gerichtet werden:</p>
+      <div class="data-block">
+        <div class="data-row">
+          <span class="data-key">Compliance-Kontakt</span>
+          <span class="data-val"><span class="todo">[BITTE AUSFÜLLEN: dedizierte E-Mail, z. B. compliance@svg.global, ggf. externer Ombudsmann]</span></span>
+        </div>
+      </div>
+    </section>
+
+    <p style="font-size: 13px; color: var(--text-muted); margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line);">
+      Stand: <span class="todo">[BITTE AUSFÜLLEN: TT.MM.JJJJ — Datum der letzten Aktualisierung]</span>
+    </p>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>&copy; 2026 Sentinal Venguard Global. Alle Rechte vorbehalten.</div>
+    <div class="footer-legal">
+      <a href="/">Startseite</a>
+      <a href="/#kontakt">Kontakt</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
