@@ -69,12 +69,12 @@ section:last-of-type { border-bottom: none; }
 }
 .nav-logo { display: flex; align-items: center; gap: 12px; }
 .nav-logo-mark {
-  width: 32px; height: 32px;
-  border: 1.5px solid var(--ink);
+  width: 34px; height: 34px;
+  background: var(--ink);
+  color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 12px; letter-spacing: 0.5px;
-  color: var(--ink);
 }
+.nav-logo-mark svg { width: 22px; height: 22px; }
 .nav-logo-text { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
 .nav-logo-text .muted { color: var(--text-muted); font-weight: 400; }
 
@@ -467,7 +467,7 @@ section:last-of-type { border-bottom: none; }
   border-bottom: 1px solid #1f2a37;
 }
 .footer-brand .nav-logo-text { color: #fff; }
-.footer-brand .nav-logo-mark { border-color: #fff; color: #fff; }
+.footer-brand .nav-logo-mark { background: #fff; color: var(--ink); }
 .footer-brand p { margin-top: 16px; font-size: 13.5px; color: #8b94a3; max-width: 280px; line-height: 1.6; }
 .footer-col h4 { font-size: 13px; color: #fff; margin-bottom: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
 .footer-col a { display: block; font-size: 13.5px; color: #b1b9c4; padding: 5px 0; transition: color 0.15s; }
@@ -543,7 +543,7 @@ section:last-of-type { border-bottom: none; }
 <nav class="navbar">
   <div class="nav-inner">
     <a href="#" class="nav-logo">
-      <div class="nav-logo-mark">SVG</div>
+      <div class="nav-logo-mark"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter"><polyline points="20,76 50,46 80,76" opacity="0.4"/><polyline points="20,58 50,28 80,58" opacity="0.7"/><polyline points="20,40 50,10 80,40"/></svg></div>
       <div class="nav-logo-text">Sentinal Venguard <span class="muted">Global</span></div>
     </a>
     <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
@@ -914,7 +914,7 @@ section:last-of-type { border-bottom: none; }
     <div class="footer-grid">
       <div class="footer-brand">
         <div class="nav-logo">
-          <div class="nav-logo-mark">SVG</div>
+          <div class="nav-logo-mark"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter"><polyline points="20,76 50,46 80,76" opacity="0.4"/><polyline points="20,58 50,28 80,58" opacity="0.7"/><polyline points="20,40 50,10 80,40"/></svg></div>
           <div class="nav-logo-text">Sentinal Venguard <span class="muted">Global</span></div>
         </div>
         <p data-de="Verlässlicher Partner für öffentliche Sicherheitsbeschaffung — Teilnahme an Ausschreibungen, Beschaffung und Lieferung sicherheitsrelevanter Güter. Marktzugang für Hersteller." data-en="A reliable partner for public security procurement — tender participation, sourcing and delivery of security-relevant goods. Market access for manufacturers.">Verlässlicher Partner für öffentliche Sicherheitsbeschaffung — Teilnahme an Ausschreibungen, Beschaffung und Lieferung sicherheitsrelevanter Güter. Marktzugang für Hersteller.</p>
