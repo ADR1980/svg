@@ -448,6 +448,9 @@ section:last-of-type { border-bottom: none; }
   background: var(--bg-alt);
 }
 .form-group textarea { resize: vertical; min-height: 120px; }
+.form-status { font-size: 13.5px; line-height: 1.5; margin-top: -4px; min-height: 1em; }
+.form-status.ok { color: var(--risk-low); }
+.form-status.err { color: var(--risk-critical); }
 
 /* ─── FOOTER ─── */
 .footer {
@@ -864,24 +867,24 @@ section:last-of-type { border-bottom: none; }
         </div>
       </div>
 
-      <form class="contact-form" onsubmit="event.preventDefault();">
+      <form class="contact-form" id="contact-form" onsubmit="submitContactForm(event)">
         <div class="form-row">
           <div class="form-group">
-            <label data-de="Organisation" data-en="Organization">Organisation</label>
-            <input type="text">
+            <label for="cf-org" data-de="Organisation" data-en="Organization">Organisation</label>
+            <input type="text" id="cf-org">
           </div>
           <div class="form-group">
-            <label data-de="Ansprechpartner" data-en="Contact person">Ansprechpartner</label>
-            <input type="text">
+            <label for="cf-name" data-de="Ansprechpartner" data-en="Contact person">Ansprechpartner</label>
+            <input type="text" id="cf-name">
           </div>
         </div>
         <div class="form-group">
-          <label>E-Mail</label>
-          <input type="email">
+          <label for="cf-email">E-Mail</label>
+          <input type="email" id="cf-email">
         </div>
         <div class="form-group">
-          <label data-de="Betreff" data-en="Subject">Betreff</label>
-          <select>
+          <label for="cf-subject" data-de="Betreff" data-en="Subject">Betreff</label>
+          <select id="cf-subject">
             <option value="" data-de="— Bitte wählen —" data-en="— Please select —">— Bitte wählen —</option>
             <option data-de="Ausschreibung / Beschaffungsanfrage (Behörde)" data-en="Tender / procurement request (agency)">Ausschreibung / Beschaffungsanfrage (Behörde)</option>
             <option data-de="Angebotsanfrage" data-en="Request for quotation">Angebotsanfrage</option>
@@ -892,13 +895,14 @@ section:last-of-type { border-bottom: none; }
           </select>
         </div>
         <div class="form-group">
-          <label data-de="Nachricht" data-en="Message">Nachricht</label>
-          <textarea></textarea>
+          <label for="cf-message" data-de="Nachricht" data-en="Message">Nachricht</label>
+          <textarea id="cf-message"></textarea>
         </div>
         <button class="btn btn-primary" type="submit" style="align-self:flex-start;">
           <span data-de="Nachricht senden" data-en="Send message">Nachricht senden</span>
           <span class="arrow">→</span>
         </button>
+        <p class="form-status" id="cf-status" role="status" aria-live="polite"></p>
       </form>
     </div>
   </div>
@@ -972,6 +976,53 @@ function setLang(lang) {
   if (typeof initDashboard === 'function' && document.getElementById('global-risk-score')) {
     initDashboard();
   }
+}
+
+// ─── Contact Form (mailto to tender@svg.global) ───
+const CONTACT_RECIPIENT = 'tender@svg.global';
+
+function submitContactForm(event) {
+  event.preventDefault();
+  const de = currentLang === 'de';
+  const org = document.getElementById('cf-org').value.trim();
+  const name = document.getElementById('cf-name').value.trim();
+  const email = document.getElementById('cf-email').value.trim();
+  const subject = document.getElementById('cf-subject').value.trim();
+  const message = document.getElementById('cf-message').value.trim();
+  const status = document.getElementById('cf-status');
+
+  if (!email || !message) {
+    status.className = 'form-status err';
+    status.textContent = de
+      ? 'Bitte geben Sie mindestens E-Mail und Nachricht an.'
+      : 'Please provide at least your email and a message.';
+    return;
+  }
+
+  const subjectLine = subject
+    ? `SVG-Anfrage: ${subject}`
+    : (de ? 'SVG-Anfrage über das Kontaktformular' : 'SVG inquiry via contact form');
+
+  const body = [
+    `${de ? 'Organisation' : 'Organization'}: ${org || '—'}`,
+    `${de ? 'Ansprechpartner' : 'Contact person'}: ${name || '—'}`,
+    `E-Mail: ${email || '—'}`,
+    `${de ? 'Betreff' : 'Subject'}: ${subject || '—'}`,
+    '',
+    `${de ? 'Nachricht' : 'Message'}:`,
+    message,
+  ].join('\n');
+
+  const mailto = `mailto:${CONTACT_RECIPIENT}`
+    + `?subject=${encodeURIComponent(subjectLine)}`
+    + `&body=${encodeURIComponent(body)}`;
+
+  window.location.href = mailto;
+
+  status.className = 'form-status ok';
+  status.textContent = de
+    ? 'Ihr E-Mail-Programm öffnet sich mit der vorausgefüllten Nachricht an tender@svg.global. Sollte sich nichts öffnen, senden Sie Ihre Anfrage bitte direkt an tender@svg.global.'
+    : 'Your email client will open with the pre-filled message to tender@svg.global. If nothing opens, please send your inquiry directly to tender@svg.global.';
 }
 
 // ─── Risk Data Engine ───
