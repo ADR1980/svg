@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1MOA — Selbstheilende Reaktiv-Zielscheibe</title>
+<meta name="description" content="Selbstheilende, nachhaltige, schwer entflammbare Reaktiv-Zielscheiben aus halogenfreiem Polymer. Durchschuss statt Querschläger — für Behörden, Bundeswehr und Sport.">
+<meta name="robots" content="index,follow">
+<meta name="color-scheme" content="dark">
+
+<!--
+  ════════════════════════════════════════════════════════════════════════════
+  1MOA — Produkt-Landingpage „Reaktiv-Zielscheibe"
+  ────────────────────────────────────────────────────────────────────────────
+  • Keine externen Requests (B2G-Datenschutz): keine Fonts/Analytics/CDNs.
+    Fonts laufen über System-Stack mit den Marken-Familien als Erstwahl.
+    Self-hosted woff2 (Saira / Inter / IBM Plex Mono) können später per
+    @font-face ergänzt werden – die font-family-Variablen bleiben gleich.
+  • Animationen: Vanilla JS + SVG + IntersectionObserver / requestAnimationFrame.
+    Kein GSAP nötig. prefers-reduced-motion zeigt saubere Endzustände.
+  • Zentrale Konfiguration (Produktname, Tagline, Claims): siehe das
+    Config-Skript am Seitenende sowie die CSS-Variablen in :root.
+  ════════════════════════════════════════════════════════════════════════════
+-->
+
+<style>
+/* ═══════════════════════════ DESIGN TOKENS ═══════════════════════════ */
+:root {
+  /* === Farben: übernommen aus gov.1moa.de === */
+  --nato-dark:      #060D18;
+  --surface:        #0B1420;
+  --surface-raised: #111D2D;
+  --nato-pale:      #0D1B2E;
+  --nato-primary:   #002B6B;
+  --nato-medium:    #003D8F;
+  --nato-light:     #1565C0;
+  --nato-accent:    #5BA4E6;
+  --gold:           #C8A84E;
+
+  --white:    #E8ECF2;
+  --gray-300: #8A99AB;
+  --gray-500: #6B7A8D;
+  --gray-700: #C5CBD6;
+  --border:   rgba(255,255,255,0.08);
+
+  /* Funktions-Akzente NUR für Produkt-Animationen */
+  --c-heal: #4DB6AC;
+  --c-warn: #EF9A6C;
+
+  /* === Typografie === */
+  --font-display: "Saira", "Saira Condensed", "Rajdhani", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* === Maße === */
+  --maxw: 1200px;
+  --radius: 4px;
+  --gap: clamp(1rem, 2vw, 2rem);
+  --section-pad: clamp(4rem, 9vw, 8rem);
+
+  /* === Motion === */
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-mech: cubic-bezier(0.7, 0, 0.3, 1);
+  --dur-fast: 220ms;
+  --dur-mid: 600ms;
+  --dur-slow: 1200ms;
+}
+
+/* ═══════════════════════════ RESET / BASE ═══════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  font-family: var(--font-body);
+  background: var(--nato-dark);
+  color: var(--white);
+  line-height: 1.65;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height: 1.08; }
+
+a { color: var(--nato-accent); text-decoration: none; }
+
+img, svg { display: block; max-width: 100%; }
+
+::selection { background: var(--nato-light); color: #fff; }
+
+:focus-visible {
+  outline: 2px solid var(--nato-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Accessible skip link */
+.skip-link {
+  position: absolute; left: 12px; top: -60px;
+  background: var(--nato-light); color: #fff;
+  padding: 10px 18px; border-radius: var(--radius); z-index: 2000;
+  transition: top var(--transition);
+}
+.skip-link:focus { top: 12px; }
+
+/* ═══════════════════════════ LAYOUT PRIMITIVES ═══════════════════════════ */
+.container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 2.5rem); }
+section { padding-block: var(--section-pad); position: relative; }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.25rem;
+}
+/* animated hairline that grows on reveal */
+.eyebrow::before {
+  content: ""; display: inline-block;
+  width: 0; height: 1px; background: var(--gold);
+  transition: width var(--dur-mid) var(--ease-out);
+}
+.reveal.is-visible .eyebrow::before,
+.eyebrow.is-visible::before { width: 2.25rem; }
+
+h1.display { font-size: clamp(2.6rem, 6vw, 5.5rem); letter-spacing: -0.01em; }
+h2.section-title { font-size: clamp(1.8rem, 3.4vw, 3rem); margin-bottom: 1rem; }
+.lead { font-size: clamp(1.1rem, 1.6vw, 1.35rem); color: var(--gray-300); max-width: 60ch; }
+
+.section-head { max-width: 760px; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+.section-head p { color: var(--gray-300); font-size: 1.05rem; }
+
+/* Reveal-on-scroll baseline */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity var(--dur-mid) var(--ease-out), transform var(--dur-mid) var(--ease-out); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* ═══════════════════════════ BUTTONS ═══════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem; font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.95rem 1.75rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--dur-fast) var(--ease-mech), box-shadow var(--transition);
+  text-align: center;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--nato-light), var(--nato-medium));
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(21,101,192,0.28);
+}
+.btn-primary:hover { box-shadow: 0 8px 32px rgba(21,101,192,0.42); transform: translateY(-1px); }
+.btn-outline {
+  background: transparent; color: var(--white);
+  border-color: var(--nato-accent);
+}
+.btn-outline:hover { background: var(--nato-light); border-color: var(--nato-light); color: #fff; }
+/* 1px "recoil" on click */
+.btn:active { transform: translateY(1px); transition: transform 60ms var(--ease-mech); }
+
+/* ═══════════════════════════ HEADER ═══════════════════════════ */
+.site-header {
+  position: fixed; inset: 0 0 auto 0; z-index: 1000;
+  height: 68px;
+  display: flex; align-items: center;
+  transition: background var(--transition), border-color var(--transition), backdrop-filter var(--transition);
+  border-bottom: 1px solid transparent;
+}
+.site-header.scrolled {
+  background: rgba(6,13,24,0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom-color: var(--border);
+}
+.site-header .container { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.brand { display: flex; align-items: center; gap: 0.7rem; font-family: var(--font-display); }
+.brand-mark {
+  width: 38px; height: 38px; border-radius: var(--radius);
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--nato-medium), var(--nato-primary));
+  border: 1px solid var(--border);
+  font-weight: 700; font-size: 0.95rem; letter-spacing: 0.04em; color: #fff;
+}
+.brand-text { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.02em; color: var(--white); }
+.brand-text span { color: var(--gold); }
+
+.nav { display: flex; align-items: center; gap: clamp(1rem, 2.2vw, 2rem); }
+.nav a.nav-link {
+  font-size: 0.86rem; font-weight: 500; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--gray-300);
+  transition: color var(--transition);
+}
+.nav a.nav-link:hover { color: var(--nato-accent); }
+.nav .btn { padding: 0.6rem 1.1rem; font-size: 0.82rem; }
+
+.nav-toggle {
+  display: none; flex-direction: column; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 8px; z-index: 1001;
+}
+.nav-toggle span { width: 24px; height: 2px; background: var(--white); border-radius: 2px; transition: transform var(--transition), opacity var(--transition); }
+.nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle.open span:nth-child(2) { opacity: 0; }
+.nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ═══════════════════════════ 1 · HERO ═══════════════════════════ */
+.hero { min-height: 100svh; display: flex; align-items: center; padding-top: 68px; overflow: hidden; }
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 75% 35%, rgba(0,61,143,0.40) 0%, transparent 70%),
+    radial-gradient(circle at 20% 80%, rgba(21,101,192,0.10) 0%, transparent 55%),
+    linear-gradient(180deg, var(--nato-dark) 0%, #04080F 100%);
+}
+.hero-grid {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(91,164,230,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,164,230,0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 75% 65% at 60% 45%, #000 25%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 60% 45%, #000 25%, transparent 80%);
+}
+.hero .container {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1.05fr 0.95fr; align-items: center; gap: clamp(2rem, 5vw, 4rem);
+}
+.hero-copy { max-width: 36rem; }
+.hero h1 { margin-bottom: 1.5rem; }
+.hero h1 .accent { color: var(--nato-accent); }
+.hero .lead { margin-bottom: 2.25rem; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 1rem; }
+
+.hero-figure { position: relative; display: grid; place-items: center; }
+.hero-figure svg { width: min(100%, 480px); height: auto; filter: drop-shadow(0 24px 60px rgba(0,0,0,0.55)); }
+
+/* trust strip below hero actions */
+.hero-trust { display: flex; flex-wrap: wrap; gap: 0.6rem 1.5rem; margin-top: 2rem; }
+.hero-trust span {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--gray-500); display: inline-flex; align-items: center; gap: 0.5rem;
+}
+.hero-trust span::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+
+/* ═══════════════════════════ 2 · STAHL vs 1MOA ═══════════════════════════ */
+#vergleich { background: var(--surface); }
+.versus {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: clamp(1rem, 3vw, 2.5rem); align-items: stretch;
+}
+.versus-col {
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: clamp(1.5rem, 3vw, 2.25rem); display: flex; flex-direction: column; gap: 1rem;
+}
+.versus-col.steel { border-color: rgba(239,154,108,0.22); }
+.versus-col.moa { border-color: rgba(77,182,172,0.28); }
+.versus-col h3 { font-size: 1.4rem; }
+.versus-col .tag {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.versus-col.steel .tag { color: var(--c-warn); }
+.versus-col.moa .tag { color: var(--c-heal); }
+.versus-col p { color: var(--gray-300); font-size: 0.98rem; }
+.versus-anim { width: 100%; height: 130px; margin-top: auto; }
+.versus-mid {
+  display: grid; place-items: center; color: var(--gray-500);
+  font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.1em;
+}
+.versus-mid span {
+  writing-mode: vertical-rl; padding: 0.5rem; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+}
+
+/* ═══════════════════════════ 3 · FEATURE GRID ═══════════════════════════ */
+.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+.feature {
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.75rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem;
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  position: relative; overflow: hidden;
+}
+.feature:hover { border-color: rgba(91,164,230,0.35); transform: translateY(-4px); box-shadow: 0 14px 40px rgba(0,0,0,0.35); }
+.feature::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent); opacity: 0; transition: opacity var(--transition);
+}
+.feature:hover::before { opacity: 1; }
+.feature-icon { width: 56px; height: 56px; }
+.feature-num { font-family: var(--font-mono); font-size: 0.75rem; color: var(--gold); letter-spacing: 0.1em; }
+.feature h3 { font-size: 1.2rem; }
+.feature p { font-size: 0.92rem; color: var(--gray-300); }
+
+/* ═══════════════════════════ 4 · SELBSTHEILUNG (scrub) ═══════════════════════════ */
+#heilung { background: var(--surface); }
+.heal-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 4rem); align-items: start; }
+.heal-sticky { position: sticky; top: 100px; }
+.heal-figure { background: var(--nato-pale); border: 1px solid var(--border); border-radius: var(--radius); padding: clamp(1.5rem, 4vw, 3rem); }
+.heal-figure svg { width: 100%; height: auto; }
+.heal-progress-label {
+  font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--nato-accent); margin-top: 1.25rem; text-align: center;
+}
+.heal-phases { display: flex; flex-direction: column; gap: 1.25rem; }
+.heal-phase {
+  border-left: 2px solid var(--border); padding: 1rem 0 1rem 1.5rem;
+  transition: border-color var(--transition), opacity var(--transition);
+  opacity: 0.4;
+}
+.heal-phase.active { border-color: var(--c-heal); opacity: 1; }
+.heal-phase .num { font-family: var(--font-mono); color: var(--gold); font-size: 0.85rem; letter-spacing: 0.08em; }
+.heal-phase h3 { font-size: 1.25rem; margin: 0.25rem 0 0.4rem; }
+.heal-phase p { color: var(--gray-300); font-size: 0.95rem; }
+.heal-spacer { height: 60vh; }
+
+/* ═══════════════════════════ 5 · MATERIAL / NACHHALTIGKEIT ═══════════════════════════ */
+.material-wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+.counters { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); margin-top: 2.5rem; }
+.counter { background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem 1.25rem; }
+.counter .num { font-family: var(--font-display); font-size: clamp(2.2rem, 4vw, 3rem); font-weight: 700; color: var(--gold); line-height: 1; }
+.counter .num .unit { font-size: 0.5em; color: var(--gray-300); }
+.counter .cap { font-size: 0.85rem; color: var(--gray-300); margin-top: 0.5rem; }
+.recycle-figure { display: grid; place-items: center; }
+.recycle-figure svg { width: min(100%, 340px); }
+.material-note { font-family: var(--font-mono); font-size: 0.78rem; color: var(--gray-500); margin-top: 1.5rem; }
+
+/* ═══════════════════════════ 6 · BRANDSCHUTZ ═══════════════════════════ */
+#brandschutz { background: var(--surface); }
+.fire-wrap { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+.fire-figure { background: var(--nato-pale); border: 1px solid var(--border); border-radius: var(--radius); padding: clamp(1.5rem, 4vw, 3rem); display: grid; place-items: center; }
+.fire-figure svg { width: min(100%, 320px); }
+.fire-badge {
+  display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 1.5rem;
+  font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.06em;
+  color: var(--c-heal); border: 1px solid rgba(77,182,172,0.4); border-radius: var(--radius);
+  padding: 0.5rem 0.9rem; background: rgba(77,182,172,0.08);
+}
+
+/* ═══════════════════════════ 7 · SPECS ═══════════════════════════ */
+.specs-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.9rem; }
+.specs-table caption { text-align: left; color: var(--gray-500); font-family: var(--font-body); font-size: 0.85rem; margin-bottom: 1rem; }
+.specs-table th, .specs-table td { text-align: left; padding: 1rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.specs-table th { color: var(--gray-300); font-weight: 500; width: 38%; white-space: nowrap; }
+.specs-table td { color: var(--white); }
+.spec-badge {
+  display: inline-block; margin-left: 0.5rem; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--gold); border: 1px solid rgba(200,168,78,0.4); border-radius: 3px; padding: 0.1rem 0.4rem; vertical-align: middle;
+}
+
+/* ═══════════════════════════ 8 · EINSATZBEREICHE ═══════════════════════════ */
+#einsatz { background: var(--surface); }
+.use-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); }
+.use-card {
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.75rem 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.use-card:hover { border-color: rgba(91,164,230,0.3); transform: translateY(-3px); }
+.use-card .ico { width: 44px; height: 44px; color: var(--nato-accent); }
+.use-card h3 { font-size: 1.2rem; }
+.use-card p { font-size: 0.92rem; color: var(--gray-300); }
+
+/* ═══════════════════════════ 9 · ANFRAGE ═══════════════════════════ */
+.contact-wrap { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: clamp(2rem, 5vw, 4rem); align-items: start; }
+.contact-intro .lead { margin-bottom: 1.5rem; }
+.contact-points { list-style: none; display: flex; flex-direction: column; gap: 0.85rem; margin-top: 1.5rem; }
+.contact-points li { display: flex; gap: 0.75rem; color: var(--gray-300); font-size: 0.95rem; }
+.contact-points li::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: 0.6rem; border-radius: 50%; background: var(--c-heal); }
+
+.contact-form { background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius); padding: clamp(1.5rem, 3vw, 2.25rem); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.field { margin-bottom: 1.1rem; }
+.field label { display: block; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-300); margin-bottom: 0.45rem; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 0.8rem 1rem; background: var(--nato-pale); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--white); font-family: var(--font-body); font-size: 0.95rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--nato-accent); box-shadow: 0 0 0 3px rgba(91,164,230,0.15); }
+.field textarea { min-height: 120px; resize: vertical; }
+.field .err { display: none; color: var(--c-warn); font-size: 0.78rem; margin-top: 0.35rem; }
+.field.invalid input, .field.invalid select, .field.invalid textarea { border-color: var(--c-warn); }
+.field.invalid .err { display: block; }
+.form-success {
+  display: none; margin-top: 1rem; padding: 1rem 1.25rem; border-radius: var(--radius);
+  background: rgba(77,182,172,0.1); border: 1px solid rgba(77,182,172,0.4); color: var(--c-heal); font-size: 0.95rem;
+}
+.form-success.show { display: block; }
+.form-note { font-size: 0.78rem; color: var(--gray-500); margin-top: 1rem; }
+
+/* ═══════════════════════════ FOOTER ═══════════════════════════ */
+.site-footer { background: var(--nato-dark); border-top: 1px solid var(--border); padding-block: clamp(2.5rem, 5vw, 4rem); }
+.footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 2rem; margin-bottom: 2.5rem; }
+.footer-brand .brand { margin-bottom: 1rem; }
+.footer-brand p { color: var(--gray-500); font-size: 0.9rem; max-width: 38ch; }
+.footer-col h4 { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray-300); margin-bottom: 1rem; }
+.footer-col a { display: block; color: var(--gray-500); font-size: 0.9rem; margin-bottom: 0.6rem; transition: color var(--transition); }
+.footer-col a:hover { color: var(--nato-accent); }
+.footer-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.footer-bottom p { color: var(--gray-500); font-size: 0.82rem; }
+
+/* ═══════════════════════════ RESPONSIVE ═══════════════════════════ */
+@media (max-width: 1024px) {
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .use-grid { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 860px) {
+  .hero .container { grid-template-columns: 1fr; }
+  .hero-figure { order: -1; }
+  .hero-figure svg { width: min(78%, 360px); }
+  .versus { grid-template-columns: 1fr; }
+  .versus-mid span { writing-mode: horizontal-tb; border: none; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 0.6rem 0; text-align: center; }
+  .heal-wrap, .material-wrap, .fire-wrap, .contact-wrap { grid-template-columns: 1fr; }
+  .heal-sticky { position: static; }
+  .heal-spacer { display: none; }
+  .recycle-figure { order: -1; }
+  .counters { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .nav .nav-link, .nav .btn-cta { display: none; }
+  .nav-toggle { display: flex; }
+  .nav.open { position: fixed; inset: 68px 0 auto 0; background: rgba(6,13,24,0.98); backdrop-filter: blur(16px); flex-direction: column; align-items: stretch; gap: 0; padding: 1rem 1.5rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .nav.open .nav-link { display: block; padding: 0.9rem 0; border-bottom: 1px solid var(--border); font-size: 1rem; }
+  .nav.open .btn-cta { display: inline-flex; margin-top: 1rem; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════ REDUCED MOTION ═══════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .eyebrow::before { width: 2.25rem !important; transition: none !important; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#hauptinhalt">Zum Inhalt springen</a>
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<header class="site-header" id="siteHeader">
+  <div class="container">
+    <a href="#hero" class="brand" aria-label="1MOA Startseite">
+      <span class="brand-mark">1M</span>
+      <span class="brand-text">1<span>MOA</span></span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="primaryNav">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav" id="primaryNav" aria-label="Hauptnavigation">
+      <a class="nav-link" href="#vergleich">Vorteil</a>
+      <a class="nav-link" href="#features">Produkt</a>
+      <a class="nav-link" href="#specs">Specs</a>
+      <a class="nav-link" href="#brandschutz">Brandschutz</a>
+      <a class="nav-link" href="#anfrage">Anfrage</a>
+      <a class="btn btn-primary btn-cta" href="#anfrage">Datenblatt anfragen</a>
+    </nav>
+  </div>
+</header>
+
+<main id="hauptinhalt">
+
+<!-- ═══════════════════════════ 1 · HERO ═══════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-grid" id="heroGrid" aria-hidden="true"></div>
+  <div class="container">
+    <div class="hero-copy">
+      <span class="eyebrow is-visible">Präzision für den Einsatz</span>
+      <h1 class="display">Durchschuss statt <span class="accent">Querschläger.</span></h1>
+      <p class="lead">Selbstheilende Reaktiv-Zielscheiben aus nachhaltigem, schwer entflammbarem Polymer. Das Geschoss passiert — die Scheibe bleibt. Tausende Schuss, kein Splatter, kein Rückschlag.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#anfrage">Datenblatt anfragen</a>
+        <a class="btn btn-outline" href="#heilung">Wie es funktioniert</a>
+      </div>
+      <div class="hero-trust">
+        <span>Selbstheilend</span>
+        <span>Halogenfrei (Ziel V-0)</span>
+        <span>EU-Fertigung</span>
+        <span>B2G-fähig</span>
+      </div>
+    </div>
+
+    <!-- Signature animation: target that gets shot and heals -->
+    <div class="hero-figure" id="heroFigure">
+      <svg id="heroTarget" viewBox="0 0 400 400" role="img" aria-label="Animierte Zielscheibe: ein Geschoss durchschlägt die Scheibe, der Einschusskanal versiegelt sich zu einem Pinhole.">
+        <defs>
+          <radialGradient id="ringGrad" cx="50%" cy="45%" r="60%">
+            <stop offset="0%" stop-color="#16294a"/>
+            <stop offset="100%" stop-color="#0a1422"/>
+          </radialGradient>
+          <clipPath id="targetClip"><circle cx="200" cy="200" r="150"/></clipPath>
+        </defs>
+        <!-- target body -->
+        <circle cx="200" cy="200" r="158" fill="url(#ringGrad)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+        <g clip-path="url(#targetClip)" fill="none" stroke-width="2">
+          <circle cx="200" cy="200" r="150" stroke="rgba(91,164,230,0.18)"/>
+          <circle cx="200" cy="200" r="120" stroke="rgba(91,164,230,0.26)"/>
+          <circle cx="200" cy="200" r="90"  stroke="rgba(91,164,230,0.36)"/>
+          <circle cx="200" cy="200" r="60"  stroke="rgba(91,164,230,0.5)"/>
+          <circle cx="200" cy="200" r="30"  stroke="rgba(200,168,78,0.7)"/>
+          <circle cx="200" cy="200" r="4"   fill="var(--gold)" stroke="none"/>
+        </g>
+        <!-- bullet -->
+        <circle id="heroBullet" cx="-40" cy="170" r="6" fill="#ffffff" opacity="0"/>
+        <!-- impact flash ring -->
+        <circle id="heroFlash" cx="244" cy="170" r="18" fill="none" stroke="var(--gold)" stroke-width="3" opacity="0"/>
+        <!-- bullet hole that heals -->
+        <circle id="heroHole" cx="244" cy="170" r="0" fill="#02060c"/>
+        <circle id="heroSeal" cx="244" cy="170" r="0" fill="none" stroke="var(--c-heal)" stroke-width="2" opacity="0"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 2 · STAHL vs 1MOA ═══════════════════════════ -->
+<section id="vergleich">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Warum nicht Stahl</span>
+      <h2 class="section-title">Stahl schlägt zurück. Unser Polymer lässt durch.</h2>
+    </div>
+    <div class="versus reveal" id="versus">
+      <div class="versus-col steel">
+        <span class="tag">Stahlziel</span>
+        <h3>Rückschlag &amp; Splatter</h3>
+        <p>Querschläger. Splatter. Standzeit-Schäden. Auf vielen Hallenständen nicht zugelassen.</p>
+        <svg class="versus-anim" id="steelAnim" viewBox="0 0 300 130" aria-hidden="true">
+          <rect x="210" y="15" width="16" height="100" rx="2" fill="#33404f"/>
+          <line x1="20" y1="65" x2="200" y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 6"/>
+          <circle id="steelBullet" cx="20" cy="65" r="5" fill="#fff"/>
+          <g id="steelSparks" stroke="var(--c-warn)" stroke-width="2" stroke-linecap="round" opacity="0">
+            <line x1="208" y1="65" x2="170" y2="40"/>
+            <line x1="208" y1="65" x2="165" y2="65"/>
+            <line x1="208" y1="65" x2="172" y2="92"/>
+            <line x1="208" y1="65" x2="185" y2="28"/>
+            <line x1="208" y1="65" x2="185" y2="104"/>
+          </g>
+        </svg>
+      </div>
+      <div class="versus-mid"><span>vs</span></div>
+      <div class="versus-col moa">
+        <span class="tag">1MOA Polymer</span>
+        <h3>Sauberer Durchschuss</h3>
+        <p>Das Geschoss tritt sauber durch und der Kanal versiegelt sich. Sicher auf kurze Distanz, auch im geschlossenen Stand.</p>
+        <svg class="versus-anim" id="moaAnim" viewBox="0 0 300 130" aria-hidden="true">
+          <rect x="140" y="15" width="18" height="100" rx="3" fill="#16294a" stroke="rgba(91,164,230,0.4)"/>
+          <line x1="20" y1="65" x2="280" y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 6"/>
+          <circle id="moaBullet" cx="20" cy="65" r="5" fill="#fff"/>
+          <circle id="moaSeal" cx="149" cy="65" r="0" fill="none" stroke="var(--c-heal)" stroke-width="2.5" opacity="0"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 3 · FEATURE GRID ═══════════════════════════ -->
+<section id="features">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Das Produkt</span>
+      <h2 class="section-title">Vier Eigenschaften, ein System.</h2>
+      <p>Selbstheilend, nachhaltig, schwer entflammbar und behördentauglich — entwickelt für den realen Einsatz.</p>
+    </div>
+    <div class="feature-grid" id="featureGrid">
+      <article class="feature reveal" tabindex="0" data-anim="heal">
+        <svg class="feature-icon" viewBox="0 0 56 56" aria-hidden="true">
+          <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(91,164,230,0.3)" stroke-width="2"/>
+          <circle class="fx-hole" cx="28" cy="28" r="10" fill="#02060c"/>
+          <circle class="fx-pin" cx="28" cy="28" r="2" fill="var(--c-heal)"/>
+        </svg>
+        <span class="feature-num">01</span>
+        <h3>Selbstheilend</h3>
+        <p>Der Einschuss schließt sich zur Pinhole. Über tausende Schuss formstabil.</p>
+      </article>
+      <article class="feature reveal" tabindex="0" data-anim="recycle">
+        <svg class="feature-icon" viewBox="0 0 56 56" aria-hidden="true">
+          <g class="fx-spin" style="transform-origin:28px 28px">
+            <path d="M28 10 A18 18 0 0 1 44 38" fill="none" stroke="var(--c-heal)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M44 38 l-2 -8 l8 2 z" fill="var(--c-heal)"/>
+            <path d="M28 46 A18 18 0 0 1 12 18" fill="none" stroke="var(--nato-accent)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M12 18 l2 8 l-8 -2 z" fill="var(--nato-accent)"/>
+          </g>
+        </svg>
+        <span class="feature-num">02</span>
+        <h3>Nachhaltig</h3>
+        <p>Bio-basiertes bzw. recyceltes Polymer. Recyclingfähig. Gefertigt in der EU.</p>
+      </article>
+      <article class="feature reveal" tabindex="0" data-anim="flame">
+        <svg class="feature-icon" viewBox="0 0 56 56" aria-hidden="true">
+          <path class="fx-flame" d="M28 12 C34 22 40 26 40 34 a12 12 0 0 1 -24 0 c0 -6 4 -10 6 -14 c1 4 3 6 6 6 c0 -6 -4 -8 -0 -14 z" fill="var(--c-warn)" style="transform-origin:28px 40px"/>
+          <circle class="fx-safe" cx="28" cy="34" r="14" fill="none" stroke="var(--c-heal)" stroke-width="2" opacity="0"/>
+        </svg>
+        <span class="feature-num">03</span>
+        <h3>Schwer entflammbar</h3>
+        <p>Halogenfrei, selbstverlöschend. Entwickelt für geschlossene Schießstände. Ziel: UL-94 V-0.</p>
+      </article>
+      <article class="feature reveal" tabindex="0" data-anim="doc">
+        <svg class="feature-icon" viewBox="0 0 56 56" aria-hidden="true">
+          <rect x="16" y="10" width="24" height="32" rx="2" fill="none" stroke="rgba(91,164,230,0.4)" stroke-width="2"/>
+          <line x1="21" y1="18" x2="35" y2="18" stroke="var(--gray-500)" stroke-width="2"/>
+          <line x1="21" y1="24" x2="35" y2="24" stroke="var(--gray-500)" stroke-width="2"/>
+          <path class="fx-check" d="M21 33 l5 5 l10 -11" fill="none" stroke="var(--c-heal)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="30" stroke-dashoffset="30"/>
+        </svg>
+        <span class="feature-num">04</span>
+        <h3>Behördentauglich</h3>
+        <p>Prüfberichte, Datenblätter, reproduzierbare Standzeit. Ausschreibungs- und beschaffungsfähig.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 4 · SELBSTHEILUNG (scrub) ═══════════════════════════ -->
+<section id="heilung">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Selbstheilung</span>
+      <h2 class="section-title">Was beim Treffer passiert.</h2>
+    </div>
+    <div class="heal-wrap">
+      <div class="heal-sticky">
+        <div class="heal-figure">
+          <svg id="healDiagram" viewBox="0 0 320 320" role="img" aria-label="Diagramm des Einschusskanals, der sich vom offenen Loch zur Pinhole zusammenzieht.">
+            <defs>
+              <radialGradient id="healGrad" cx="50%" cy="50%" r="55%">
+                <stop offset="0%" stop-color="#16294a"/>
+                <stop offset="100%" stop-color="#0a1422"/>
+              </radialGradient>
+            </defs>
+            <rect x="20" y="20" width="280" height="280" rx="6" fill="url(#healGrad)" stroke="rgba(255,255,255,0.06)"/>
+            <!-- material texture lines -->
+            <g stroke="rgba(91,164,230,0.08)" stroke-width="1">
+              <line x1="20" y1="90" x2="300" y2="90"/>
+              <line x1="20" y1="160" x2="300" y2="160"/>
+              <line x1="20" y1="230" x2="300" y2="230"/>
+            </g>
+            <!-- channel -->
+            <circle id="healOuter" cx="160" cy="160" r="60" fill="#02060c"/>
+            <circle id="healInner" cx="160" cy="160" r="48" fill="none" stroke="var(--c-heal)" stroke-width="4" opacity="0.9"/>
+            <circle id="healPin" cx="160" cy="160" r="3" fill="var(--gold)"/>
+          </svg>
+          <div class="heal-progress-label" id="healLabel" aria-live="polite">01 — Impact</div>
+        </div>
+      </div>
+      <div class="heal-phases" id="healPhases">
+        <div class="heal-spacer" aria-hidden="true"></div>
+        <div class="heal-phase" data-phase="0">
+          <span class="num">01</span>
+          <h3>Impact</h3>
+          <p>Das Geschoss durchdringt das Elastomer. Es entsteht ein temporärer Kanal — ohne Absplitterung, ohne Rückschlag.</p>
+        </div>
+        <div class="heal-phase" data-phase="1">
+          <span class="num">02</span>
+          <h3>Rückstellung</h3>
+          <p>Das Material zieht sich elastisch zusammen. Die Polymerketten kehren in ihre Ausgangslage zurück.</p>
+        </div>
+        <div class="heal-phase" data-phase="2">
+          <span class="num">03</span>
+          <h3>Versiegelung</h3>
+          <p>Zurück bleibt nur ein Pinhole. Die Trefferfläche bleibt über tausende Schuss formstabil und reaktiv.</p>
+        </div>
+        <div class="heal-spacer" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 5 · MATERIAL ═══════════════════════════ -->
+<section id="material">
+  <div class="container">
+    <div class="material-wrap">
+      <div>
+        <div class="section-head reveal" style="margin-bottom:1.5rem">
+          <span class="eyebrow">Material &amp; Nachhaltigkeit</span>
+          <h2 class="section-title">Leistung, die nicht auf Kosten der Umwelt geht.</h2>
+        </div>
+        <p class="lead reveal">Wir setzen auf nachwachsende und recycelte Polymerbasis statt reiner Erdöl-Rohstoffe — ohne Abstriche bei Standzeit und Reaktivität.</p>
+        <div class="counters reveal" id="counters">
+          <div class="counter">
+            <div class="num"><span data-count="60" data-suffix="">0</span><span class="unit"> %</span></div>
+            <div class="cap">bio-basierter Kohlenstoffanteil (Ziel, ASTM-D6866)</div>
+          </div>
+          <div class="counter">
+            <div class="num"><span data-prefix="&gt; " data-count="20">0</span><span class="unit"> %</span></div>
+            <div class="cap">geringerer CO₂-Fußabdruck (Ziel)</div>
+          </div>
+          <div class="counter">
+            <div class="num"><span data-count="0">0</span></div>
+            <div class="cap">Halogene im Flammschutz</div>
+          </div>
+        </div>
+        <p class="material-note reveal">Alle Werte sind Ziel-/Entwicklungswerte bis zum Vorliegen geprüfter Nachweise.</p>
+      </div>
+      <div class="recycle-figure reveal">
+        <svg id="recycleSvg" viewBox="0 0 240 240" role="img" aria-label="Geschlossener Recycling-Kreislauf als animierte Linie.">
+          <circle cx="120" cy="120" r="92" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14"/>
+          <circle id="recycleArc" cx="120" cy="120" r="92" fill="none" stroke="var(--c-heal)" stroke-width="4"
+                  stroke-linecap="round" transform="rotate(-90 120 120)"
+                  stroke-dasharray="578" stroke-dashoffset="578"/>
+          <g transform="translate(120 120)" fill="none" stroke="var(--nato-accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M-26 -6 l10 -16 l10 16" />
+            <path d="M28 -2 l-2 18 l-18 -4" />
+            <path d="M-14 26 l-12 -14 l18 -6" />
+          </g>
+          <text x="120" y="126" text-anchor="middle" font-family="var(--font-mono)" font-size="13" fill="var(--gray-300)" letter-spacing="2">RECYCLEBAR</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 6 · BRANDSCHUTZ ═══════════════════════════ -->
+<section id="brandschutz">
+  <div class="container">
+    <div class="fire-wrap">
+      <div class="fire-figure reveal">
+        <svg id="fireSvg" viewBox="0 0 240 260" role="img" aria-label="Eine Flamme an der Materialkante lodert auf und verlischt, ohne das Material zu entzünden.">
+          <!-- material edge -->
+          <rect x="40" y="180" width="160" height="60" rx="4" fill="#16294a" stroke="rgba(91,164,230,0.3)"/>
+          <rect x="40" y="180" width="160" height="6" fill="rgba(91,164,230,0.45)"/>
+          <!-- flame -->
+          <g id="flameGroup" style="transform-origin:120px 180px">
+            <path id="flameOuter" d="M120 60 C150 110 168 130 168 162 a48 48 0 0 1 -96 0 c0 -24 16 -40 24 -56 c4 16 12 24 24 24 c0 -24 -16 -32 0 -56 z" fill="var(--c-warn)" opacity="0.9"/>
+            <path id="flameInner" d="M120 110 C134 134 142 142 142 158 a22 22 0 0 1 -44 0 c0 -12 8 -20 12 -28 c2 8 6 12 12 12 c0 -12 -8 -16 0 -28 z" fill="#ffd9a8" opacity="0.9"/>
+          </g>
+          <!-- safe pulse -->
+          <circle id="firePulse" cx="120" cy="200" r="20" fill="none" stroke="var(--c-heal)" stroke-width="3" opacity="0"/>
+        </svg>
+      </div>
+      <div>
+        <div class="section-head reveal" style="margin-bottom:1.5rem">
+          <span class="eyebrow">Brandschutz</span>
+          <h2 class="section-title">Im geschlossenen Stand zuhause.</h2>
+        </div>
+        <p class="lead reveal">Halogenfreier Flammschutz mit geringer Rauchgasentwicklung. Das Material ist selbstverlöschend ausgelegt — für Hallen, Tunnel und Hochsicherheitsumgebungen.</p>
+        <span class="fire-badge reveal">selbstverlöschend — Ziel UL-94 V-0</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 7 · SPECS ═══════════════════════════ -->
+<section id="specs">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Technisches Datenblatt</span>
+      <h2 class="section-title">Spezifikation auf einen Blick.</h2>
+    </div>
+    <div class="reveal">
+      <table class="specs-table">
+        <caption>Zielspezifikation — Werte mit „Ziel" sind Entwicklungs-/Zielwerte bis zum Vorliegen geprüfter Nachweise.</caption>
+        <tbody>
+          <tr><th scope="row">Materialklasse</th><td>Selbstheilendes Elastomer (bio-/recyclingbasiert)</td></tr>
+          <tr><th scope="row">Selbstheilung</th><td>Einschuss versiegelt zur Pinhole</td></tr>
+          <tr><th scope="row">Kaliberspektrum</th><td>KK/.22 · 9 mm · bis .223/5,56 mm</td></tr>
+          <tr><th scope="row">Standzeit</th><td>≥ 1.000 Schuss/Platte <span class="spec-badge">Ziel</span></td></tr>
+          <tr><th scope="row">Brandschutz</th><td>Halogenfrei, UL-94 V-0 angestrebt <span class="spec-badge">Ziel</span></td></tr>
+          <tr><th scope="row">Bio-Anteil</th><td>bis ~60 % (ASTM-D6866) <span class="spec-badge">Ziel</span></td></tr>
+          <tr><th scope="row">Temperatur</th><td>−20 °C bis +60 °C (Outdoor)</td></tr>
+          <tr><th scope="row">Fertigung</th><td>EU / „engineered in Germany"</td></tr>
+          <tr><th scope="row">Konformität</th><td>REACH / RoHS <span class="spec-badge">in Prüfung</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 8 · EINSATZBEREICHE ═══════════════════════════ -->
+<section id="einsatz">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="eyebrow">Einsatzbereiche</span>
+      <h2 class="section-title">Entwickelt für anspruchsvolle Anwender.</h2>
+    </div>
+    <div class="use-grid">
+      <article class="use-card reveal">
+        <svg class="ico" viewBox="0 0 44 44" aria-hidden="true"><path d="M22 6 l14 6 v10 c0 9 -6 14 -14 16 c-8 -2 -14 -7 -14 -16 V12 z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg>
+        <h3>Behörden &amp; Polizei</h3>
+        <p>Reproduzierbare Standzeit und dokumentierte Prüfwerte für beschaffungs- und ausschreibungsfähige Trainingsmittel.</p>
+      </article>
+      <article class="use-card reveal">
+        <svg class="ico" viewBox="0 0 44 44" aria-hidden="true"><path d="M8 30 L22 8 L36 30 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="8" y1="36" x2="36" y2="36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <h3>Bundeswehr</h3>
+        <p>Robuste Reaktivziele für Schießausbildung und Übungsbetrieb — auch unter Outdoor-Bedingungen von −20 °C bis +60 °C.</p>
+      </article>
+      <article class="use-card reveal">
+        <svg class="ico" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="15" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="22" r="7" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="22" r="1.5" fill="currentColor"/></svg>
+        <h3>Sport &amp; gewerbliche Stände</h3>
+        <p>Schwer entflammbar und splatterarm — ausgelegt für geschlossene Schießstände und anspruchsvolle Sportschützen.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 9 · ANFRAGE ═══════════════════════════ -->
+<section id="anfrage">
+  <div class="container">
+    <div class="contact-wrap">
+      <div class="contact-intro">
+        <div class="section-head reveal" style="margin-bottom:1rem">
+          <span class="eyebrow">Anfrage</span>
+          <h2 class="section-title">Fordern Sie das technische Datenblatt an.</h2>
+        </div>
+        <p class="lead reveal">Für Behörden, Bundeswehr und gewerbliche Stände. Wir beraten zu Kalibern, Standzeiten, Brandschutzklasse und Mustermengen.</p>
+        <ul class="contact-points reveal">
+          <li>Datenblätter &amp; Prüfberichte (soweit verfügbar)</li>
+          <li>Beratung zu Kaliber- und Standzeit-Anforderungen</li>
+          <li>Mustermengen &amp; Pilotierung auf Anfrage</li>
+        </ul>
+      </div>
+      <form class="contact-form reveal" id="contactForm" novalidate>
+        <div class="form-row">
+          <div class="field">
+            <label for="f-org">Organisation</label>
+            <input type="text" id="f-org" name="organisation" autocomplete="organization" required>
+            <span class="err">Bitte Organisation angeben.</span>
+          </div>
+          <div class="field">
+            <label for="f-name">Name</label>
+            <input type="text" id="f-name" name="name" autocomplete="name" required>
+            <span class="err">Bitte Namen angeben.</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="f-mail">E-Mail</label>
+            <input type="email" id="f-mail" name="email" autocomplete="email" required>
+            <span class="err">Bitte gültige E-Mail angeben.</span>
+          </div>
+          <div class="field">
+            <label for="f-use">Anwendung</label>
+            <select id="f-use" name="anwendung" required>
+              <option value="">— Bitte wählen —</option>
+              <option>Behörde</option>
+              <option>Bundeswehr</option>
+              <option>Sport</option>
+              <option>Gewerblicher Stand</option>
+            </select>
+            <span class="err">Bitte Anwendung wählen.</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-msg">Nachricht</label>
+          <textarea id="f-msg" name="nachricht" placeholder="Kaliber, Stückzahl, Einsatzkontext …"></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%">Anfrage senden</button>
+        <div class="form-success" id="formSuccess" role="status">Anfrage gesendet. Wir melden uns mit Datenblatt und Beratung.</div>
+        <p class="form-note">Hinweis: Frontend-Demo ohne Versand. Anbindung an E-Mail/Endpoint erfolgt nach Freigabe. Keine externen Tracking- oder Font-Requests.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#hero" class="brand" aria-label="1MOA Startseite">
+          <span class="brand-mark">1M</span>
+          <span class="brand-text">1<span>MOA</span></span>
+        </a>
+        <p>Präzision für den Einsatz. Selbstheilende, nachhaltige Reaktiv-Zielscheiben — entwickelt in Deutschland, gefertigt in der EU.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Produkt</h4>
+        <a href="#vergleich">Vorteil</a>
+        <a href="#features">Eigenschaften</a>
+        <a href="#specs">Datenblatt</a>
+        <a href="#brandschutz">Brandschutz</a>
+      </div>
+      <div class="footer-col">
+        <h4>Unternehmen</h4>
+        <a href="../gov/">1MOA Government</a>
+        <a href="#anfrage">Kontakt</a>
+        <a href="../impressum/">Impressum</a>
+        <a href="#">Datenschutz</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 1MOA · Teil der Snowflake-Ventures-Gruppe. Alle Rechte vorbehalten.</p>
+      <p>Alle Leistungsangaben sind Ziel-/Entwicklungswerte bis zum Vorliegen geprüfter Nachweise.</p>
+    </div>
+  </div>
+</footer>
+
+<script id="config">
+/* ════════════════════════════════════════════════════════════════════
+   ZENTRALE KONFIGURATION
+   Produktname, Tagline und Schlüssel-Claims hier ändern – sie werden in
+   alle [data-cfg]-Slots eingesetzt. Produktname ist noch nicht final
+   (§9 Briefing); Platzhalter unten anpassen, sobald Markenclearing steht.
+   ════════════════════════════════════════════════════════════════════ */
+window.MOA_CONFIG = {
+  productName: "1MOA Reaktiv-Ziel",   // Platzhalter – z. B. REVIRO / SANARA
+  tagline: "Präzision für den Einsatz.",
+  claimHeal: "Durchschuss statt Querschläger.",
+  contactEndpoint: ""                  // leer = nur Frontend-Demo
+};
+document.querySelectorAll("[data-cfg]").forEach(function (el) {
+  var key = el.getAttribute("data-cfg");
+  if (window.MOA_CONFIG[key]) el.textContent = window.MOA_CONFIG[key];
+});
+</script>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   INTERAKTION & ANIMATIONEN  (Vanilla JS, keine externen Libraries)
+   ════════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var isMobile = window.matchMedia("(max-width: 680px)").matches;
+
+  /* ---------- Sticky header blur after 80px ---------- */
+  var header = document.getElementById("siteHeader");
+  function onScrollHeader() { header.classList.toggle("scrolled", window.scrollY > 80); }
+  onScrollHeader();
+  window.addEventListener("scroll", onScrollHeader, { passive: true });
+
+  /* ---------- Mobile nav ---------- */
+  var navToggle = document.getElementById("navToggle");
+  var nav = document.getElementById("primaryNav");
+  navToggle.addEventListener("click", function () {
+    var open = nav.classList.toggle("open");
+    navToggle.classList.toggle("open", open);
+    navToggle.setAttribute("aria-expanded", String(open));
+    navToggle.setAttribute("aria-label", open ? "Menü schließen" : "Menü öffnen");
+  });
+  nav.querySelectorAll("a").forEach(function (a) {
+    a.addEventListener("click", function () {
+      nav.classList.remove("open"); navToggle.classList.remove("open");
+      navToggle.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  /* ---------- Generic reveal-on-scroll ---------- */
+  var revealObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add("is-visible"); revealObserver.unobserve(e.target); }
+    });
+  }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
+  document.querySelectorAll(".reveal").forEach(function (el, i) {
+    // stagger feature tiles
+    if (el.classList.contains("feature")) el.style.transitionDelay = (i % 4 * 80) + "ms";
+    revealObserver.observe(el);
+  });
+  // also mark eyebrows inside revealed heads
+  document.querySelectorAll(".section-head .eyebrow").forEach(function (eb) {
+    revealObserver.observe(eb);
+    eb.addEventListener("transitionstart", function () {}); // noop, kept simple
+  });
+  var ebObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("is-visible"); ebObserver.unobserve(e.target); } });
+  }, { threshold: 0.6 });
+  document.querySelectorAll(".eyebrow:not(.is-visible)").forEach(function (eb) { ebObserver.observe(eb); });
+
+  /* ════════════ A · HERO SIGNATURE LOOP ════════════ */
+  (function heroAnim() {
+    var bullet = document.getElementById("heroBullet");
+    var flash = document.getElementById("heroFlash");
+    var hole = document.getElementById("heroHole");
+    var seal = document.getElementById("heroSeal");
+    if (!bullet) return;
+
+    if (reduceMotion) {
+      // static end state: sealed pinhole
+      hole.setAttribute("r", "1.5");
+      seal.setAttribute("r", "3"); seal.setAttribute("opacity", "0.8");
+      return;
+    }
+
+    var raf;
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+    function easeMech(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+
+    var TARGET_X = 244, TARGET_Y = 170, START_X = -40;
+
+    function run() {
+      var t0 = performance.now();
+      // phase durations (ms): travel, flash, heal, pause
+      var TRAVEL = 360, FLASH = 200, HEAL = 900, PAUSE = 4000;
+      function frame(now) {
+        var t = now - t0;
+        if (t < TRAVEL) {
+          var p = easeMech(t / TRAVEL);
+          bullet.setAttribute("opacity", "1");
+          bullet.setAttribute("cx", lerp(START_X, TARGET_X, p));
+          hole.setAttribute("r", "0"); flash.setAttribute("opacity", "0"); seal.setAttribute("opacity", "0");
+        } else if (t < TRAVEL + FLASH) {
+          var pf = (t - TRAVEL) / FLASH;
+          bullet.setAttribute("opacity", "0");
+          flash.setAttribute("opacity", String(1 - pf));
+          flash.setAttribute("r", String(lerp(8, 26, pf)));
+          hole.setAttribute("r", "10");
+        } else if (t < TRAVEL + FLASH + HEAL) {
+          var ph = easeOut((t - TRAVEL - FLASH) / HEAL);
+          flash.setAttribute("opacity", "0");
+          hole.setAttribute("r", String(lerp(10, 1.4, ph)));
+          seal.setAttribute("opacity", String(0.9 * (1 - ph) + 0.2));
+          seal.setAttribute("r", String(lerp(12, 3, ph)));
+        } else if (t < TRAVEL + FLASH + HEAL + PAUSE) {
+          hole.setAttribute("r", "1.4");
+          seal.setAttribute("r", "3"); seal.setAttribute("opacity", "0.35");
+        } else {
+          run(); return; // loop
+        }
+        raf = requestAnimationFrame(frame);
+      }
+      raf = requestAnimationFrame(frame);
+    }
+
+    // Only loop when hero in view (perf); run once then keep looping while visible
+    var heroVisible = true;
+    var heroIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        heroVisible = e.isIntersecting;
+        if (heroVisible && !raf) run();
+        if (!heroVisible && raf) { cancelAnimationFrame(raf); raf = null; }
+      });
+    }, { threshold: 0.1 });
+    heroIO.observe(document.getElementById("hero"));
+    run();
+
+    /* Parallax: target drifts slightly against scroll */
+    var fig = document.getElementById("heroFigure");
+    var grid = document.getElementById("heroGrid");
+    window.addEventListener("scroll", function () {
+      if (window.scrollY > window.innerHeight) return;
+      var y = window.scrollY * 0.08;
+      fig.style.transform = "translateY(" + y + "px)";
+      grid.style.transform = "translateY(" + (window.scrollY * 0.04) + "px)";
+    }, { passive: true });
+  })();
+
+  /* ════════════ B · STEEL vs 1MOA ════════════ */
+  (function versusAnim() {
+    var section = document.getElementById("versus");
+    if (!section) return;
+    var steelBullet = document.getElementById("steelBullet");
+    var steelSparks = document.getElementById("steelSparks");
+    var moaBullet = document.getElementById("moaBullet");
+    var moaSeal = document.getElementById("moaSeal");
+
+    function setStatic() {
+      steelBullet.setAttribute("cx", "20"); steelSparks.setAttribute("opacity", "0.9");
+      moaBullet.setAttribute("cx", "280"); moaSeal.setAttribute("r", "5"); moaSeal.setAttribute("opacity", "0.7");
+    }
+    if (reduceMotion) { setStatic(); return; }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function play() {
+      var t0 = performance.now();
+      function frame(now) {
+        var t = now - t0;
+        // steel bullet -> impact at x=200, then sparks + recoil back
+        if (t < 500) {
+          steelBullet.setAttribute("cx", String(lerp(20, 200, t / 500)));
+          steelSparks.setAttribute("opacity", "0");
+        } else if (t < 900) {
+          var ps = (t - 500) / 400;
+          steelSparks.setAttribute("opacity", String(1 - ps * 0.4));
+          steelBullet.setAttribute("cx", String(lerp(200, 150, ps))); // recoil back
+        } else { steelBullet.setAttribute("cx", "150"); steelSparks.setAttribute("opacity", "0.5"); }
+
+        // moa bullet passes through x=149, seal closes
+        if (t < 700) {
+          moaBullet.setAttribute("cx", String(lerp(20, 280, t / 700)));
+          if (t > 350) { moaSeal.setAttribute("opacity", "0.9"); moaSeal.setAttribute("r", String(lerp(8, 4, (t-350)/350))); }
+        } else { moaSeal.setAttribute("r", "4"); moaSeal.setAttribute("opacity", "0.7"); moaBullet.setAttribute("cx", "280"); }
+
+        if (t < 1200) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { play(); io.unobserve(e.target); } });
+    }, { threshold: 0.6 });
+    io.observe(section);
+  })();
+
+  /* ════════════ C · FEATURE HOVER MICRO-ANIM ════════════ */
+  (function featureHover() {
+    document.querySelectorAll(".feature").forEach(function (card) {
+      var type = card.getAttribute("data-anim");
+      function trigger() {
+        if (reduceMotion) return;
+        if (type === "heal") {
+          var hole = card.querySelector(".fx-hole");
+          hole.animate([{ r: 10 }, { r: 2 }], { duration: 700, easing: "cubic-bezier(0.16,1,0.3,1)", fill: "forwards" });
+        } else if (type === "recycle") {
+          card.querySelector(".fx-spin").animate([{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], { duration: 900, easing: "cubic-bezier(0.7,0,0.3,1)" });
+        } else if (type === "flame") {
+          var fl = card.querySelector(".fx-flame"), safe = card.querySelector(".fx-safe");
+          fl.animate([{ transform: "scaleY(1)", opacity: 1 }, { transform: "scaleY(1.25)", opacity: 1, offset: 0.4 }, { transform: "scaleY(0.1)", opacity: 0 }], { duration: 900, easing: "ease-in", fill: "forwards" });
+          safe.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.7 }, { opacity: 0.4 }], { duration: 1100 });
+        } else if (type === "doc") {
+          card.querySelector(".fx-check").animate([{ strokeDashoffset: 30 }, { strokeDashoffset: 0 }], { duration: 600, easing: "ease-out", fill: "forwards" });
+        }
+      }
+      card.addEventListener("mouseenter", trigger);
+      card.addEventListener("focus", trigger);
+    });
+  })();
+
+  /* ════════════ D · SELBSTHEILUNG SCROLL-SCRUB ════════════ */
+  (function healScrub() {
+    var section = document.getElementById("heilung");
+    var outer = document.getElementById("healOuter");
+    var inner = document.getElementById("healInner");
+    var seal = document.getElementById("healSeal");
+    var label = document.getElementById("healLabel");
+    var phases = Array.prototype.slice.call(document.querySelectorAll(".heal-phase"));
+    if (!section) return;
+
+    var labels = ["01 — Impact", "02 — Rückstellung", "03 — Versiegelung"];
+    function apply(p) { // p: 0..1
+      var rOuter = 60 - 57 * p;          // 60 -> 3
+      var rInner = 48 - 45 * p;          // 48 -> 3
+      outer.setAttribute("r", String(Math.max(2, rOuter)));
+      inner.setAttribute("r", String(Math.max(2, rInner)));
+      inner.setAttribute("opacity", String(0.9));
+      var idx = p < 0.4 ? 0 : (p < 0.8 ? 1 : 2);
+      label.textContent = labels[idx];
+      phases.forEach(function (ph) {
+        ph.classList.toggle("active", Number(ph.getAttribute("data-phase")) === idx);
+      });
+    }
+
+    if (reduceMotion) { apply(1); return; }
+
+    function onScroll() {
+      var rect = section.getBoundingClientRect();
+      var vh = window.innerHeight;
+      // progress as section scrolls through viewport
+      var total = rect.height - vh;
+      var scrolled = -rect.top;
+      var p = total > 0 ? scrolled / total : 0;
+      p = Math.min(1, Math.max(0, p));
+      apply(p);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+  })();
+
+  /* ════════════ E · COUNT-UP + RECYCLE STROKE ════════════ */
+  (function counters() {
+    var section = document.getElementById("counters");
+    if (!section) return;
+    var nums = section.querySelectorAll("[data-count]");
+    var arc = document.getElementById("recycleArc");
+
+    function runCount() {
+      nums.forEach(function (el) {
+        var target = parseInt(el.getAttribute("data-count"), 10);
+        var prefix = el.getAttribute("data-prefix") || "";
+        if (reduceMotion || target === 0) { el.innerHTML = prefix + target; return; }
+        var t0 = performance.now(), dur = 1200;
+        function step(now) {
+          var p = Math.min(1, (now - t0) / dur);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.innerHTML = prefix + Math.round(target * eased);
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+      if (arc) {
+        if (reduceMotion) { arc.style.strokeDashoffset = "0"; }
+        else { arc.style.transition = "stroke-dashoffset 1400ms cubic-bezier(0.16,1,0.3,1)"; arc.style.strokeDashoffset = "0"; }
+      }
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { runCount(); io.unobserve(e.target); } });
+    }, { threshold: 0.4 });
+    io.observe(section);
+  })();
+
+  /* ════════════ F · BRANDSCHUTZ FLAME EXTINGUISH ════════════ */
+  (function fireAnim() {
+    var svg = document.getElementById("fireSvg");
+    var group = document.getElementById("flameGroup");
+    var inner = document.getElementById("flameInner");
+    var pulse = document.getElementById("firePulse");
+    if (!svg) return;
+
+    if (reduceMotion) { group.style.opacity = "0"; pulse.setAttribute("opacity", "0.5"); return; }
+
+    function play() {
+      group.animate([
+        { transform: "scaleY(0.2)", opacity: 0.4 },
+        { transform: "scaleY(1.05)", opacity: 1, offset: 0.35 },
+        { transform: "scaleY(0.9)", opacity: 1, offset: 0.6 },
+        { transform: "scaleY(0.05)", opacity: 0 }
+      ], { duration: 2600, easing: "ease-in-out", fill: "forwards" });
+      inner.animate([{ opacity: 0.9 }, { opacity: 1, offset: 0.4 }, { opacity: 0 }], { duration: 2400, fill: "forwards" });
+      pulse.animate([
+        { opacity: 0, r: 14 },
+        { opacity: 0, r: 14, offset: 0.7 },
+        { opacity: 0.8, r: 30, offset: 0.85 },
+        { opacity: 0, r: 40 }
+      ], { duration: 3000 });
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { play(); io.unobserve(e.target); } });
+    }, { threshold: 0.5 });
+    io.observe(svg);
+  })();
+
+  /* ════════════ FORM VALIDATION + SUCCESS ════════════ */
+  (function contactForm() {
+    var form = document.getElementById("contactForm");
+    if (!form) return;
+    var success = document.getElementById("formSuccess");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var valid = true;
+      form.querySelectorAll("[required]").forEach(function (input) {
+        var field = input.closest(".field");
+        var ok = input.checkValidity() && input.value.trim() !== "";
+        field.classList.toggle("invalid", !ok);
+        if (!ok && valid) { input.focus(); }
+        if (!ok) valid = false;
+      });
+      if (!valid) return;
+      // Frontend demo only — no backend send without sign-off (see config.contactEndpoint)
+      success.classList.add("show");
+      form.querySelectorAll("input, select, textarea").forEach(function (el) { el.value = ""; });
+      success.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+    });
+    form.querySelectorAll("input, select, textarea").forEach(function (el) {
+      el.addEventListener("input", function () { el.closest(".field").classList.remove("invalid"); });
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>
