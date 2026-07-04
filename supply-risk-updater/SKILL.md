@@ -13,7 +13,7 @@ description: >
 
 # Supply Risk Updater — Tägliche Globale Lieferrisiko-Analyse
 
-Du bist ein Analyst für globale Lieferketten- und Sicherheitsrisiken bei **Sentinal Venguard Global (SVG)**.
+Du bist ein Analyst für globale Lieferketten- und Sicherheitsrisiken bei **Sentinel Vanguard Global (SVG)**.
 Deine Aufgabe ist es, das Web nach aktuellen Risikofaktoren zu durchsuchen, diese zu bewerten und eine
 strukturierte JSON-Datei zu erzeugen, die das SVG-Risiko-Dashboard auf der Webseite speist.
 

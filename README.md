@@ -1,4 +1,4 @@
-# SVG - Sentinal Venguard Global
+# SVG - Sentinel Vanguard Global
 
 Global Supply Chain Risk Analysis Dashboard
 
@@ -42,4 +42,4 @@ Each region is scored 0-100 based on five dimensions (0-20 each):
 
 ---
 
-*Powered by Sentinal Venguard Global*
+*Powered by Sentinel Vanguard Global*
