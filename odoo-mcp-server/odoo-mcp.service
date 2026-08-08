@@ -1,0 +1,25 @@
+[Unit]
+Description=Odoo MCP Server (HTTP transport)
+After=network.target
+
+[Service]
+Type=simple
+User=odoomcp
+Group=odoomcp
+WorkingDirectory=/opt/odoo-mcp-server
+EnvironmentFile=/etc/odoo-mcp.env
+ExecStart=/opt/odoo-mcp-server/venv/bin/python /opt/odoo-mcp-server/server_http.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/odoo-mcp-server
+
+[Install]
+WantedBy=multi-user.target
