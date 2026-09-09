@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inventarverwaltung · Snowflake Ventures</title>
+<meta name="description" content="Inventar der Snowflake Ventures und ihrer Tochtergesellschaften, mit QR- und NFC-Kennzeichnung.">
+<meta name="theme-color" content="#FBFAF8">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="masthead">
+  <span><strong>Snowflake Ventures</strong><span class="suffix"> · Inventar</span></span>
+  <span class="who"><span id="who"></span><a href="#" id="b-logout" class="plain">Abmelden</a></span>
+</header>
+
+<nav class="nav" id="nav" hidden aria-label="Hauptbereiche">
+  <a href="#/" class="plain">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+    <span>Start</span></a>
+  <a href="#/inventar" class="plain">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <span>Inventar</span></a>
+  <a href="#/scan" class="plain">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 011-1h3"/><path d="M20 8V5a1 1 0 00-1-1h-3"/><path d="M4 16v3a1 1 0 001 1h3"/><path d="M20 16v3a1 1 0 01-1 1h-3"/><path d="M4 12h16"/></svg>
+    <span>Scannen</span></a>
+  <a href="#/neu" class="plain">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    <span>Erfassen</span></a>
+  <a href="#/faellig" class="plain">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="1"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+    <span>Fristen</span></a>
+  <a href="#/verwaltung" class="plain">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M18 6l-1.4 1.4M7.4 16.6L6 18"/></svg>
+    <span>Verwalten</span></a>
+</nav>
+
+<main class="wrap">
+  <div class="msg" id="msg" hidden role="status" aria-live="polite"></div>
+  <div id="view" class="view active"><p class="muted">Wird geladen …</p></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/db.js"></script>
+<script src="js/scan.js"></script>
+<script src="js/app.js"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* ohne geht es auch */ });
+    });
+  }
+</script>
+</body>
+</html>

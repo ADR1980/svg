@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Inventar Snowflake Ventures">
+  <rect width="512" height="512" fill="#FBFAF8"/>
+  <g stroke="#14161A" stroke-width="18" stroke-linecap="round" fill="none">
+    <path d="M256 108v296"/>
+    <path d="M128 182l256 148"/>
+    <path d="M128 330l256-148"/>
+    <path d="M256 152l-34 34M256 152l34 34"/>
+    <path d="M256 360l-34-34M256 360l34-34"/>
+  </g>
+  <rect x="150" y="404" width="212" height="26" fill="#1B3A5C"/>
+</svg>

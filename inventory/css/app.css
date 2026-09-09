@@ -1,0 +1,249 @@
+/* ==========================================================================
+   Inventarverwaltung Snowflake Ventures
+   Haus-Design: Tinte auf Papier. Ein Akzent, ein Signalton, sonst Grauwerte.
+   Mobil zuerst; ab 720 px kommt eine zweite Spalte dazu.
+   ========================================================================== */
+
+:root{
+  --paper:#FBFAF8; --paper-sunk:#F3F1EC;
+  --ink:#14161A; --ink-body:#2C3138; --ink-muted:#6E7278;
+  --rule:#DFDBD3; --accent:#1B3A5C; --signal:#A8442B;
+
+  --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:64px;
+  --nav-h:60px;
+  --tap:44px;                     /* kleinste Berührungsfläche */
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+
+/* Muss vor allen Regeln mit eigenem display stehen und muss !important sein:
+   .btn und .nav setzen display:flex und würden das hidden-Attribut sonst
+   überstimmen — der NFC-Knopf und die Fußnavigation tauchten dann auch dort
+   auf, wo sie nichts zu suchen haben. */
+[hidden]{display:none!important}
+
+body{
+  margin:0; background:var(--paper); color:var(--ink-body);
+  font-family:var(--serif); font-size:16px; line-height:1.55;
+  font-feature-settings:"kern" 1,"liga" 1;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+}
+
+h1,h2,h3{font-family:var(--sans); color:var(--ink); font-weight:600;
+  letter-spacing:-.021em; line-height:1.15; margin:0}
+h1{font-size:26px; margin-bottom:var(--s2)}
+h2{font-size:20px; margin-top:var(--s4); margin-bottom:var(--s1)}
+h3{font-size:16px; margin-top:var(--s3); margin-bottom:var(--s1); font-weight:500}
+p{margin:0 0 var(--s2)}
+
+.label{font-family:var(--mono); font-size:11px; text-transform:uppercase;
+  letter-spacing:.14em; color:var(--ink-muted); margin:0 0 6px}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-muted)}
+.signal{color:var(--signal)}
+.lead{font-size:16px; color:var(--ink); margin-bottom:var(--s3)}
+
+a{color:var(--accent); text-decoration:none;
+  border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+a:hover{border-bottom-color:var(--accent)}
+a.plain,a.plain:hover{border-bottom:0}
+
+hr{border:0; border-top:1px solid var(--rule); margin:var(--s3) 0}
+
+/* --- Gerüst ------------------------------------------------------------- */
+.wrap{max-width:960px; margin:0 auto; padding:0 var(--s2)}
+
+.masthead{
+  position:sticky; top:0; z-index:40; background:var(--paper);
+  border-bottom:1px solid var(--ink);
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--s2);
+  padding:14px var(--s2) 10px;
+  font-family:var(--mono); font-size:11px; text-transform:uppercase;
+  letter-spacing:.14em; color:var(--ink-muted);
+}
+.masthead strong{color:var(--ink); font-weight:500}
+.masthead .who{text-align:right; line-height:1.5; text-transform:none; letter-spacing:.02em;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+.masthead select{
+  width:auto; max-width:min(44vw, 260px); min-height:0; padding:2px 0; font-size:12px;
+  font-family:var(--mono); color:var(--ink); border-bottom:1px solid var(--rule)}
+.masthead #who{display:flex; align-items:center; gap:10px; min-width:0}
+.masthead .mail{max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.masthead .suffix{white-space:nowrap}
+@media(max-width:559px){.masthead .suffix{display:none}}
+
+.view{display:none; padding:var(--s3) 0 var(--s4)}
+.view.active{display:block}
+
+/* --- Fußnavigation ------------------------------------------------------- */
+.nav{
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  display:flex; background:var(--paper); border-top:1px solid var(--rule);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav a{
+  flex:1; min-width:0; min-height:var(--tap); border-bottom:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  padding:8px 1px; color:var(--ink-muted);
+  font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.02em;
+}
+.nav a span{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nav a[aria-current="page"]{color:var(--accent)}
+.nav svg{width:19px; height:19px; stroke:currentColor; stroke-width:1.25;
+  fill:none; stroke-linecap:round; stroke-linejoin:round}
+
+/* --- Kennzahlen ---------------------------------------------------------- */
+.stats{display:flex; flex-wrap:wrap; gap:var(--s3) var(--s4); margin:var(--s3) 0 var(--s4)}
+.stat{flex:1 1 40%; min-width:130px}
+@media(min-width:720px){.stats{gap:var(--s4) var(--s5)} .stat{flex:0 1 auto}}
+.stat .value{font-family:var(--sans); font-size:33px; font-weight:600; color:var(--ink);
+  letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1}
+.stat .note{font-size:14px; color:var(--ink-muted); margin-top:6px; max-width:26ch}
+.stat .value.neg{color:var(--signal)}
+
+/* --- Listen -------------------------------------------------------------- */
+.rows{border-top:1px solid var(--ink); margin:var(--s2) 0 var(--s3)}
+.row{
+  display:grid; grid-template-columns:1fr auto;
+  grid-template-areas:"t r" "m r" "x x";
+  gap:2px var(--s2);
+  padding:12px 0; border-bottom:1px solid var(--rule); color:inherit;
+}
+a.row{border-bottom:1px solid var(--rule)}
+a.row:hover{border-bottom-color:var(--ink)}
+.row .t{grid-area:t; font-size:16px; color:var(--ink); font-weight:400}
+.row .m{grid-area:m; font-family:var(--mono); font-size:11.5px; color:var(--ink-muted);
+  letter-spacing:.02em}
+.row .r{grid-area:r; align-self:center; text-align:right;
+  font-family:var(--mono); font-size:11px; color:var(--ink-muted);
+  text-transform:uppercase; letter-spacing:.1em; white-space:nowrap}
+.row .x{grid-area:x; margin-top:6px}
+.row .r.warn{color:var(--signal)}
+
+.empty{padding:var(--s4) 0; color:var(--ink-muted); font-style:italic}
+
+/* --- Tabelle (breite Ansicht) -------------------------------------------- */
+table{width:100%; border-collapse:collapse; margin:var(--s2) 0 var(--s3);
+  font-size:15px; font-variant-numeric:tabular-nums}
+thead th{font-family:var(--mono); font-size:11px; font-weight:500;
+  text-transform:uppercase; letter-spacing:.1em; color:var(--ink-muted);
+  text-align:left; padding:0 var(--s2) var(--s1) 0; border-bottom:1px solid var(--ink)}
+tbody td{padding:10px var(--s2) 10px 0; border-bottom:1px solid var(--rule); vertical-align:top}
+th.num,td.num{text-align:right; padding-right:0}
+.scroll-x{overflow-x:auto; -webkit-overflow-scrolling:touch}
+
+/* --- Datenliste (Detailansicht) ------------------------------------------ */
+dl.facts{margin:var(--s2) 0 var(--s3); border-top:1px solid var(--rule)}
+dl.facts>div{display:grid; grid-template-columns:minmax(120px,34%) 1fr; gap:var(--s2);
+  padding:9px 0; border-bottom:1px solid var(--rule)}
+dl.facts dt{font-family:var(--mono); font-size:11px; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-muted); margin:2px 0 0}
+dl.facts dd{margin:0; color:var(--ink)}
+
+/* --- Formular ------------------------------------------------------------ */
+.field{margin-bottom:var(--s2)}
+.field>label{display:block; font-family:var(--mono); font-size:11px; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-muted); margin-bottom:5px}
+input,select,textarea{
+  width:100%; min-height:var(--tap);
+  /* 16 px, sonst zoomt iOS-Safari beim Antippen in das Feld hinein */
+  font-size:16px; font-family:var(--serif); color:var(--ink);
+  background:var(--paper); border:0; border-bottom:1px solid var(--rule);
+  border-radius:0; padding:8px 0; -webkit-appearance:none; appearance:none;
+}
+textarea{min-height:88px; line-height:1.5; resize:vertical}
+select{background-image:none}
+input:focus,select:focus,textarea:focus{outline:none; border-bottom-color:var(--accent)}
+input[type=checkbox]{width:auto; min-height:0; margin-right:8px}
+.field.inline{display:flex; align-items:center; gap:8px}
+.field.inline>label{margin:0}
+.grid2{display:grid; gap:0 var(--s3)}
+@media(min-width:560px){.grid2{grid-template-columns:1fr 1fr}}
+
+input[type=file]{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
+label.filebtn{
+  display:inline-flex; align-items:center; min-height:var(--tap); padding:10px 18px;
+  border:1px solid var(--rule); border-radius:2px; color:var(--ink-muted); cursor:pointer;
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+}
+label.filebtn:hover{border-color:var(--accent); color:var(--accent)}
+
+/* --- Knöpfe -------------------------------------------------------------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:var(--tap); padding:10px 18px; border:1px solid var(--ink);
+  border-radius:2px; background:var(--paper); color:var(--ink); cursor:pointer;
+  font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.12em;
+}
+.btn:hover{border-color:var(--accent); color:var(--accent)}
+.btn.primary{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.btn.primary:hover{background:var(--accent); border-color:var(--accent); color:var(--paper)}
+.btn.quiet{border-color:var(--rule); color:var(--ink-muted)}
+.btn[disabled]{opacity:.45; cursor:default; pointer-events:none}
+.btn-row{display:flex; flex-wrap:wrap; gap:var(--s1); margin:var(--s3) 0}
+
+/* --- Filterleiste -------------------------------------------------------- */
+.filters{display:flex; flex-wrap:wrap; gap:var(--s1) var(--s2); align-items:end;
+  padding-bottom:var(--s2); border-bottom:1px solid var(--rule)}
+.filters .field{margin:0; flex:1 1 150px}
+.filters .field.search{flex:2 1 220px}
+
+/* --- Marken (Status, Kategorie) ------------------------------------------ */
+.tag{font-family:var(--mono); font-size:10px; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-muted); white-space:nowrap}
+.tag.warn{color:var(--signal)}
+
+/* --- Flach hinterlegter Block statt Karte --------------------------------- */
+.sunk{background:var(--paper-sunk); padding:var(--s2) var(--s3); margin:var(--s3) 0}
+.sunk p:last-child{margin-bottom:0}
+
+/* --- Meldungen ----------------------------------------------------------- */
+.msg{padding:10px 0; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+  margin:var(--s2) 0; font-size:15px}
+.msg.err{color:var(--signal); border-color:var(--signal)}
+
+/* --- Anmeldung ----------------------------------------------------------- */
+.login{max-width:360px; margin:0 auto; padding:var(--s5) 0}
+
+/* --- Scanner ------------------------------------------------------------- */
+#reader{margin:var(--s2) 0; background:var(--paper-sunk); min-height:220px}
+#reader video{width:100%!important; height:auto!important; display:block}
+
+/* --- QR im Detail --------------------------------------------------------- */
+.codeblock{display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap;
+  margin:var(--s3) 0; padding:var(--s2) 0; border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule)}
+.codeblock canvas{display:block; width:104px; height:104px; image-rendering:pixelated}
+
+/* --- Fotos ---------------------------------------------------------------- */
+.photos{display:flex; gap:var(--s1); flex-wrap:wrap; margin:var(--s2) 0}
+.photos img{width:104px; height:104px; object-fit:cover; display:block; border-radius:2px}
+
+/* --- Zeitachse ------------------------------------------------------------ */
+.timeline{border-top:1px solid var(--rule); margin-top:var(--s2)}
+.timeline div{padding:9px 0; border-bottom:1px solid var(--rule); font-size:15px}
+.timeline time{font-family:var(--mono); font-size:11px; color:var(--ink-muted);
+  letter-spacing:.02em; display:block}
+
+/* --- Ladeanzeige: die einzige Bewegung im ganzen Dokument ------------------ */
+.busy{opacity:0; animation:fade .18s ease-out forwards}
+@keyframes fade{to{opacity:1}}
+
+@media(prefers-reduced-motion:reduce){.busy{animation:none; opacity:1}}
+
+/* --- Größerer Bildschirm --------------------------------------------------- */
+@media(min-width:720px){
+  body{font-size:17px; padding-bottom:0}
+  .wrap{padding:0 var(--s4)}
+  h1{font-size:33px}
+  .nav{position:static; border-top:0; border-bottom:1px solid var(--rule);
+    justify-content:flex-start; gap:var(--s3); padding:0 var(--s4)}
+  .nav a{flex:0 0 auto; flex-direction:row; gap:7px; padding:14px 0;
+    font-size:10px; letter-spacing:.1em}
+}

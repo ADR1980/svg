@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etiketten drucken · Inventar Snowflake Ventures</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  /* Der Bogen selbst rechnet in Millimetern, damit gedruckt genau das
+     herauskommt, was auf dem Etikettenbogen steht. Alle Maße lassen sich
+     oben nachjustieren — Drucker verziehen gern um ein bis zwei Millimeter. */
+  .sheet{
+    background:#fff; width:210mm; min-height:297mm; margin:24px auto;
+    padding:var(--top) var(--side); box-sizing:border-box;
+    display:grid; grid-template-columns:repeat(var(--cols), var(--lw));
+    column-gap:var(--gap); row-gap:var(--rgap);
+    align-content:start; border:1px solid var(--rule);
+  }
+  .cell{
+    width:var(--lw); height:var(--lh); overflow:hidden;
+    display:flex; align-items:center; gap:2mm; padding:1.2mm 1.5mm;
+    box-sizing:border-box;
+  }
+  .cell.blank{visibility:hidden}
+  .cell canvas{flex:0 0 auto; display:block}
+  .cell .txt{min-width:0; line-height:1.15}
+  .cell .no{font-family:var(--mono); font-weight:500; color:#14161A;
+    letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cell .co{font-family:var(--mono); color:#6E7278; text-transform:uppercase;
+    letter-spacing:.1em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cell .nm{font-family:var(--serif); color:#2C3138;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .guides .cell{outline:.2mm dashed #DFDBD3; outline-offset:0}
+
+  @page{size:A4; margin:0}
+  @media print{
+    body{background:#fff; padding:0}
+    .noprint{display:none!important}
+    .sheet{margin:0; border:0; break-after:page}
+    .guides .cell{outline:0}
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead noprint">
+  <span><strong>Snowflake Ventures</strong> · Etiketten</span>
+  <span class="who"><a href="index.html" class="plain">Zurück zur Anwendung</a></span>
+</header>
+
+<main class="wrap noprint">
+  <div class="msg" id="msg" hidden role="status"></div>
+
+  <p class="label">Typenschild-Etiketten</p>
+  <h1>Aufkleber für das Inventar</h1>
+  <p class="lead">Beide Raster sind für Averys Typenschild-Folie gedacht: mattbeschichtetes
+     Polyester, öl-, UV- und wasserfest, −40 °C bis +150 °C. Vor dem ersten
+     Serienlauf einen Bogen auf normales Papier drucken und gegen die Folie halten;
+     Drucker verziehen gern um ein bis zwei Millimeter, dafür sind die Maßfelder da.</p>
+
+  <div class="filters">
+    <div class="field"><label for="l-raster">Raster</label>
+      <select id="l-raster">
+        <option value="L6009">L6009 · 45,7 × 21,2 mm · 48 je Bogen</option>
+        <option value="L6011">L6011 · 63,5 × 29,6 mm · 27 je Bogen</option>
+      </select></div>
+    <div class="field"><label for="l-firma">Gesellschaft</label><select id="l-firma"></select></div>
+    <div class="field"><label for="l-kat">Kategorie</label>
+      <select id="l-kat"><option value="">Alle</option>
+        <option value="it">IT &amp; Technik</option>
+        <option value="furniture">Mobiliar</option>
+        <option value="machine">Maschine</option></select></div>
+    <div class="field"><label for="l-versatz">Freie Plätze am Anfang</label>
+      <input id="l-versatz" type="number" min="0" value="0"></div>
+  </div>
+
+  <div class="filters" style="border:0">
+    <div class="field"><label for="m-top">Rand oben (mm)</label><input id="m-top" type="number" step="0.1"></div>
+    <div class="field"><label for="m-side">Rand links (mm)</label><input id="m-side" type="number" step="0.1"></div>
+    <div class="field"><label for="m-gap">Spalte (mm)</label><input id="m-gap" type="number" step="0.1"></div>
+    <div class="field"><label for="m-rgap">Zeile (mm)</label><input id="m-rgap" type="number" step="0.1"></div>
+    <div class="field inline"><input id="m-hilfe" type="checkbox" checked>
+      <label for="m-hilfe">Hilfslinien anzeigen</label></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn primary" id="b-bauen">Bogen erzeugen</button>
+    <button class="btn" id="b-drucken" disabled>Drucken</button>
+  </div>
+  <p class="muted" id="l-info" style="font-size:14px"></p>
+</main>
+
+<div id="bogen"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="js/db.js"></script>
+<script>
+/* Startwerte für die beiden Bögen. Sie stammen aus den Maßangaben der
+   Hersteller-Vorlagen und sind bewusst nachjustierbar. */
+const RASTER = {
+  L6009: { cols: 4, rows: 12, lw: 45.7, lh: 21.2, top: 21.3, side: 9.8, gap: 2.5, rgap: 0,
+           qr: 18, fs: { no: 2.5, co: 1.9, nm: 2.1 } },
+  L6011: { cols: 3, rows: 9,  lw: 63.5, lh: 29.6, top: 15.3, side: 7.2, gap: 2.5, rgap: 0,
+           qr: 25, fs: { no: 3.2, co: 2.2, nm: 2.6 } }
+};
+
+const $ = s => document.querySelector(s);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function sag(t, err) {
+  const m = $('#msg');
+  if (!t) { m.hidden = true; return; }
+  m.hidden = false; m.className = 'msg' + (err ? ' err' : ''); m.textContent = t;
+}
+
+function assetUrl(code) {
+  return window.INVENTAR_CONFIG.APP_URL.replace(/\/+$/, '') + '/#/a/' + code;
+}
+
+function masseSetzen() {
+  const r = RASTER[$('#l-raster').value];
+  $('#m-top').value = r.top; $('#m-side').value = r.side;
+  $('#m-gap').value = r.gap; $('#m-rgap').value = r.rgap;
+}
+
+async function start() {
+  if (!DB.konfiguriert()) {
+    sag('In config.js fehlen Projekt-Adresse und anon key.', true);
+    $('#b-bauen').disabled = true;
+    return;
+  }
+  const s = await DB.sitzung();
+  if (!s) {
+    sag('Nicht angemeldet. Erst in der Anwendung anmelden, dann hierher zurück.', true);
+    $('#b-bauen').disabled = true;
+    return;
+  }
+  const firmen = await DB.gesellschaften();
+  $('#l-firma').innerHTML = '<option value="">Alle sichtbaren</option>' +
+    firmen.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  masseSetzen();
+
+  const code = new URLSearchParams(location.search).get('code');
+  if (code) { await bauen(code); }
+}
+
+async function bauen(einzelCode) {
+  sag('');
+  $('#b-bauen').disabled = true;
+  try {
+    let liste;
+    if (einzelCode) {
+      const a = await DB.assetPerCode(einzelCode);
+      liste = a ? [a] : [];
+    } else {
+      liste = await DB.assets({
+        company: $('#l-firma').value || undefined,
+        category: $('#l-kat').value || undefined,
+        limit: 1000
+      });
+    }
+    if (!liste.length) { sag('Kein Objekt zu diesen Filtern.', true); return; }
+    zeichnen(liste);
+    $('#b-drucken').disabled = false;
+    $('#l-info').textContent = liste.length + ' Etiketten auf ' +
+      Math.ceil((liste.length + Number($('#l-versatz').value || 0)) /
+                (RASTER[$('#l-raster').value].cols * RASTER[$('#l-raster').value].rows)) + ' Bogen.';
+  } catch (e) {
+    sag(e.message, true);
+  } finally {
+    $('#b-bauen').disabled = false;
+  }
+}
+
+function zeichnen(liste) {
+  const r = RASTER[$('#l-raster').value];
+  const proBogen = r.cols * r.rows;
+  const versatz = Math.max(0, Math.min(proBogen - 1, Number($('#l-versatz').value || 0)));
+  const zellen = new Array(versatz).fill(null).concat(liste);
+
+  const ziel = $('#bogen');
+  ziel.innerHTML = '';
+  for (let i = 0; i < zellen.length; i += proBogen) {
+    const bogen = document.createElement('div');
+    bogen.className = 'sheet' + ($('#m-hilfe').checked ? ' guides' : '');
+    bogen.style.cssText =
+      `--cols:${r.cols};--lw:${r.lw}mm;--lh:${r.lh}mm;` +
+      `--top:${$('#m-top').value}mm;--side:${$('#m-side').value}mm;` +
+      `--gap:${$('#m-gap').value}mm;--rgap:${$('#m-rgap').value}mm;`;
+    const stueck = zellen.slice(i, i + proBogen);
+    while (stueck.length < proBogen) stueck.push(null);
+
+    stueck.forEach(a => {
+      const z = document.createElement('div');
+      z.className = 'cell' + (a ? '' : ' blank');
+      if (a) {
+        const c = document.createElement('canvas');
+        c.style.width = r.qr + 'mm'; c.style.height = r.qr + 'mm';
+        z.appendChild(c);
+        const t = document.createElement('div');
+        t.className = 'txt';
+        t.innerHTML =
+          `<div class="no" style="font-size:${r.fs.no}mm">${esc(a.asset_no)}</div>` +
+          `<div class="co" style="font-size:${r.fs.co}mm">${esc(a.companies ? a.companies.short_code : '')}</div>` +
+          (r.lh > 25 ? `<div class="nm" style="font-size:${r.fs.nm}mm">${esc(a.name)}</div>` : '');
+        z.appendChild(t);
+        /* 8 Module Rand wären Verschwendung auf 21 mm: margin 0, dafür
+           Fehlerkorrektur M — der Code verträgt einen Kratzer. */
+        QRCode.toCanvas(c, assetUrl(a.public_code), {
+          width: 320, margin: 0, errorCorrectionLevel: 'M',
+          color: { dark: '#000000', light: '#FFFFFF' }
+        }, err => { if (err) console.warn(err); });
+      }
+      bogen.appendChild(z);
+    });
+    ziel.appendChild(bogen);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('#l-raster').addEventListener('change', masseSetzen);
+  $('#b-bauen').addEventListener('click', () => bauen(null));
+  $('#b-drucken').addEventListener('click', () => window.print());
+  start().catch(e => sag(e.message, true));
+});
+</script>
+</body>
+</html>
