@@ -16,8 +16,9 @@ window.INVENTAR_CONFIG = {
 
   // Adresse, die auf QR-Aufkleber und NFC-Tags landet. Ohne Schrägstrich am
   // Ende. Läuft die Anwendung vorübergehend woanders, hier anpassen —
-  // bereits gedruckte Etiketten zeigen weiter auf die alte Adresse.
-  APP_URL: 'https://inventar.snowflake-ventures.de',
+  // bereits gedruckte Etiketten zeigen weiter auf die alte Adresse, und die
+  // klebt auf Geräten, die zehn Jahre im Haus bleiben.
+  APP_URL: 'https://svg.global/inventory',
 
   BUCKET: 'asset-photos'
 };

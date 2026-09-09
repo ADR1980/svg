@@ -62,14 +62,15 @@ Der anon key darf im Repository stehen. Er benennt nur das Projekt und trägt ke
 Rechte. Der `service_role`-Schlüssel dagegen hebelt jede Regel aus und gehört
 ausschließlich in die Supabase-Oberfläche.
 
-**7 — Veröffentlichen.** Cloudflare Pages mit diesem Repository verbinden, als
-Ausgabeverzeichnis `inventory` eintragen, Custom Domain `inventar.snowflake-ventures.de`
-setzen und im DNS den CNAME anlegen. Cloudflare statt GitHub Pages deshalb, weil Pages
-pro Repository nur eine Custom Domain zulässt und die schon an `svg.global` hängt.
+**7 — Veröffentlichen.** Den Branch nach `main` mergen. Mehr ist nicht zu tun:
+GitHub Pages liefert dieses Repository unter `svg.global` aus, Unterordner
+eingeschlossen, und stellt `inventory/` nach ein paar Minuten unter
+`https://svg.global/inventory/` bereit. Kein DNS-Eintrag, kein zweiter Hoster,
+kein neues Zertifikat.
 
-Zum Ausprobieren reicht vorher jeder lokale Webserver — `python3 -m http.server 8080`
-im Repo-Wurzelverzeichnis, dann `http://localhost:8080/inventory/`. Nur der Service
-Worker bleibt dabei stumm, der braucht HTTPS.
+Zum Ausprobieren vorher reicht jeder lokale Webserver — `python3 -m http.server 8080`
+im Repo-Wurzelverzeichnis, dann `http://localhost:8080/inventory/`. Dabei bleibt nur
+der Service Worker stumm, der besteht auf HTTPS; nach dem Merge läuft er.
 
 ## Prüfen
 
@@ -106,7 +107,7 @@ könnte diese Seite nur mit dem `service_role`-Schlüssel.
 ## QR-Aufkleber und NFC-Tags
 
 Auf dem Etikett steht eine Adresse der Form
-`https://inventar.snowflake-ventures.de/#/a/<code>`. Der Code ist eine Zufallsfolge aus
+`https://svg.global/inventory/#/a/<code>`. Der Code ist eine Zufallsfolge aus
 16 Zeichen, nicht die Inventarnummer — sonst ließen sich Bestände durchzählen und aus
 dem Präfix die Gesellschaft ablesen. Die Inventarnummer steht trotzdem lesbar daneben,
 etwa `SFD-IT-2026-0042`.
