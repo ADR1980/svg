@@ -233,7 +233,35 @@ drop policy if exists asset_events_delete on asset_events;
 -- Tabellenzugriff, RLS ist dann nur noch die zweite Verteidigungslinie.
 revoke all on all tables in schema public from anon;
 revoke all on all sequences in schema public from anon;
-revoke all on all functions in schema public from anon;
+
+-- Bei Funktionen reicht ein revoke gegen anon NICHT. Postgres vergibt EXECUTE
+-- standardmäßig an PUBLIC, und anon erbt das darüber weiter — die Funktion
+-- bleibt aufrufbar, obwohl anon namentlich nichts mehr hat. Genau so war
+-- next_asset_no() einmal ohne Anmeldung erreichbar und gab zu einer bekannten
+-- Gesellschafts-UUID deren Kurzzeichen heraus. Also PUBLIC entziehen.
+--
+-- Aber gezielt, nicht pauschal: Ein "revoke ... on all functions in schema
+-- public from public" trifft auch die Funktionen mitgelieferter Erweiterungen.
+-- Liegt pgcrypto in public, verliert gen_random_bytes() sein EXECUTE — und
+-- damit scheitert jede Erfassung, weil assets.public_code genau daraus seinen
+-- Vorgabewert zieht. Die Schleife nimmt deshalb nur, was nicht zu einer
+-- Erweiterung gehört (pg_depend.deptype = 'e').
+do $blk$
+declare f record;
+begin
+    for f in
+        select p.oid::regprocedure as sig
+          from pg_proc p
+          join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public'
+           and not exists (select 1 from pg_depend d
+                            where d.objid = p.oid and d.deptype = 'e')
+    loop
+        execute format('revoke execute on function %s from public', f.sig);
+        execute format('revoke execute on function %s from anon', f.sig);
+    end loop;
+end;
+$blk$;
 
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;

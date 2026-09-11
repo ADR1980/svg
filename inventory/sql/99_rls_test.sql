@@ -266,6 +266,43 @@ begin
 end;
 $$;
 
+-- =============================================================================
+-- Fall 7 — ohne Anmeldung kommt niemand an die Funktionen
+-- =============================================================================
+-- Der Fall existiert wegen eines echten Fehlgriffs: Ein "revoke ... from anon"
+-- allein lässt EXECUTE über den PUBLIC-Grant bestehen. next_asset_no() war
+-- dadurch unangemeldet aufrufbar und gab zu einer bekannten Gesellschafts-UUID
+-- deren Kurzzeichen heraus.
+
+set local role anon;
+
+do $$
+declare n int;
+begin
+    begin
+        perform next_asset_no('99999999-9999-4999-8999-999999999902', 'it');
+        raise exception 'FEHLGESCHLAGEN 7a: next_asset_no war ohne Anmeldung aufrufbar';
+    exception when insufficient_privilege then null;
+    end;
+
+    begin
+        perform visible_company_ids();
+        raise exception 'FEHLGESCHLAGEN 7b: visible_company_ids war ohne Anmeldung aufrufbar';
+    exception when insufficient_privilege then null;
+    end;
+
+    -- Die Fundanzeige ist die einzige bewusste Ausnahme und muss weiter gehen.
+    select count(*) into n from finder_info('0000000000000000');
+    if n <> 0 then
+        raise exception 'FEHLGESCHLAGEN 7c: finder_info lieferte % Zeilen statt 0', n;
+    end if;
+
+    raise notice 'Fall 7 bestanden: Ohne Anmeldung ist keine Funktion erreichbar.';
+end;
+$$;
+
+reset role;
+
 do $$
 begin
     raise notice '--------------------------------------------------';
