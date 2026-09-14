@@ -27,6 +27,10 @@ create table if not exists auth.users (
   raw_user_meta_data jsonb default '{}'::jsonb,
   is_sso_user boolean not null default false,
   is_anonymous boolean not null default false,
+  -- benutzer_liste() liest diese drei; im echten Supabase pflegt GoTrue sie.
+  last_sign_in_at timestamptz,
+  banned_until timestamptz,
+  invited_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

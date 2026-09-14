@@ -283,15 +283,68 @@ async function mitgliedschaften(company) {
   return pruefe(q);
 }
 
-async function rolleSetzen(userId, companyId, rolle) {
+/* Eine Zeile je Konto, mit allen Rollen als jsonb und den Angaben aus
+   auth.users, an die PostgREST nicht herankommt. Was zurückkommt, entscheidet
+   benutzer_liste() in der Datenbank — die Oberfläche filtert nichts nach. */
+async function benutzerListe() { return pruefe(client().rpc('benutzer_liste')); }
+
+async function zugangGeben(userId, companyId, rolle) {
   return pruefe(client().from('memberships')
-    .update({ role: rolle }).eq('user_id', userId).eq('company_id', companyId));
+    .insert({ user_id: userId, company_id: companyId, role: rolle }));
+}
+
+async function rolleSetzen(userId, companyId, rolle) {
+  const rows = await pruefe(client().from('memberships')
+    .update({ role: rolle }).eq('user_id', userId).eq('company_id', companyId).select());
+  if (!rows.length) throw new Error('Nichts geändert — fehlt dir das Recht dafür?');
+  return rows[0];
 }
 
 async function zugangEntziehen(userId, companyId) {
   return pruefe(client().from('memberships')
     .delete().eq('user_id', userId).eq('company_id', companyId));
 }
+
+/* --- Konten: alles, was den service_role-Schlüssel braucht --------------------- */
+
+/* Läuft nicht im Browser, sondern in der Edge-Function `benutzer`. Sie prüft
+   die Rechte nicht selbst, sondern lässt Postgres prüfen — siehe den Kommentar
+   im Kopf von supabase/functions/benutzer/index.ts. */
+async function kontoRuf(aktion, daten) {
+  const s = await sitzung();
+  if (!s) throw new Error('Die Sitzung ist abgelaufen. Bitte neu anmelden.');
+
+  let antwort;
+  try {
+    antwort = await fetch(CFG.SUPABASE_URL.replace(/\/+$/, '') + '/functions/v1/benutzer', {
+      method: 'POST',
+      headers: {
+        apikey: CFG.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + s.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(Object.assign({ aktion }, daten))
+    });
+  } catch (_) {
+    throw new Error('Die Benutzerverwaltung ist nicht erreichbar.');
+  }
+
+  let d = {};
+  try { d = await antwort.json(); } catch (_) {}
+  if (!antwort.ok) {
+    if (antwort.status === 404) {
+      throw new Error('Die Edge-Function „benutzer" ist im Projekt nicht eingespielt.');
+    }
+    throw new Error(d.fehler || ('Die Benutzerverwaltung hat abgelehnt (' + antwort.status + ').'));
+  }
+  return d;
+}
+
+const kontoAnlegen    = w  => kontoRuf('anlegen', w);
+const kontoPasswort   = (u, p) => kontoRuf('passwort', { user_id: u, passwort: p });
+const kontoSperren    = u  => kontoRuf('sperren', { user_id: u });
+const kontoEntsperren = u  => kontoRuf('entsperren', { user_id: u });
+const kontoLoeschen   = u  => kontoRuf('loeschen', { user_id: u });
 
 window.DB = {
   client, konfiguriert, fehlerText,
@@ -304,5 +357,6 @@ window.DB = {
   faelligkeiten, wartungenZuAsset, wartungAnlegen, wartungErledigen,
   zuweisungen, ausgeben, zuruecknehmen,
   historie, anhaenge, anhangHochladen, anhangAdresse, anhangLoeschen,
-  mitgliedschaften, rolleSetzen, zugangEntziehen
+  mitgliedschaften, benutzerListe, zugangGeben, rolleSetzen, zugangEntziehen,
+  kontoAnlegen, kontoPasswort, kontoSperren, kontoEntsperren, kontoLoeschen
 };

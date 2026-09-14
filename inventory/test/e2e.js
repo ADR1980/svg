@@ -48,7 +48,10 @@ async function anmelden(seite, mail) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  /* Passt die installierte Playwright-Version nicht zum vorinstallierten
+     Chromium, hilft ein Pfad statt eines Neu-Downloads: CHROMIUM=… setzen. */
+  const browser = await chromium.launch(
+    process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'de-DE' });
   await ctx.addInitScript(CONFIG);           /* config.js überschreiben */
   await verdrahte(ctx);
@@ -170,13 +173,75 @@ async function anmelden(seite, mail) {
   await gh.waitForTimeout(2000);
   const vw = await gh.textContent('#view');
   pruefe(!/ging schief|schema cache/i.test(vw), 'Verwaltung lädt ohne Fehler');
-  pruefe(/holding@test.invalid|A\. Holding/.test(vw), 'Zugangsliste nennt die Person zur Mitgliedschaft');
   pruefe(await gh.locator('#f-firma').count() === 1, 'Formular für neue Tochtergesellschaft ist da');
-  const rollenWahl = await gh.locator('[data-rolle]').count();
-  pruefe(rollenWahl === 3, 'drei Zugänge mit änderbarer Rolle, gesehen: ' + rollenWahl);
+  pruefe(await gh.locator('a[href="#/benutzer"]').count() === 1, 'Verweis auf die Benutzerverwaltung');
   await gh.screenshot({ path: './shots/10-verwaltung.png', fullPage: true });
 
+  /* --- 4c. Benutzer und Rechte -------------------------------------------- */
+  console.log('\nBenutzer und Rechte');
+  await gh.goto(BASIS + '/index.html#/benutzer', { waitUntil: 'networkidle' });
+  await gh.waitForTimeout(2500);
+  const bv = await gh.textContent('#view');
+  pruefe(!/ging schief|nicht eingespielt|schema cache/i.test(bv), 'Benutzerverwaltung lädt ohne Fehler');
+
+  const konten = await gh.locator('.rows .row').count();
+  pruefe(konten === 3, 'drei Konten gelistet, gesehen: ' + konten);
+  pruefe(/A\. Holding/.test(bv) && /B\. Digital/.test(bv) && /C\. Industrie/.test(bv),
+         'alle drei Namen stehen in der Liste');
+
+  /* Die Marken zeigen Gesellschaft und Rolle — das ist die Rechteübersicht. */
+  const marken = await gh.locator('.chip').allTextContents();
+  pruefe(marken.some(t => /Snowflake Ventures · Inhaber/.test(t)), 'Holding-Konto ist als Inhaber markiert');
+  pruefe(marken.some(t => /Snowflake Digital GmbH · Verwaltung/.test(t)), 'Tochter-Konto ist als Verwaltung markiert');
+
+  /* Eigenes Konto: kein Sperren, kein Löschen. */
+  const alleAuf = () => gh.evaluate(() =>
+    document.querySelectorAll('details[data-konto]').forEach(d => { d.open = true; }));
+  await alleAuf();
+  await gh.waitForTimeout(300);
+  const eigenes = await gh.locator(`details[data-konto] summary`).count();
+  pruefe(eigenes === 3, 'jedes Konto lässt sich aufklappen, gesehen: ' + eigenes);
+  const loeschKnoepfe = await gh.locator('[data-loeschen]').count();
+  pruefe(loeschKnoepfe === 2, 'das eigene Konto hat keinen Löschknopf, fremde schon, gesehen: ' + loeschKnoepfe);
+
+  /* Rolle ändern: Industrie von editor auf viewer. */
+  const ind = 'aaaaaaaa-0000-4000-8000-000000000003';
+  const sel = gh.locator(`[data-rolle="${ind}|33333333-3333-4333-8333-333333333333"]`);
+  pruefe(await sel.count() === 1, 'Rollenauswahl für den Industrie-Zugang ist da');
+  await alleAuf();
+  await sel.selectOption('viewer');
+  await gh.waitForTimeout(2500);
+  pruefe(/Rolle geändert/.test(await gh.textContent('#msg')), 'Rolle ließ sich ändern');
+
+  /* Zweite Gesellschaft dazugeben. */
+  await alleAuf();
+  await gh.waitForTimeout(300);
+  await gh.selectOption(`[data-neufirma="${ind}"]`, '22222222-2222-4222-8222-222222222222');
+  await gh.selectOption(`[data-neurolle="${ind}"]`, 'editor');
+  await gh.click(`[data-dazu="${ind}"]`);
+  await gh.waitForTimeout(2500);
+  const marken2 = await gh.locator('.chip').allTextContents();
+  pruefe(marken2.filter(t => /Snowflake Digital GmbH · Erfassung/.test(t)).length === 1,
+         'zweite Gesellschaft ist dazugekommen');
+
+  /* Das Formular zum Anlegen ist da; abschicken geht lokal nicht, weil die
+     Edge-Function nur im echten Projekt läuft. */
+  pruefe(await gh.locator('#f-konto').count() === 1, 'Formular zum Anlegen eines Kontos ist da');
+  await gh.selectOption('#k-modus', 'einladung');
+  await gh.waitForTimeout(200);
+  pruefe(await gh.locator('#k-pwfeld').isHidden(), 'bei Einladung verschwindet das Passwortfeld');
+  await gh.selectOption('#k-modus', 'passwort');
+  await gh.waitForTimeout(200);
+  await gh.click('#k-vorschlag');
+  const vorschlag = await gh.inputValue('#k-pw');
+  pruefe(/^[A-Za-z2-9]{4}(-[A-Za-z2-9]{4}){3}$/.test(vorschlag),
+         'Passwortvorschlag hat 16 Zeichen in vier Gruppen: ' + vorschlag);
+
+  await gh.screenshot({ path: './shots/11-benutzer.png', fullPage: true });
+
   console.log('\nNeue Tochtergesellschaft');
+  await gh.goto(BASIS + '/index.html#/verwaltung', { waitUntil: 'networkidle' });
+  await gh.waitForSelector('#n-name', { timeout: 15000 });
   await gh.fill('#n-name', 'Snowflake Labor GmbH');
   await gh.fill('#n-code', 'SFL');
   await gh.click('#f-firma button[type=submit]');

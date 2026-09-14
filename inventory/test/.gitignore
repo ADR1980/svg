@@ -2,3 +2,5 @@ vendor
 vendor/
 shots
 shots/
+node_modules/
+package-lock.json

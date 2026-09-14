@@ -16,13 +16,17 @@ BASIS=$(cd "$(dirname "$0")" && pwd)
 cd "$BASIS"
 DB=${DB:-inv_test}
 PSQL=${PSQL:-"psql"}
+# PostgREST spricht TCP, psql darf auch über den Socket gehen. Läuft Postgres
+# nicht auf dem Standardport, beides hier setzen.
+PGHOST_TCP=${PGHOST_TCP:-localhost}
+PGPORT_TCP=${PGPORT_TCP:-5432}
 
 echo "→ Datenbank $DB neu aufbauen"
 $PSQL -q -d postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname='$DB'" >/dev/null 2>&1 || true
 dropdb --if-exists "$DB"
 createdb "$DB"
 export PGOPTIONS="-c client_min_messages=warning"
-for f in supabase_shim ../sql/01_schema ../sql/02_rls ../sql/03_seed users; do
+for f in supabase_shim ../sql/01_schema ../sql/02_rls ../sql/04_benutzer ../sql/03_seed users; do
   $PSQL -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f.sql" >/dev/null
 done
 
@@ -38,7 +42,7 @@ FREMD=$($PSQL -tAq -d "$DB" -c "select public_code from assets where company_id=
 
 echo "→ PostgREST, Auth-Stub und Webserver starten"
 cat > /tmp/inv-pgrst.conf <<CONF
-db-uri = "postgres://authenticator:authpw@localhost:5432/$DB"
+db-uri = "postgres://authenticator:authpw@${PGHOST_TCP:-localhost}:${PGPORT_TCP:-5432}/$DB"
 db-schemas = "public"
 db-anon-role = "anon"
 jwt-secret = "test-nur-lokal-mindestens-32-zeichen-lang!!"

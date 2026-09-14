@@ -25,10 +25,14 @@ Sieben Schritte, ungefähr eine halbe Stunde.
 ```
 sql/01_schema.sql     Tabellen, Zähler, Trigger, Indizes
 sql/02_rls.sql        Sichtbarkeit, Schreibrechte, Storage-Regeln
+sql/04_benutzer.sql   Kontoliste und Schutz der Inhaber-Zugänge
 sql/03_seed.sql       Snowflake Ventures und zwei Demo-Töchter
 ```
 
-Danach einmal `sql/99_rls_test.sql` laufen lassen. Es legt Testdaten an, prüft sechs
+Die Reihenfolge stimmt so: `04` baut auf den Funktionen aus `02` auf, und `02`
+holt die Rechte auf `04` nach, falls es ein zweites Mal läuft.
+
+Danach einmal `sql/99_rls_test.sql` laufen lassen. Es legt Testdaten an, prüft zehn
 Fälle und verwirft am Ende alles. Kommt „Alle Prüfungen bestanden" zurück, ist die
 Trennung dicht. Kommt etwas anderes, hier aufhören und den Fehler klären.
 
@@ -41,8 +45,22 @@ schöner Zustand.
 **4 — Speicher.** Unter *Storage* einen Bucket `asset-photos` anlegen, **nicht**
 öffentlich. Die Zugriffsregeln dazu hat Schritt 2 schon gesetzt.
 
-**5 — Ersten Zugang schaffen.** Unter *Authentication → Users → Invite user* die eigene
-Adresse einladen und das Passwort setzen. Dann im SQL Editor:
+**4b — Benutzerverwaltung einspielen.** Konten anlegen geht nur mit dem
+`service_role`-Schlüssel, und der darf nicht in den Browser. Dafür läuft die
+Edge-Function `benutzer` auf dem Server:
+
+```
+supabase functions deploy benutzer --project-ref DEIN-REF
+```
+
+Sie braucht keine Konfiguration; `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`
+stellt Supabase jeder Edge-Function selbst bereit. Fehlt sie, läuft alles andere
+weiter — in der Benutzerverwaltung fehlen dann nur Anlegen, Sperren und Löschen.
+
+**5 — Ersten Zugang schaffen.** Dieser eine Schritt geht noch nicht in der
+Oberfläche, weil es noch niemanden gibt, der ihn machen dürfte. Unter
+*Authentication → Users → Invite user* die eigene Adresse einladen und das Passwort
+setzen. Dann im SQL Editor:
 
 ```sql
 insert into memberships (user_id, company_id, role)
@@ -91,8 +109,8 @@ eigene Töchter haben, und der Blick nach oben bleibt jeder verwehrt.
 
 | Rolle | Darf |
 |---|---|
-| `owner` | alles, einschließlich Gesellschaften und Zugängen |
-| `admin` | dasselbe, gedacht für die Verwaltung einer Tochter |
+| `owner` | alles, einschließlich der Vergabe weiterer `owner`-Zugänge |
+| `admin` | Gesellschaften, Stammdaten und Zugänge — aber keine `owner` |
 | `editor` | Inventar erfassen, ändern, ausgeben |
 | `viewer` | nur lesen |
 
@@ -100,9 +118,34 @@ Die Rolle gilt für die Gesellschaft der Mitgliedschaft und alles darunter. Ein
 `admin` bei Snowflake Digital kommt an deren Töchter heran, an die Schwestergesellschaft
 nicht und an die Holding erst recht nicht.
 
-Weitere Nutzer kommen über *Authentication → Users → Invite user* ins Projekt und
-bekommen danach in der Oberfläche ihre Rolle. Der Umweg ist Absicht: Konten anlegen
-könnte diese Seite nur mit dem `service_role`-Schlüssel.
+### Benutzer anlegen und Rechte vergeben
+
+*Verwaltung → Benutzerverwaltung öffnen*, oder direkt `#/benutzer`. Dort steht jedes
+Konto, das in einer verwalteten Gesellschaft hängt, mit Adresse, Zustand und den
+Marken seiner Zugänge. Pro Konto lässt sich die Rolle ändern, eine weitere
+Gesellschaft dazugeben, ein Zugang entziehen, das Passwort neu setzen, das Konto
+sperren oder löschen.
+
+Beim Anlegen gibt es zwei Wege. **Passwort jetzt vergeben** legt das Konto sofort an;
+die Person meldet sich damit an und ändert es danach selbst. **Einladung per E-Mail**
+verschickt Supabase — ohne eigenen Mailserver im Projekt sind das wenige Nachrichten
+pro Stunde, und sie landen oft im Spam. Für den Anfang ist der erste Weg der
+verlässlichere.
+
+Zwei Regeln greifen dabei in der Datenbank, nicht in der Oberfläche:
+
+- Einen `owner`-Zugang vergibt und entzieht nur, wer in derselben Gesellschaft
+  selbst `owner` ist — direkt oder über eine Muttergesellschaft. Eine Verwaltung
+  kann sich also nicht selbst befördern.
+- Die oberste Gesellschaft behält immer mindestens einen `owner`. Wer wechseln will,
+  trägt erst den neuen ein und entfernt dann den alten.
+
+Beide sitzen im Trigger `memberships_guard`; `sql/99_rls_test.sql` prüft sie in
+Fall 8 und 9. Das eigene Konto lässt sich nie sperren oder löschen.
+
+Konten, die jemand im Supabase-Dashboard eingeladen hat und die noch keiner
+Gesellschaft zugeordnet sind, sieht nur die Verwaltung der obersten Gesellschaft —
+sie stünden sonst jedem Tochter-Admin vor Augen.
 
 ## QR-Aufkleber und NFC-Tags
 
@@ -160,7 +203,9 @@ manifest.webmanifest    Installation auf dem Startbildschirm
 sql/01_schema.sql       Tabellen, Zähler, Trigger
 sql/02_rls.sql          Row Level Security
 sql/03_seed.sql         Startbestand
+sql/04_benutzer.sql     Kontoliste, Schutz der Inhaber-Zugänge
 sql/99_rls_test.sql     Nachweis der Mandantentrennung
+supabase/functions/benutzer/  Edge-Function: Konten anlegen, sperren, löschen
 test/                   Lokaler Durchlauf ohne Supabase-Projekt
 ```
 

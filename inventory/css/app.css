@@ -199,6 +199,30 @@ label.filebtn:hover{border-color:var(--accent); color:var(--accent)}
   letter-spacing:.1em; color:var(--ink-muted); white-space:nowrap}
 .tag.warn{color:var(--signal)}
 
+/* --- Zugänge: eine Marke je Gesellschaft ---------------------------------- */
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 0}
+.chip{font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
+  color:var(--ink-muted); border:1px solid var(--rule); padding:2px 7px; white-space:nowrap}
+.chip.leer{font-style:italic; border-style:dashed}
+
+details{margin-top:8px}
+details>summary{font-family:var(--mono); font-size:11px; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--accent); cursor:pointer; padding:4px 0; list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+ "; font-weight:500}
+details[open]>summary::before{content:"– "}
+details>summary:hover{color:var(--ink)}
+details .sunk{margin:6px 0 var(--s2)}
+
+/* Ein Zugang je Zeile: Gesellschaft, Rolle, Wegnehmen. Bricht auf schmalen
+   Bildschirmen um, statt die Auswahl zusammenzuquetschen. */
+.zeile{display:flex; flex-wrap:wrap; align-items:center; gap:var(--s1) var(--s2);
+  padding:8px 0; border-bottom:1px solid var(--rule)}
+.zeile:last-of-type{border-bottom:0}
+.zeile>span{flex:1 1 140px; font-size:15px}
+.zeile select{width:auto; min-width:130px; flex:0 1 auto; margin:0; padding:4px 0}
+.zeile a{font-size:14px; white-space:nowrap}
+
 /* --- Flach hinterlegter Block statt Karte --------------------------------- */
 .sunk{background:var(--paper-sunk); padding:var(--s2) var(--s3); margin:var(--s3) 0}
 .sunk p:last-child{margin-bottom:0}
