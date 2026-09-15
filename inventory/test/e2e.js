@@ -113,6 +113,55 @@ async function anmelden(seite, mail) {
   pruefe(!(await s.locator('#b-nfc').isVisible()),
     'NFC-Knopf bleibt weg, wo der Browser kein Web NFC kann');
 
+  /* --- 1b. Dokumente und Fotos ------------------------------------------- */
+  console.log('\nDokumente und Fotos');
+  pruefe(await s.locator('#a-kamera').count() === 1 && await s.locator('#a-datei').count() === 1,
+    'Kamera und Dateiwähler sind getrennte Felder');
+  pruefe(await s.getAttribute('#a-kamera', 'capture') === 'environment',
+    'nur das Kamerafeld trägt capture');
+  pruefe(await s.getAttribute('#a-datei', 'capture') === null,
+    'der Dateiwähler trägt es nicht — sonst käme man an vorhandene PDFs nicht heran');
+  pruefe(await s.getAttribute('#a-datei', 'multiple') !== null, 'mehrere Dateien auf einmal');
+
+  /* Zwei Dateien auf einmal, als Rechnung abgelegt. Das PNG ist ein echtes
+     1×1-Bild, damit die Vorschau etwas zu laden hat. */
+  const pngRoh = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAEklEQVR4nGOQtor5jw8zjAwFAFqBbAHJEH61AAAAAElFTkSuQmCC',
+    'base64');
+  await s.selectOption('#a-art', 'invoice');
+  await s.setInputFiles('#a-datei', [
+    { name: 'Rechnung 2026-0815.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 Testbeleg') },
+    { name: 'Typenschild.png', mimeType: 'image/png', buffer: pngRoh }
+  ]);
+  await s.waitForTimeout(3000);
+  const anh = await s.textContent('#anhaenge');
+  pruefe(/Rechnung 2026-0815\.pdf/.test(anh), 'die PDF steht in der Liste');
+  pruefe(/Typenschild\.png/.test(anh), 'das Bild steht in der Liste');
+  pruefe(/Rechnung, Lieferschein/.test(anh), 'die gewählte Art ist übernommen');
+  pruefe(/Bytes|kB/.test(anh), 'die Dateigröße steht dabei');
+  pruefe(await s.locator('#anhaenge .photos img').count() === 1,
+    'das Bild bekommt eine Vorschau, die PDF nicht');
+  /* Ein <img> im Baum heißt noch nicht, dass etwas ankommt. naturalWidth ist
+     erst dann größer als null, wenn der Browser die Bytes decodiert hat. */
+  await s.waitForFunction(() => {
+    const i = document.querySelector('#anhaenge .photos img');
+    return i && i.complete;
+  }, null, { timeout: 10000 }).catch(() => {});
+  const vorschauGeladen = await s.evaluate(() => {
+    const i = document.querySelector('#anhaenge .photos img');
+    return !!(i && i.naturalWidth > 0);
+  });
+  pruefe(vorschauGeladen, 'die Vorschau ist wirklich geladen, nicht nur verlinkt');
+  await s.screenshot({ path: './shots/06-anhaenge.png', fullPage: true });
+
+  /* Löschen: erst bestätigen lassen, dann muss die Zeile weg sein. */
+  s.once('dialog', d => d.accept());
+  await s.locator('#anhaenge [data-weganhang]').first().click();
+  await s.waitForTimeout(2500);
+  const anh2 = await s.textContent('#anhaenge');
+  pruefe(!/Typenschild\.png/.test(anh2) || !/Rechnung 2026-0815\.pdf/.test(anh2),
+    'eine Datei ließ sich wieder löschen');
+
   /* --- 2. Fremder Aufkleber --------------------------------------------- */
   console.log('\nFremder Aufkleber');
   const codeFremd = process.env.FREMD_CODE;

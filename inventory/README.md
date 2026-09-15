@@ -43,7 +43,9 @@ nichts, weil ihm die Zuordnung fehlt — aber ein Konto in fremder Datenbank ist
 schöner Zustand.
 
 **4 — Speicher.** Unter *Storage* einen Bucket `asset-photos` anlegen, **nicht**
-öffentlich. Die Zugriffsregeln dazu hat Schritt 2 schon gesetzt.
+öffentlich. Die Zugriffsregeln dazu hat Schritt 2 schon gesetzt. Der Name ist
+historisch — darin liegen auch Rechnungen, Anleitungen und Prüfprotokolle.
+Umbenennen ginge, macht aber alle bereits abgelegten Pfade ungültig.
 
 **4b — Benutzerverwaltung einspielen.** Konten anlegen geht nur mit dem
 `service_role`-Schlüssel, und der darf nicht in den Browser. Dafür läuft die
@@ -186,6 +188,37 @@ update companies
                                 "finder_contact": "fundsachen@example.de"}'::jsonb
  where short_code = 'SFD';
 ```
+
+## Dokumente und Fotos
+
+Zu jedem Objekt hängen Dateien: das abfotografierte Typenschild, die Rechnung,
+die Bedienungsanleitung, das DGUV-Prüfprotokoll. Zwei getrennte Knöpfe im
+Detail, und das ist Absicht:
+
+**Fotografieren** öffnet direkt die Kamera (`capture="environment"`, also die
+rückwärtige). **Datei wählen** öffnet den Dateimanager und nimmt mehrere Dateien
+auf einmal. Ein einziges Feld mit `capture` wäre bequemer zu bauen, würde auf
+dem Telefon aber sofort die Kamera aufziehen — an eine bereits vorhandene PDF
+käme man dann gar nicht mehr heran.
+
+Über der Auswahl steht, was abgelegt wird: Foto, Rechnung/Lieferschein,
+Anleitung/Datenblatt, Zertifikat/Prüfprotokoll oder Sonstiges. Die fünf Werte
+stehen so in der `check`-Bedingung von `attachments.kind`. Ein Kameraauslöser
+legt immer als Foto ab, unabhängig von der Einstellung.
+
+**Fotos werden vor dem Hochladen verkleinert**, auf 2000 Pixel längste Kante und
+JPEG mit Qualität 0,82. Ein Telefonfoto wiegt sonst acht bis zwölf Megabyte; für
+den Nachweis, welches Gerät wo steht, reicht ein Bruchteil davon. Das spart
+Funkzeit in der Halle und Platz im Speicher — der kostenlose Supabase-Tarif
+bietet ein Gigabyte. Wird die Datei durch die Umrechnung nicht kleiner, geht das
+Original raus. PDFs und Office-Dateien bleiben unangetastet: Ein Prüfprotokoll
+darf nicht durch eine Neukodierung gehen.
+
+Der Bucket ist privat. Jede Vorschau und jeder Abruf läuft über eine signierte
+Adresse, die nach einer Stunde verfällt; wer den Link weitergibt, gibt also
+nichts Dauerhaftes weiter. Löschen entfernt die Datei aus dem Speicher und die
+Zeile aus `attachments` — wer schreiben darf, darf auch löschen. Pro Datei sind
+25 MB die Grenze.
 
 ## Dateien
 

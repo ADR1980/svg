@@ -248,16 +248,53 @@ async function anhaenge(assetId) {
     .eq('asset_id', assetId).order('created_at', { ascending: false }));
 }
 
+const MAX_BYTES = 25 * 1000 * 1000;   /* pro Datei */
+const FOTO_KANTE = 2000;              /* längste Kante nach dem Verkleinern */
+
+/* Ein Telefonfoto wiegt heute acht bis zwölf Megabyte. Zum Nachweis, welches
+   Gerät wo steht und in welchem Zustand, reichen 2000 Pixel bei weitem — das
+   spart Funkzeit beim Hochladen, Wartezeit beim Ansehen und Platz im Speicher,
+   von dem der kostenlose Supabase-Tarif genau ein Gigabyte hat.
+   PDFs und alles andere bleiben unangetastet: Ein Prüfprotokoll darf nicht
+   durch eine Neukodierung gehen. */
+async function bildVerkleinern(datei) {
+  if (!/^image\/(jpeg|png|webp)$/.test(datei.type || '')) return datei;
+  if (!window.createImageBitmap || !window.OffscreenCanvas) return datei;
+  try {
+    const bild = await createImageBitmap(datei);
+    const faktor = Math.min(1, FOTO_KANTE / Math.max(bild.width, bild.height));
+    if (faktor === 1 && datei.size < 1500000) { bild.close(); return datei; }
+
+    const b = Math.round(bild.width * faktor), h = Math.round(bild.height * faktor);
+    const c = new OffscreenCanvas(b, h);
+    c.getContext('2d').drawImage(bild, 0, 0, b, h);
+    bild.close();
+    const klein = await c.convertToBlob({ type: 'image/jpeg', quality: 0.82 });
+
+    /* Wurde es nicht kleiner, war die Mühe umsonst — dann das Original. */
+    if (klein.size >= datei.size) return datei;
+    const name = datei.name.replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([klein], name, { type: 'image/jpeg', lastModified: Date.now() });
+  } catch (_) {
+    return datei;   /* Kein Canvas, kaputtes Bild: unverändert hochladen. */
+  }
+}
+
 async function anhangHochladen(a, datei, art) {
-  const endung = (datei.name.split('.').pop() || 'bin').toLowerCase().slice(0, 8);
-  const pfad = `${a.company_id}/${a.id}/${crypto.randomUUID()}.${endung}`;
+  const d = await bildVerkleinern(datei);
+  if (d.size > MAX_BYTES) {
+    throw new Error(`„${datei.name}" ist ${Math.round(d.size / 1000000)} MB groß. `
+      + `Mehr als ${MAX_BYTES / 1000000} MB nimmt die Ablage nicht an.`);
+  }
+  const endung = (d.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+  const pfad = `${a.company_id}/${a.id}/${crypto.randomUUID()}.${endung || 'bin'}`;
   const { error } = await client().storage.from(CFG.BUCKET)
-    .upload(pfad, datei, { contentType: datei.type || undefined, upsert: false });
+    .upload(pfad, d, { contentType: d.type || undefined, upsert: false });
   if (error) throw new Error(fehlerText(error));
   return (await pruefe(client().from('attachments').insert({
     company_id: a.company_id, asset_id: a.id, storage_path: pfad,
-    filename: datei.name, content_type: datei.type || null,
-    byte_size: datei.size, kind: art || 'photo'
+    filename: datei.name, content_type: d.type || null,
+    byte_size: d.size, kind: art || 'other'
   }).select()))[0];
 }
 

@@ -9,6 +9,17 @@
 const K = window.KATALOG;
 const QR_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js';
 
+/* Was der Dateiwähler anbietet. Bewusst eine Liste statt „alles erlaubt": Der
+   Filter erspart auf dem Telefon das Durchblättern der Musiksammlung. Die
+   Endungen stehen neben den MIME-Typen, weil Android für Office-Dateien oft
+   keinen Typ meldet. */
+const DATEI_ARTEN = [
+  'image/*', 'application/pdf', '.pdf',
+  'application/msword', '.doc', '.docx',
+  'application/vnd.ms-excel', '.xls', '.xlsx',
+  'text/plain', '.txt', '.csv', '.eml', '.msg', '.zip'
+].join(',');
+
 const S = {
   sitzung: null,
   gesellschaften: [],
@@ -359,12 +370,22 @@ async function zeichneObjekt(a) {
       <h2>Prüfung und Wartung</h2>
       <div id="wartung"><p class="muted">Wird geladen …</p></div>
 
-      <h2>Fotos und Belege</h2>
+      <h2>Dokumente und Fotos</h2>
       <div id="anhaenge"><p class="muted">Wird geladen …</p></div>
       ${schreiben ? `
-        <div class="btn-row">
-          <label class="filebtn" for="a-datei">Foto oder Beleg hinzufügen</label>
-          <input id="a-datei" type="file" accept="image/*,application/pdf" capture="environment">
+        <div class="sunk">
+          <div class="field"><label for="a-art">Was wird abgelegt</label>
+            <select id="a-art">${optionen(K.ANHANGART, 'photo', null)
+              .replace('<option value="">—</option>', '')}</select></div>
+          <div class="btn-row">
+            <label class="filebtn" for="a-kamera">Fotografieren</label>
+            <input id="a-kamera" type="file" accept="image/*" capture="environment">
+            <label class="filebtn" for="a-datei">Datei wählen</label>
+            <input id="a-datei" type="file" multiple accept="${DATEI_ARTEN}">
+          </div>
+          <p class="muted">Mehrere Dateien auf einmal gehen. Fotos werden vor dem
+             Hochladen auf 2000${K.NBSP}Pixel verkleinert; PDFs und Office-Dateien
+             bleiben, wie sie sind. Pro Datei höchstens 25${K.NBSP}MB.</p>
         </div>` : ''}
 
       <h2>Historie</h2>
@@ -386,19 +407,37 @@ async function zeichneObjekt(a) {
   }
 
   if ($('#b-ausgabe')) $('#b-ausgabe').addEventListener('click', () => zeigeAusgabe(a));
-  if ($('#a-datei')) {
-    $('#a-datei').addEventListener('change', async ev => {
-      const d = ev.target.files[0];
-      if (!d) return;
-      meldung('Wird hochgeladen …');
-      try {
-        await DB.anhangHochladen(a, d, d.type === 'application/pdf' ? 'invoice' : 'photo');
-        meldung('Hinzugefügt.');
-        ladeAnhaenge(a);
-      } catch (e) { meldung(e.message, 'err'); }
+
+  /* Kamera und Dateiwähler sind zwei getrennte Felder. Ein einziges mit
+     capture="environment" öffnet auf dem Telefon sofort die Kamera — eine
+     bereits vorhandene PDF ließe sich damit gar nicht auswählen. */
+  const hochladen = async (dateien, vorgabeArt) => {
+    const art = vorgabeArt || ($('#a-art') ? $('#a-art').value : 'other');
+    let ok = 0;
+    const schiefgegangen = [];
+    for (let i = 0; i < dateien.length; i++) {
+      meldung(dateien.length > 1
+        ? `Wird hochgeladen … (${i + 1} von ${dateien.length})`
+        : 'Wird hochgeladen …');
+      try { await DB.anhangHochladen(a, dateien[i], art); ok++; }
+      catch (e) { schiefgegangen.push(dateien[i].name + ': ' + e.message); }
+    }
+    if (schiefgegangen.length) meldung(schiefgegangen.join(' · '), 'err');
+    else meldung(ok === 1 ? 'Hinzugefügt.' : ok + ' Dateien hinzugefügt.');
+    if (ok) ladeAnhaenge(a);
+  };
+
+  ['#a-kamera', '#a-datei'].forEach(sel => {
+    const feld = $(sel);
+    if (!feld) return;
+    feld.addEventListener('change', async ev => {
+      const dateien = Array.from(ev.target.files || []);
       ev.target.value = '';
+      if (!dateien.length) return;
+      /* Ein Kameraauslöser liefert immer ein Foto, egal was oben eingestellt ist. */
+      await hochladen(dateien, sel === '#a-kamera' ? 'photo' : null);
     });
-  }
+  });
 
   ladeWartung(a, schreiben);
   ladeAnhaenge(a);
@@ -510,17 +549,32 @@ function zeigeWartungsFormular(a, schreiben) {
 
 async function ladeAnhaenge(a) {
   const ziel = $('#anhaenge');
+  const schreiben = darfSchreiben(a.company_id);
   const liste = await DB.anhaenge(a.id);
   if (!liste.length) { ziel.innerHTML = '<p class="empty">Nichts hinterlegt.</p>'; return; }
+
+  /* Bilder als Streifen, alles andere als Zeile mit Namen. Ein abfotografiertes
+     Typenschild will man sehen, eine Rechnung nur finden. */
   const fotos = liste.filter(x => (x.content_type || '').startsWith('image/'));
-  const rest = liste.filter(x => !(x.content_type || '').startsWith('image/'));
+  const rest  = liste.filter(x => !(x.content_type || '').startsWith('image/'));
+
+  const zusatz = x => [K.ANHANGART[x.kind] || x.kind, K.fmtGroesse(x.byte_size), K.fmtZeit(x.created_at)]
+    .filter(Boolean).join(' · ');
+
   ziel.innerHTML =
-    (fotos.length ? '<div class="photos" id="fotos"></div>' : '') +
+    (fotos.length ? `<div class="photos" id="fotos"></div>
+       <div class="rows">${fotos.map(x => `
+         <div class="row"><span class="t">${esc(x.filename)}</span>
+           <span class="m">${esc(zusatz(x))}</span>
+           <span class="r"><a href="#" data-datei="${esc(x.storage_path)}">Öffnen</a>${
+             schreiben ? ` · <a href="#" data-weganhang="${esc(x.id)}">Löschen</a>` : ''}</span></div>`).join('')}</div>` : '') +
     (rest.length ? `<div class="rows">${rest.map(x => `
       <div class="row"><span class="t">${esc(x.filename)}</span>
-        <span class="m">${esc(K.fmtZeit(x.created_at))}</span>
-        <span class="r"><a href="#" data-datei="${esc(x.storage_path)}">Öffnen</a></span></div>`).join('')}</div>` : '');
+        <span class="m">${esc(zusatz(x))}</span>
+        <span class="r"><a href="#" data-datei="${esc(x.storage_path)}">Öffnen</a>${
+          schreiben ? ` · <a href="#" data-weganhang="${esc(x.id)}">Löschen</a>` : ''}</span></div>`).join('')}</div>` : '');
 
+  /* Der Bucket ist privat; jede Vorschau braucht eine eigene signierte Adresse. */
   for (const f of fotos) {
     const url = await DB.anhangAdresse(f.storage_path);
     if (url && $('#fotos')) {
@@ -528,11 +582,23 @@ async function ladeAnhaenge(a) {
         `<a href="${esc(url)}" target="_blank" rel="noopener" class="plain"><img src="${esc(url)}" alt="${esc(f.filename)}"></a>`);
     }
   }
+
   ziel.querySelectorAll('[data-datei]').forEach(el => {
     el.addEventListener('click', async ev => {
       ev.preventDefault();
       const url = await DB.anhangAdresse(el.dataset.datei);
       if (url) window.open(url, '_blank', 'noopener');
+      else meldung('Die Datei ließ sich nicht öffnen.', 'err');
+    });
+  });
+
+  ziel.querySelectorAll('[data-weganhang]').forEach(el => {
+    el.addEventListener('click', async ev => {
+      ev.preventDefault();
+      const x = liste.find(i => i.id === el.dataset.weganhang);
+      if (!x || !confirm(`„${x.filename}" löschen? Das lässt sich nicht rückgängig machen.`)) return;
+      try { await DB.anhangLoeschen(x); meldung('Gelöscht.'); ladeAnhaenge(a); }
+      catch (e) { meldung(e.message, 'err'); }
     });
   });
 }
