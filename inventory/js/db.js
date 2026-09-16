@@ -248,16 +248,53 @@ async function anhaenge(assetId) {
     .eq('asset_id', assetId).order('created_at', { ascending: false }));
 }
 
+const MAX_BYTES = 25 * 1000 * 1000;   /* pro Datei */
+const FOTO_KANTE = 2000;              /* längste Kante nach dem Verkleinern */
+
+/* Ein Telefonfoto wiegt heute acht bis zwölf Megabyte. Zum Nachweis, welches
+   Gerät wo steht und in welchem Zustand, reichen 2000 Pixel bei weitem — das
+   spart Funkzeit beim Hochladen, Wartezeit beim Ansehen und Platz im Speicher,
+   von dem der kostenlose Supabase-Tarif genau ein Gigabyte hat.
+   PDFs und alles andere bleiben unangetastet: Ein Prüfprotokoll darf nicht
+   durch eine Neukodierung gehen. */
+async function bildVerkleinern(datei) {
+  if (!/^image\/(jpeg|png|webp)$/.test(datei.type || '')) return datei;
+  if (!window.createImageBitmap || !window.OffscreenCanvas) return datei;
+  try {
+    const bild = await createImageBitmap(datei);
+    const faktor = Math.min(1, FOTO_KANTE / Math.max(bild.width, bild.height));
+    if (faktor === 1 && datei.size < 1500000) { bild.close(); return datei; }
+
+    const b = Math.round(bild.width * faktor), h = Math.round(bild.height * faktor);
+    const c = new OffscreenCanvas(b, h);
+    c.getContext('2d').drawImage(bild, 0, 0, b, h);
+    bild.close();
+    const klein = await c.convertToBlob({ type: 'image/jpeg', quality: 0.82 });
+
+    /* Wurde es nicht kleiner, war die Mühe umsonst — dann das Original. */
+    if (klein.size >= datei.size) return datei;
+    const name = datei.name.replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([klein], name, { type: 'image/jpeg', lastModified: Date.now() });
+  } catch (_) {
+    return datei;   /* Kein Canvas, kaputtes Bild: unverändert hochladen. */
+  }
+}
+
 async function anhangHochladen(a, datei, art) {
-  const endung = (datei.name.split('.').pop() || 'bin').toLowerCase().slice(0, 8);
-  const pfad = `${a.company_id}/${a.id}/${crypto.randomUUID()}.${endung}`;
+  const d = await bildVerkleinern(datei);
+  if (d.size > MAX_BYTES) {
+    throw new Error(`„${datei.name}" ist ${Math.round(d.size / 1000000)} MB groß. `
+      + `Mehr als ${MAX_BYTES / 1000000} MB nimmt die Ablage nicht an.`);
+  }
+  const endung = (d.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
+  const pfad = `${a.company_id}/${a.id}/${crypto.randomUUID()}.${endung || 'bin'}`;
   const { error } = await client().storage.from(CFG.BUCKET)
-    .upload(pfad, datei, { contentType: datei.type || undefined, upsert: false });
+    .upload(pfad, d, { contentType: d.type || undefined, upsert: false });
   if (error) throw new Error(fehlerText(error));
   return (await pruefe(client().from('attachments').insert({
     company_id: a.company_id, asset_id: a.id, storage_path: pfad,
-    filename: datei.name, content_type: datei.type || null,
-    byte_size: datei.size, kind: art || 'photo'
+    filename: datei.name, content_type: d.type || null,
+    byte_size: d.size, kind: art || 'other'
   }).select()))[0];
 }
 
@@ -283,15 +320,68 @@ async function mitgliedschaften(company) {
   return pruefe(q);
 }
 
-async function rolleSetzen(userId, companyId, rolle) {
+/* Eine Zeile je Konto, mit allen Rollen als jsonb und den Angaben aus
+   auth.users, an die PostgREST nicht herankommt. Was zurückkommt, entscheidet
+   benutzer_liste() in der Datenbank — die Oberfläche filtert nichts nach. */
+async function benutzerListe() { return pruefe(client().rpc('benutzer_liste')); }
+
+async function zugangGeben(userId, companyId, rolle) {
   return pruefe(client().from('memberships')
-    .update({ role: rolle }).eq('user_id', userId).eq('company_id', companyId));
+    .insert({ user_id: userId, company_id: companyId, role: rolle }));
+}
+
+async function rolleSetzen(userId, companyId, rolle) {
+  const rows = await pruefe(client().from('memberships')
+    .update({ role: rolle }).eq('user_id', userId).eq('company_id', companyId).select());
+  if (!rows.length) throw new Error('Nichts geändert — fehlt dir das Recht dafür?');
+  return rows[0];
 }
 
 async function zugangEntziehen(userId, companyId) {
   return pruefe(client().from('memberships')
     .delete().eq('user_id', userId).eq('company_id', companyId));
 }
+
+/* --- Konten: alles, was den service_role-Schlüssel braucht --------------------- */
+
+/* Läuft nicht im Browser, sondern in der Edge-Function `benutzer`. Sie prüft
+   die Rechte nicht selbst, sondern lässt Postgres prüfen — siehe den Kommentar
+   im Kopf von supabase/functions/benutzer/index.ts. */
+async function kontoRuf(aktion, daten) {
+  const s = await sitzung();
+  if (!s) throw new Error('Die Sitzung ist abgelaufen. Bitte neu anmelden.');
+
+  let antwort;
+  try {
+    antwort = await fetch(CFG.SUPABASE_URL.replace(/\/+$/, '') + '/functions/v1/benutzer', {
+      method: 'POST',
+      headers: {
+        apikey: CFG.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + s.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(Object.assign({ aktion }, daten))
+    });
+  } catch (_) {
+    throw new Error('Die Benutzerverwaltung ist nicht erreichbar.');
+  }
+
+  let d = {};
+  try { d = await antwort.json(); } catch (_) {}
+  if (!antwort.ok) {
+    if (antwort.status === 404) {
+      throw new Error('Die Edge-Function „benutzer" ist im Projekt nicht eingespielt.');
+    }
+    throw new Error(d.fehler || ('Die Benutzerverwaltung hat abgelehnt (' + antwort.status + ').'));
+  }
+  return d;
+}
+
+const kontoAnlegen    = w  => kontoRuf('anlegen', w);
+const kontoPasswort   = (u, p) => kontoRuf('passwort', { user_id: u, passwort: p });
+const kontoSperren    = u  => kontoRuf('sperren', { user_id: u });
+const kontoEntsperren = u  => kontoRuf('entsperren', { user_id: u });
+const kontoLoeschen   = u  => kontoRuf('loeschen', { user_id: u });
 
 window.DB = {
   client, konfiguriert, fehlerText,
@@ -304,5 +394,6 @@ window.DB = {
   faelligkeiten, wartungenZuAsset, wartungAnlegen, wartungErledigen,
   zuweisungen, ausgeben, zuruecknehmen,
   historie, anhaenge, anhangHochladen, anhangAdresse, anhangLoeschen,
-  mitgliedschaften, rolleSetzen, zugangEntziehen
+  mitgliedschaften, benutzerListe, zugangGeben, rolleSetzen, zugangEntziehen,
+  kontoAnlegen, kontoPasswort, kontoSperren, kontoEntsperren, kontoLoeschen
 };

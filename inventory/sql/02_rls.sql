@@ -276,6 +276,28 @@ grant execute on function next_asset_no(uuid, text) to authenticated;
 
 revoke all on asset_counters from authenticated;
 
+-- Die Schleife oben entzieht auch den Funktionen aus 04_benutzer.sql ihr
+-- EXECUTE. Läuft diese Datei ein zweites Mal, wäre die Benutzerverwaltung
+-- danach tot. Deshalb hier nachziehen — aber nur, wenn 04 schon gelaufen ist,
+-- sonst bricht ein frisches Aufsetzen an einer noch fehlenden Funktion ab.
+do $blk$
+declare f text;
+begin
+    foreach f in array array[
+        'public.owner_company_ids()',
+        'public.darf_benutzer_verwalten(uuid)',
+        'public.benutzer_liste()'
+    ] loop
+        if to_regprocedure(f) is not null then
+            execute format('grant execute on function %s to authenticated', f);
+        end if;
+    end loop;
+    if to_regprocedure('public.benutzer_id_zu_email(text)') is not null then
+        execute 'grant execute on function public.benutzer_id_zu_email(text) to service_role';
+    end if;
+end;
+$blk$;
+
 -- =============================================================================
 -- 4. Fundanzeige für nicht angemeldete Scans
 -- =============================================================================

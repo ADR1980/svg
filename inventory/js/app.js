@@ -9,6 +9,17 @@
 const K = window.KATALOG;
 const QR_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js';
 
+/* Was der Dateiwähler anbietet. Bewusst eine Liste statt „alles erlaubt": Der
+   Filter erspart auf dem Telefon das Durchblättern der Musiksammlung. Die
+   Endungen stehen neben den MIME-Typen, weil Android für Office-Dateien oft
+   keinen Typ meldet. */
+const DATEI_ARTEN = [
+  'image/*', 'application/pdf', '.pdf',
+  'application/msword', '.doc', '.docx',
+  'application/vnd.ms-excel', '.xls', '.xlsx',
+  'text/plain', '.txt', '.csv', '.eml', '.msg', '.zip'
+].join(',');
+
 const S = {
   sitzung: null,
   gesellschaften: [],
@@ -359,12 +370,22 @@ async function zeichneObjekt(a) {
       <h2>Prüfung und Wartung</h2>
       <div id="wartung"><p class="muted">Wird geladen …</p></div>
 
-      <h2>Fotos und Belege</h2>
+      <h2>Dokumente und Fotos</h2>
       <div id="anhaenge"><p class="muted">Wird geladen …</p></div>
       ${schreiben ? `
-        <div class="btn-row">
-          <label class="filebtn" for="a-datei">Foto oder Beleg hinzufügen</label>
-          <input id="a-datei" type="file" accept="image/*,application/pdf" capture="environment">
+        <div class="sunk">
+          <div class="field"><label for="a-art">Was wird abgelegt</label>
+            <select id="a-art">${optionen(K.ANHANGART, 'photo', null)
+              .replace('<option value="">—</option>', '')}</select></div>
+          <div class="btn-row">
+            <label class="filebtn" for="a-kamera">Fotografieren</label>
+            <input id="a-kamera" type="file" accept="image/*" capture="environment">
+            <label class="filebtn" for="a-datei">Datei wählen</label>
+            <input id="a-datei" type="file" multiple accept="${DATEI_ARTEN}">
+          </div>
+          <p class="muted">Mehrere Dateien auf einmal gehen. Fotos werden vor dem
+             Hochladen auf 2000${K.NBSP}Pixel verkleinert; PDFs und Office-Dateien
+             bleiben, wie sie sind. Pro Datei höchstens 25${K.NBSP}MB.</p>
         </div>` : ''}
 
       <h2>Historie</h2>
@@ -386,19 +407,37 @@ async function zeichneObjekt(a) {
   }
 
   if ($('#b-ausgabe')) $('#b-ausgabe').addEventListener('click', () => zeigeAusgabe(a));
-  if ($('#a-datei')) {
-    $('#a-datei').addEventListener('change', async ev => {
-      const d = ev.target.files[0];
-      if (!d) return;
-      meldung('Wird hochgeladen …');
-      try {
-        await DB.anhangHochladen(a, d, d.type === 'application/pdf' ? 'invoice' : 'photo');
-        meldung('Hinzugefügt.');
-        ladeAnhaenge(a);
-      } catch (e) { meldung(e.message, 'err'); }
+
+  /* Kamera und Dateiwähler sind zwei getrennte Felder. Ein einziges mit
+     capture="environment" öffnet auf dem Telefon sofort die Kamera — eine
+     bereits vorhandene PDF ließe sich damit gar nicht auswählen. */
+  const hochladen = async (dateien, vorgabeArt) => {
+    const art = vorgabeArt || ($('#a-art') ? $('#a-art').value : 'other');
+    let ok = 0;
+    const schiefgegangen = [];
+    for (let i = 0; i < dateien.length; i++) {
+      meldung(dateien.length > 1
+        ? `Wird hochgeladen … (${i + 1} von ${dateien.length})`
+        : 'Wird hochgeladen …');
+      try { await DB.anhangHochladen(a, dateien[i], art); ok++; }
+      catch (e) { schiefgegangen.push(dateien[i].name + ': ' + e.message); }
+    }
+    if (schiefgegangen.length) meldung(schiefgegangen.join(' · '), 'err');
+    else meldung(ok === 1 ? 'Hinzugefügt.' : ok + ' Dateien hinzugefügt.');
+    if (ok) ladeAnhaenge(a);
+  };
+
+  ['#a-kamera', '#a-datei'].forEach(sel => {
+    const feld = $(sel);
+    if (!feld) return;
+    feld.addEventListener('change', async ev => {
+      const dateien = Array.from(ev.target.files || []);
       ev.target.value = '';
+      if (!dateien.length) return;
+      /* Ein Kameraauslöser liefert immer ein Foto, egal was oben eingestellt ist. */
+      await hochladen(dateien, sel === '#a-kamera' ? 'photo' : null);
     });
-  }
+  });
 
   ladeWartung(a, schreiben);
   ladeAnhaenge(a);
@@ -510,17 +549,32 @@ function zeigeWartungsFormular(a, schreiben) {
 
 async function ladeAnhaenge(a) {
   const ziel = $('#anhaenge');
+  const schreiben = darfSchreiben(a.company_id);
   const liste = await DB.anhaenge(a.id);
   if (!liste.length) { ziel.innerHTML = '<p class="empty">Nichts hinterlegt.</p>'; return; }
+
+  /* Bilder als Streifen, alles andere als Zeile mit Namen. Ein abfotografiertes
+     Typenschild will man sehen, eine Rechnung nur finden. */
   const fotos = liste.filter(x => (x.content_type || '').startsWith('image/'));
-  const rest = liste.filter(x => !(x.content_type || '').startsWith('image/'));
+  const rest  = liste.filter(x => !(x.content_type || '').startsWith('image/'));
+
+  const zusatz = x => [K.ANHANGART[x.kind] || x.kind, K.fmtGroesse(x.byte_size), K.fmtZeit(x.created_at)]
+    .filter(Boolean).join(' · ');
+
   ziel.innerHTML =
-    (fotos.length ? '<div class="photos" id="fotos"></div>' : '') +
+    (fotos.length ? `<div class="photos" id="fotos"></div>
+       <div class="rows">${fotos.map(x => `
+         <div class="row"><span class="t">${esc(x.filename)}</span>
+           <span class="m">${esc(zusatz(x))}</span>
+           <span class="r"><a href="#" data-datei="${esc(x.storage_path)}">Öffnen</a>${
+             schreiben ? ` · <a href="#" data-weganhang="${esc(x.id)}">Löschen</a>` : ''}</span></div>`).join('')}</div>` : '') +
     (rest.length ? `<div class="rows">${rest.map(x => `
       <div class="row"><span class="t">${esc(x.filename)}</span>
-        <span class="m">${esc(K.fmtZeit(x.created_at))}</span>
-        <span class="r"><a href="#" data-datei="${esc(x.storage_path)}">Öffnen</a></span></div>`).join('')}</div>` : '');
+        <span class="m">${esc(zusatz(x))}</span>
+        <span class="r"><a href="#" data-datei="${esc(x.storage_path)}">Öffnen</a>${
+          schreiben ? ` · <a href="#" data-weganhang="${esc(x.id)}">Löschen</a>` : ''}</span></div>`).join('')}</div>` : '');
 
+  /* Der Bucket ist privat; jede Vorschau braucht eine eigene signierte Adresse. */
   for (const f of fotos) {
     const url = await DB.anhangAdresse(f.storage_path);
     if (url && $('#fotos')) {
@@ -528,11 +582,23 @@ async function ladeAnhaenge(a) {
         `<a href="${esc(url)}" target="_blank" rel="noopener" class="plain"><img src="${esc(url)}" alt="${esc(f.filename)}"></a>`);
     }
   }
+
   ziel.querySelectorAll('[data-datei]').forEach(el => {
     el.addEventListener('click', async ev => {
       ev.preventDefault();
       const url = await DB.anhangAdresse(el.dataset.datei);
       if (url) window.open(url, '_blank', 'noopener');
+      else meldung('Die Datei ließ sich nicht öffnen.', 'err');
+    });
+  });
+
+  ziel.querySelectorAll('[data-weganhang]').forEach(el => {
+    el.addEventListener('click', async ev => {
+      ev.preventDefault();
+      const x = liste.find(i => i.id === el.dataset.weganhang);
+      if (!x || !confirm(`„${x.filename}" löschen? Das lässt sich nicht rückgängig machen.`)) return;
+      try { await DB.anhangLoeschen(x); meldung('Gelöscht.'); ladeAnhaenge(a); }
+      catch (e) { meldung(e.message, 'err'); }
     });
   });
 }
@@ -911,30 +977,11 @@ async function zeigeVerwaltung() {
         <div class="btn-row"><button class="btn primary" type="submit">Anlegen</button></div>
       </form>
 
-      <h2>Zugänge</h2>
-      <div class="scroll-x"><table>
-        <thead><tr><th>Person</th><th>Gesellschaft</th><th>Rolle</th><th></th></tr></thead>
-        <tbody>${zugaenge.map(z => `
-          <tr>
-            <td>${esc(z.profiles ? (z.profiles.full_name || z.profiles.email) : z.user_id)}</td>
-            <td>${esc(firmenName(z.company_id))}</td>
-            <td>${darfVerwalten(z.company_id)
-              ? `<select data-rolle="${esc(z.user_id)}|${esc(z.company_id)}">
-                   ${optionen(K.ROLLEN, z.role, null).replace('<option value="">—</option>', '')}</select>`
-              : esc(K.ROLLEN[z.role] || z.role)}</td>
-            <td class="num">${darfVerwalten(z.company_id) && z.user_id !== S.sitzung.user.id
-              ? `<a href="#" data-weg="${esc(z.user_id)}|${esc(z.company_id)}">entziehen</a>` : ''}</td>
-          </tr>`).join('')}</tbody>
-      </table></div>
-      <div class="sunk">
-        <p class="label">Neuen Zugang einrichten</p>
-        <p>Einladungen verschickt Supabase, nicht diese Anwendung: im Projekt unter
-           <strong>Authentication → Users → Invite user</strong> die Adresse eintragen.
-           Sobald die Person ihr Passwort gesetzt hat, taucht sie oben auf und bekommt
-           hier ihre Rolle. Der Umweg hat einen Grund — für das Anlegen von Konten
-           bräuchte diese Seite den service_role-Schlüssel, und der gehört nicht in
-           eine Datei, die jeder Browser herunterlädt.</p>
-      </div>
+      <h2>Benutzer und Rechte</h2>
+      <p>${zugaenge.length === 1 ? 'Ein Zugang' : zugaenge.length + ' Zugänge'} in den
+         Gesellschaften, die du verwaltest. Konten anlegen, Rollen ändern, sperren
+         und löschen läuft auf einer eigenen Seite.</p>
+      <div class="btn-row"><a class="btn primary" href="#/benutzer">Benutzerverwaltung öffnen</a></div>
     </div>`);
 
   $('#f-firma').addEventListener('submit', async ev => {
@@ -977,20 +1024,252 @@ async function zeigeVerwaltung() {
     } catch (e) { meldung(e.message, 'err'); }
   });
 
+}
+
+/* --- Benutzer und Rechte ------------------------------------------------------------- */
+
+/* Vier Rollen, absteigend. Was jede darf, steht nicht hier, sondern in den
+   drei rekursiven Funktionen in sql/02_rls.sql — diese Tabelle beschreibt
+   sie nur, damit niemand raten muss. */
+const ROLLENTEXT = {
+  owner:  'Alles, dazu Inhaber-Zugänge vergeben und entziehen.',
+  admin:  'Gesellschaften, Standorte, Personen und Zugänge — außer Inhaber.',
+  editor: 'Inventar erfassen, ändern, ausgeben, Prüfungen abhaken.',
+  viewer: 'Sehen und suchen, nichts ändern.'
+};
+
+function passwortVorschlag() {
+  /* Ohne l/I/1 und O/0 — das Passwort wird meist abgetippt oder vorgelesen. */
+  const z = 'abcdefghijkmnpqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const r = crypto.getRandomValues(new Uint32Array(16));
+  return Array.from({ length: 4 }, (_, g) =>
+    Array.from({ length: 4 }, (_, i) => z[r[g * 4 + i] % z.length]).join('')).join('-');
+}
+
+function kontoZustand(b) {
+  if (b.gesperrt) return { text: 'gesperrt', warn: true };
+  if (!b.bestaetigt) return { text: 'Adresse nicht bestätigt', warn: true };
+  if (!b.letzte_anmeldung) return { text: 'noch nie angemeldet', warn: false };
+  return { text: 'zuletzt ' + K.fmtDatum(b.letzte_anmeldung), warn: false };
+}
+
+async function zeigeBenutzer() {
+  if (!S.verwaltbar.length) {
+    setzeInhalt(`<h1>Benutzer und Rechte</h1>
+      <p>Zugänge vergibt die Verwaltung deiner Gesellschaft. Dein Zugang reicht dafür nicht.</p>
+      <div class="btn-row"><a class="btn plain" href="#/">Zur Übersicht</a></div>`);
+    return;
+  }
+  setzeInhalt('<p class="muted">Wird geladen …</p>');
+
+  let liste;
+  try { liste = await DB.benutzerListe(); }
+  catch (e) {
+    setzeInhalt(`<h1>Benutzer und Rechte</h1>
+      <p>Die Liste ließ sich nicht laden: ${esc(e.message)}</p>
+      <p class="muted">Fehlt die Funktion <span class="mono">benutzer_liste()</span>, ist
+         <span class="mono">sql/04_benutzer.sql</span> noch nicht eingespielt.</p>`);
+    return;
+  }
+
+  const verwaltbareFirmen = S.gesellschaften.filter(c => darfVerwalten(c.id));
+  const firmenOptionen = (gewaehlt) => verwaltbareFirmen
+    .map(c => `<option value="${esc(c.id)}"${c.id === gewaehlt ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
+  const rollenOptionen = (gewaehlt) => Object.keys(K.ROLLEN)
+    .map(r => `<option value="${r}"${r === gewaehlt ? ' selected' : ''}>${esc(K.ROLLEN[r])}</option>`).join('');
+
+  setzeInhalt(`
+    <div class="busy">
+      <p class="label">Zugänge</p>
+      <h1>Benutzer und Rechte</h1>
+      <p class="lead">Ein Zugang gilt für eine Gesellschaft und alles darunter. Wer die
+         Holding sieht, sieht jede Tochter; umgekehrt nicht.</p>
+
+      <h2>Konten</h2>
+      ${liste.length ? `<div class="rows">${liste.map(b => {
+        const z = kontoZustand(b);
+        const ich = b.id === S.sitzung.user.id;
+        const rollen = (b.rollen || []).filter(r => firma(r.company_id));
+        return `
+        <div class="row">
+          <span class="t">${esc(b.full_name || b.email)}${ich ? ' <span class="tag">du</span>' : ''}</span>
+          <span class="m">${esc(b.email)}</span>
+          <span class="r ${z.warn ? 'warn' : ''}">${esc(z.text)}</span>
+          <span class="x">
+            <span class="chips">${rollen.length
+              ? rollen.map(r => `<span class="chip">${esc(firmenName(r.company_id))} · ${esc(K.ROLLEN[r.role] || r.role)}</span>`).join('')
+              : '<span class="chip leer">ohne Zuordnung</span>'}</span>
+            ${b.verwaltbar || rollen.some(r => darfVerwalten(r.company_id)) ? `
+            <details data-konto="${esc(b.id)}">
+              <summary>Ändern</summary>
+              <div class="sunk">
+                ${rollen.filter(r => darfVerwalten(r.company_id)).map(r => `
+                  <div class="zeile">
+                    <span>${esc(firmenName(r.company_id))}</span>
+                    <select data-rolle="${esc(b.id)}|${esc(r.company_id)}">${rollenOptionen(r.role)}</select>
+                    <a href="#" data-weg="${esc(b.id)}|${esc(r.company_id)}">entziehen</a>
+                  </div>`).join('')}
+
+                <div class="zeile">
+                  <select data-neufirma="${esc(b.id)}">${firmenOptionen(null)}</select>
+                  <select data-neurolle="${esc(b.id)}">${rollenOptionen('viewer')}</select>
+                  <a href="#" data-dazu="${esc(b.id)}">Gesellschaft dazugeben</a>
+                </div>
+
+                ${b.verwaltbar ? `
+                <div class="btn-row">
+                  <button class="btn quiet" data-pw="${esc(b.id)}">Neues Passwort setzen</button>
+                  <button class="btn quiet" data-sperre="${esc(b.id)}|${b.gesperrt ? 'auf' : 'zu'}">${
+                    b.gesperrt ? 'Sperre aufheben' : 'Konto sperren'}</button>
+                  <button class="btn quiet" data-loeschen="${esc(b.id)}">Konto löschen</button>
+                </div>` : `
+                <p class="muted">Konto sperren, löschen oder das Passwort setzen kann nur, wer
+                   ${ich ? 'nicht du selbst ist — dein eigenes Passwort änderst du über die Anmeldung'
+                         : 'in jeder Gesellschaft dieses Kontos mindestens gleichrangig ist'}.</p>`}
+              </div>
+            </details>` : ''}
+          </span>
+        </div>`;
+      }).join('')}</div>` : '<p class="empty">Noch keine Konten.</p>'}
+
+      <h2>Konto anlegen</h2>
+      <form id="f-konto" class="sunk">
+        <div class="grid2">
+          <div class="field"><label for="k-name">Name</label><input id="k-name" autocomplete="off"></div>
+          <div class="field"><label for="k-mail">E-Mail-Adresse</label>
+            <input id="k-mail" type="email" required autocomplete="off"></div>
+          <div class="field"><label for="k-firma">Gesellschaft</label>
+            <select id="k-firma">${firmenOptionen(vorgabeMutter())}</select></div>
+          <div class="field"><label for="k-rolle">Rolle</label>
+            <select id="k-rolle">${rollenOptionen('viewer')}</select></div>
+        </div>
+        <div class="field"><label for="k-modus">Wie kommt die Person hinein</label>
+          <select id="k-modus">
+            <option value="passwort">Passwort jetzt vergeben</option>
+            <option value="einladung">Einladung per E-Mail schicken</option>
+          </select></div>
+        <div class="field" id="k-pwfeld">
+          <label for="k-pw">Erstes Passwort</label>
+          <input id="k-pw" minlength="10" autocomplete="off">
+          <p class="muted" style="margin:6px 0 0">Mindestens 10 Zeichen.
+             <a href="#" id="k-vorschlag">Vorschlag einsetzen</a> — danach auf einem anderen
+             Weg als per E-Mail weitergeben.</p>
+        </div>
+        <p class="muted" id="k-mailhinweis" hidden>Der Versand läuft über Supabase. Ohne
+           eigenen Mailserver im Projekt sind das wenige Nachrichten pro Stunde, und sie
+           landen oft im Spam. Für den Anfang ist ein vergebenes Passwort verlässlicher.</p>
+        <div class="btn-row"><button class="btn primary" type="submit">Anlegen</button></div>
+      </form>
+
+      <h2>Was die vier Rollen dürfen</h2>
+      <dl class="facts">${Object.keys(K.ROLLEN).map(r => `
+        <div><dt>${esc(K.ROLLEN[r])}</dt><dd>${esc(ROLLENTEXT[r])}</dd></div>`).join('')}</dl>
+      <p class="muted">Die Rolle beschränkt auch, was die Datenbank herausgibt. Wer die
+         Browserkonsole öffnet und selbst abfragt, bekommt keine Zeile mehr als hier.</p>
+
+      <div class="btn-row"><a class="btn plain" href="#/verwaltung">Zurück zur Verwaltung</a></div>
+    </div>`);
+
+  const neuLaden = async () => { await ladeStammdaten(); zeichneKopf(); zeigeBenutzer(); };
+
+  /* Anlegen */
+  const modus = $('#k-modus');
+  const umschalten = () => {
+    const ein = modus.value === 'einladung';
+    $('#k-pwfeld').hidden = ein;
+    $('#k-mailhinweis').hidden = !ein;
+    $('#k-pw').required = !ein;
+  };
+  modus.addEventListener('change', umschalten);
+  umschalten();
+
+  $('#k-vorschlag').addEventListener('click', ev => {
+    ev.preventDefault();
+    $('#k-pw').value = passwortVorschlag();
+    $('#k-pw').type = 'text';
+  });
+
+  $('#f-konto').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const knopf = ev.target.querySelector('button[type=submit]');
+    knopf.disabled = true;
+    try {
+      const d = await DB.kontoAnlegen({
+        name: $('#k-name').value.trim(),
+        email: $('#k-mail').value.trim(),
+        company_id: $('#k-firma').value,
+        rolle: $('#k-rolle').value,
+        modus: modus.value,
+        passwort: $('#k-pw').value
+      });
+      meldung(d.hinweis || 'Konto angelegt.');
+      await neuLaden();
+    } catch (e) { meldung(e.message, 'err'); knopf.disabled = false; }
+  });
+
+  /* Rolle ändern, Zugang entziehen, Gesellschaft dazugeben */
   document.querySelectorAll('[data-rolle]').forEach(sel => {
+    const vorher = sel.value;
     sel.addEventListener('change', async () => {
       const [u, c] = sel.dataset.rolle.split('|');
-      try { await DB.rolleSetzen(u, c, sel.value); meldung('Rolle geändert.'); }
-      catch (e) { meldung(e.message, 'err'); }
+      try { await DB.rolleSetzen(u, c, sel.value); meldung('Rolle geändert.'); await neuLaden(); }
+      catch (e) { meldung(e.message, 'err'); sel.value = vorher; }
     });
   });
+
   document.querySelectorAll('[data-weg]').forEach(el => {
     el.addEventListener('click', async ev => {
       ev.preventDefault();
       const [u, c] = el.dataset.weg.split('|');
-      if (!confirm('Zugang zu dieser Gesellschaft entziehen?')) return;
-      try { await DB.zugangEntziehen(u, c); meldung('Zugang entzogen.'); zeigeVerwaltung(); }
+      if (!confirm('Zugang zu ' + firmenName(c) + ' entziehen?')) return;
+      try { await DB.zugangEntziehen(u, c); meldung('Zugang entzogen.'); await neuLaden(); }
       catch (e) { meldung(e.message, 'err'); }
+    });
+  });
+
+  document.querySelectorAll('[data-dazu]').forEach(el => {
+    el.addEventListener('click', async ev => {
+      ev.preventDefault();
+      const u = el.dataset.dazu;
+      const c = document.querySelector(`[data-neufirma="${u}"]`).value;
+      const r = document.querySelector(`[data-neurolle="${u}"]`).value;
+      try { await DB.zugangGeben(u, c, r); meldung('Zugang eingerichtet.'); await neuLaden(); }
+      catch (e) { meldung(e.message, 'err'); }
+    });
+  });
+
+  /* Konto: Passwort, Sperre, Löschen */
+  document.querySelectorAll('[data-pw]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const vorschlag = passwortVorschlag();
+      const p = prompt('Neues Passwort, mindestens 10 Zeichen:', vorschlag);
+      if (!p) return;
+      try {
+        const d = await DB.kontoPasswort(b.dataset.pw, p);
+        meldung(d.hinweis || 'Passwort gesetzt.');
+      } catch (e) { meldung(e.message, 'err'); }
+    });
+  });
+
+  document.querySelectorAll('[data-sperre]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const [u, richtung] = b.dataset.sperre.split('|');
+      try {
+        const d = richtung === 'zu' ? await DB.kontoSperren(u) : await DB.kontoEntsperren(u);
+        meldung(d.hinweis || 'Geändert.');
+        await neuLaden();
+      } catch (e) { meldung(e.message, 'err'); }
+    });
+  });
+
+  document.querySelectorAll('[data-loeschen]').forEach(b => {
+    b.addEventListener('click', async () => {
+      if (!confirm('Konto endgültig löschen? Die Zugänge verschwinden mit. Das Inventar bleibt.')) return;
+      try {
+        const d = await DB.kontoLoeschen(b.dataset.loeschen);
+        meldung(d.hinweis || 'Konto gelöscht.');
+        await neuLaden();
+      } catch (e) { meldung(e.message, 'err'); }
     });
   });
 }
@@ -1006,7 +1285,8 @@ const ROUTEN = [
   [/^#\/bearbeiten\/([0-9a-f-]{36})$/i, m => zeigeFormular(m[1])],
   [/^#\/scan$/,                  () => zeigeScan()],
   [/^#\/faellig$/,               () => zeigeFaellig()],
-  [/^#\/verwaltung$/,            () => zeigeVerwaltung()]
+  [/^#\/verwaltung$/,            () => zeigeVerwaltung()],
+  [/^#\/benutzer$/,              () => zeigeBenutzer()]
 ];
 
 async function route() {
@@ -1019,7 +1299,10 @@ async function route() {
 
   document.querySelectorAll('#nav a').forEach(a => {
     const ziel = a.getAttribute('href');
-    if (pfad === ziel || (ziel === '#/' && pfad === '#/')) a.setAttribute('aria-current', 'page');
+    /* Die Benutzerverwaltung hängt unter Verwaltung und hat keinen eigenen
+       Reiter — sonst stünden sieben Einträge in einer Leiste, die auf einem
+       390 Pixel breiten Bildschirm schon mit sechs eng wird. */
+    if (pfad === ziel || (ziel === '#/verwaltung' && pfad === '#/benutzer')) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
 

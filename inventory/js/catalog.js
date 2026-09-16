@@ -53,6 +53,16 @@ const ROLLEN = {
   viewer: 'Nur lesen'
 };
 
+/* Die Werte stehen so in der check-Bedingung von attachments.kind — wer hier
+   etwas ergänzt, muss sql/01_schema.sql mitziehen. */
+const ANHANGART = {
+  photo:       'Foto',
+  invoice:     'Rechnung, Lieferschein',
+  manual:      'Anleitung, Datenblatt',
+  certificate: 'Zertifikat, Prüfprotokoll',
+  other:       'Sonstiges'
+};
+
 /* Kategoriespezifische Felder. typ: text | number | date | bool | select */
 const FELDER = {
   it: [
@@ -113,6 +123,15 @@ function fmtZahl(n) {
   return Number(n).toLocaleString('de-DE');
 }
 
+/* Dateigrößen in der Einheit, die zur Zahl passt. kB und MB zu 1000, nicht zu
+   1024 — so steht es auch im Dateimanager des Telefons. */
+function fmtGroesse(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1000) return bytes + NBSP + 'Bytes';
+  if (bytes < 1000000) return Math.round(bytes / 1000) + NBSP + 'kB';
+  return (bytes / 1000000).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + NBSP + 'MB';
+}
+
 /* Tage bis zu einem Stichtag; negativ heißt überfällig. */
 function tageBis(datum) {
   if (!datum) return null;
@@ -130,6 +149,6 @@ function fristText(tage) {
 }
 
 window.KATALOG = {
-  KATEGORIEN, STATUS, ZUSTAND, STANDORT_ART, WARTUNGSART, ROLLEN, FELDER,
-  NBSP, fmtDatum, fmtZeit, fmtGeld, fmtZahl, tageBis, fristText
+  KATEGORIEN, STATUS, ZUSTAND, STANDORT_ART, WARTUNGSART, ROLLEN, ANHANGART, FELDER,
+  NBSP, fmtDatum, fmtZeit, fmtGeld, fmtZahl, fmtGroesse, tageBis, fristText
 };
