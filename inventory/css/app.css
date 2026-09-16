@@ -188,6 +188,14 @@ label.filebtn:hover{border-color:var(--accent); color:var(--accent)}
 .btn[disabled]{opacity:.45; cursor:default; pointer-events:none}
 .btn-row{display:flex; flex-wrap:wrap; gap:var(--s1); margin:var(--s3) 0}
 
+/* Formulare sind lang; auf dem Telefon lag "Speichern" unterhalb von sechzehn
+   Feldern. Die Leiste klebt jetzt am unteren Rand und bleibt erreichbar. */
+.btn-row.kleben{
+  position:sticky; bottom:0; z-index:30;
+  background:var(--paper); border-top:1px solid var(--rule);
+  margin:var(--s3) 0 0; padding:var(--s2) 0;
+}
+
 /* --- Filterleiste -------------------------------------------------------- */
 .filters{display:flex; flex-wrap:wrap; gap:var(--s1) var(--s2); align-items:end;
   padding-bottom:var(--s2); border-bottom:1px solid var(--rule)}
