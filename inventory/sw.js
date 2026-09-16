@@ -9,7 +9,7 @@
    verloren, und ein abgemeldeter Browser soll nichts mehr hergeben.
    ========================================================================== */
 
-const VERSION = 'inv-v2';
+const VERSION = 'inv-v3';
 const HUELLE = VERSION + '-huelle';
 const FREMD  = VERSION + '-fremd';
 

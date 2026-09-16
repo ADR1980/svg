@@ -157,9 +157,43 @@ Auf dem Etikett steht eine Adresse der Form
 dem Präfix die Gesellschaft ablesen. Die Inventarnummer steht trotzdem lesbar daneben,
 etwa `SFD-IT-2026-0042`.
 
-Gedruckt wird über `labels.html`. Zwei Raster sind hinterlegt, beide aus Averys
-Typenschild-Reihe aus mattbeschichtetem Polyester, öl-, UV- und wasserfest von −40 °C
-bis +150 °C:
+Auf jedem Etikett stehen vier Dinge: Gesellschaft, Produktname, Inventarnummer und
+der QR-Code. Gesetzt wird das in `labels.html`, auf zwei Wegen.
+
+### MakeID EP53, Kassetten der 456er-Serie
+
+Der Regelfall. Die Kassette bringt Etikett und Farbband zusammen mit; das Material
+ist All-Weather-PET, wasser-, öl- und UV-fest. Hinterlegt sind die beiden Größen der
+Serie:
+
+- **AP50-25 (456)** — 50 × 25 mm. QR-Code 19 mm, daneben drei Zeilen Text.
+- **AP50-100 (456)** — 50 × 100 mm, hochkant. QR-Code 36 mm, Text darunter.
+
+Andere Maße lassen sich frei eintragen; der QR-Code wächst dann mit.
+
+**Der EP53 nimmt nichts aus dem Browser entgegen** — er hängt am Bluetooth und wird
+von der MakeID-App oder deren PC-Software bedient. Deshalb zwei Ausgaben:
+
+*CSV für den Stapel.* Vier Spalten — Gesellschaft, Produkt, Inventarnummer, QR —,
+eine Zeile je Objekt, UTF-8 mit BOM und Semikolon, damit auch Excel sie ohne
+Nachfragen öffnet. In der MakeID-Software einmal eine Vorlage in der Etikettengröße
+anlegen, die vier Spalten mit den Feldern verknüpfen, Datei laden, drucken. Das ist
+der Weg für eine ganze Lieferung.
+
+*PNG je Etikett.* Fertig gesetzt, 300 dpi — dieselbe Auflösung, mit der der EP53
+druckt —, exakt in Etikettengröße: 50 × 25 mm sind 591 × 295 Pixel. Zum Einfügen in
+die App, wenn das Layout genau so aussehen soll wie in der Vorschau.
+
+Zwei Dinge stecken im Aufbau, die man dem Etikett nicht ansieht. Das Gerät druckt
+48 mm breit auf 50 mm Material, deshalb bleiben ringsum 1,5 mm frei. Und Thermotransfer
+kennt nur schwarz: Die Hierarchie entsteht über Schriftgröße und -schnitt, nicht über
+Grauwerte. Lange Firmennamen werden automatisch verkleinert und notfalls umbrochen —
+die Inventarnummer bleibt dabei immer die größte Zeile.
+
+### Laserdrucker, A4-Bogen
+
+Für Häuser ohne EP53. Zwei Raster aus Averys Typenschild-Reihe, mattbeschichtetes
+Polyester, öl-, UV- und wasserfest von −40 °C bis +150 °C:
 
 - **L6009-20** — 45,7 × 21,2 mm, 48 je Bogen. Für Notebooks, Monitore, Kleingeräte.
 - **L6011-20** — 63,5 × 29,6 mm, 27 je Bogen. Für Maschinen und Mobiliar.

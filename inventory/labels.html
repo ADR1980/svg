@@ -10,9 +10,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 <style>
-  /* Der Bogen selbst rechnet in Millimetern, damit gedruckt genau das
-     herauskommt, was auf dem Etikettenbogen steht. Alle Maße lassen sich
-     oben nachjustieren — Drucker verziehen gern um ein bis zwei Millimeter. */
+  /* --- Bogen für Laserdrucker (Avery) ------------------------------------
+     Rechnet in Millimetern, damit gedruckt genau das herauskommt, was auf
+     dem Etikettenbogen steht. Die Maße lassen sich oben nachjustieren —
+     Drucker verziehen gern um ein bis zwei Millimeter. */
   .sheet{
     background:#fff; width:210mm; min-height:297mm; margin:24px auto;
     padding:var(--top) var(--side); box-sizing:border-box;
@@ -36,6 +37,16 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .guides .cell{outline:.2mm dashed #DFDBD3; outline-offset:0}
 
+  /* --- Kassettenetiketten (MakeID EP53) ----------------------------------
+     Einzelne Etiketten in Originalgröße. Gezeichnet wird auf Canvas mit
+     300 dpi — derselben Auflösung, mit der der EP53 druckt. Was hier zu
+     sehen ist, ist Pixel für Pixel das, was als PNG herausfällt. */
+  .kassetten{display:flex; flex-wrap:wrap; gap:var(--s3); margin:var(--s3) 0}
+  .etikett{display:flex; flex-direction:column; gap:6px; align-items:flex-start}
+  .etikett canvas{background:#fff; border:1px solid var(--rule); display:block}
+  .etikett .fuss{font-family:var(--mono); font-size:11px; color:var(--ink-muted);
+    display:flex; gap:10px; align-items:baseline}
+
   @page{size:A4; margin:0}
   @media print{
     body{background:#fff; padding:0}
@@ -55,18 +66,17 @@
 <main class="wrap noprint">
   <div class="msg" id="msg" hidden role="status"></div>
 
-  <p class="label">Typenschild-Etiketten</p>
+  <p class="label">Kennzeichnung</p>
   <h1>Aufkleber für das Inventar</h1>
-  <p class="lead">Beide Raster sind für Averys Typenschild-Folie gedacht: mattbeschichtetes
-     Polyester, öl-, UV- und wasserfest, −40 °C bis +150 °C. Vor dem ersten
-     Serienlauf einen Bogen auf normales Papier drucken und gegen die Folie halten;
-     Drucker verziehen gern um ein bis zwei Millimeter, dafür sind die Maßfelder da.</p>
+  <p class="lead">Auf jedem Etikett stehen Gesellschaft, Produktname, Inventarnummer
+     und der QR-Code. Zwei Wege führen dahin: die Kassette im EP53 oder ein
+     Bogen Folie im Laserdrucker.</p>
 
   <div class="filters">
-    <div class="field"><label for="l-raster">Raster</label>
-      <select id="l-raster">
-        <option value="L6009">L6009 · 45,7 × 21,2 mm · 48 je Bogen</option>
-        <option value="L6011">L6011 · 63,5 × 29,6 mm · 27 je Bogen</option>
+    <div class="field"><label for="l-modus">Womit wird gedruckt</label>
+      <select id="l-modus">
+        <option value="kassette">MakeID EP53 · Kassette</option>
+        <option value="bogen">Laserdrucker · A4-Bogen (Avery)</option>
       </select></div>
     <div class="field"><label for="l-firma">Gesellschaft</label><select id="l-firma"></select></div>
     <div class="field"><label for="l-kat">Kategorie</label>
@@ -74,24 +84,72 @@
         <option value="it">IT &amp; Technik</option>
         <option value="furniture">Mobiliar</option>
         <option value="machine">Maschine</option></select></div>
-    <div class="field"><label for="l-versatz">Freie Plätze am Anfang</label>
-      <input id="l-versatz" type="number" min="0" value="0"></div>
   </div>
 
-  <div class="filters" style="border:0">
-    <div class="field"><label for="m-top">Rand oben (mm)</label><input id="m-top" type="number" step="0.1"></div>
-    <div class="field"><label for="m-side">Rand links (mm)</label><input id="m-side" type="number" step="0.1"></div>
-    <div class="field"><label for="m-gap">Spalte (mm)</label><input id="m-gap" type="number" step="0.1"></div>
-    <div class="field"><label for="m-rgap">Zeile (mm)</label><input id="m-rgap" type="number" step="0.1"></div>
-    <div class="field inline"><input id="m-hilfe" type="checkbox" checked>
-      <label for="m-hilfe">Hilfslinien anzeigen</label></div>
+  <!-- --- Kassette ------------------------------------------------------ -->
+  <div id="teil-kassette">
+    <div class="filters">
+      <div class="field"><label for="k-groesse">Kassette</label>
+        <select id="k-groesse">
+          <option value="AP50-25">AP50-25 (456) · 50 × 25 mm</option>
+          <option value="AP50-100">AP50-100 (456) · 50 × 100 mm</option>
+          <option value="frei">Andere Größe …</option>
+        </select></div>
+      <div class="field" id="f-breite" hidden><label for="k-breite">Breite (mm)</label>
+        <input id="k-breite" type="number" step="0.1" min="10" max="56" value="50"></div>
+      <div class="field" id="f-hoehe" hidden><label for="k-hoehe">Höhe (mm)</label>
+        <input id="k-hoehe" type="number" step="0.1" min="10" max="300" value="25"></div>
+    </div>
+
+    <div class="sunk">
+      <p class="label">So kommen die Etiketten in den Drucker</p>
+      <p><strong>Für viele Etiketten: die CSV.</strong> Der EP53 hängt am Bluetooth
+         und nimmt nichts aus dem Browser entgegen. Die MakeID-Software liest
+         aber CSV im Stapel: Vorlage einmal anlegen, die vier Felder verknüpfen,
+         Datei laden, drucken. Das ist der Weg für eine ganze Lieferung.</p>
+      <p><strong>Für einzelne Etiketten: das PNG.</strong> Fertig gesetzt in
+         300 dpi, genau in Etikettengröße, zum Einfügen in die App. Da ist das
+         Layout schon entschieden — bei der CSV entscheidet es die Vorlage.</p>
+      <p class="muted">Der EP53 druckt 48 mm breit auf 50 mm Material. Der
+         Aufbau hält deshalb ringsum 1,5 mm frei. Thermotransfer kennt nur
+         schwarz; unterschieden wird über Größe, nicht über Grauwerte.</p>
+    </div>
+  </div>
+
+  <!-- --- Bogen --------------------------------------------------------- -->
+  <div id="teil-bogen" hidden>
+    <div class="filters">
+      <div class="field"><label for="l-raster">Raster</label>
+        <select id="l-raster">
+          <option value="L6009">L6009 · 45,7 × 21,2 mm · 48 je Bogen</option>
+          <option value="L6011">L6011 · 63,5 × 29,6 mm · 27 je Bogen</option>
+        </select></div>
+      <div class="field"><label for="l-versatz">Freie Plätze am Anfang</label>
+        <input id="l-versatz" type="number" min="0" value="0"></div>
+    </div>
+    <div class="filters" style="border:0">
+      <div class="field"><label for="m-top">Rand oben (mm)</label><input id="m-top" type="number" step="0.1"></div>
+      <div class="field"><label for="m-side">Rand links (mm)</label><input id="m-side" type="number" step="0.1"></div>
+      <div class="field"><label for="m-gap">Spalte (mm)</label><input id="m-gap" type="number" step="0.1"></div>
+      <div class="field"><label for="m-rgap">Zeile (mm)</label><input id="m-rgap" type="number" step="0.1"></div>
+      <div class="field inline"><input id="m-hilfe" type="checkbox" checked>
+        <label for="m-hilfe">Hilfslinien anzeigen</label></div>
+    </div>
+    <p class="muted">Gedacht für Averys Typenschild-Folie: mattbeschichtetes
+       Polyester, öl-, UV- und wasserfest, −40 °C bis +150 °C. Vor dem ersten
+       Serienlauf einen Bogen auf normales Papier drucken und gegen die Folie
+       halten; dafür sind die Maßfelder da.</p>
   </div>
 
   <div class="btn-row">
-    <button class="btn primary" id="b-bauen">Bogen erzeugen</button>
-    <button class="btn" id="b-drucken" disabled>Drucken</button>
+    <button class="btn primary" id="b-bauen">Etiketten erzeugen</button>
+    <button class="btn" id="b-drucken" disabled hidden>Drucken</button>
+    <button class="btn" id="b-png" disabled>Alle als PNG</button>
+    <button class="btn" id="b-csv" disabled>CSV für MakeID</button>
   </div>
   <p class="muted" id="l-info" style="font-size:14px"></p>
+
+  <div class="kassetten" id="kassetten"></div>
 </main>
 
 <div id="bogen"></div>
@@ -101,8 +159,8 @@
 <script src="config.js"></script>
 <script src="js/db.js"></script>
 <script>
-/* Startwerte für die beiden Bögen. Sie stammen aus den Maßangaben der
-   Hersteller-Vorlagen und sind bewusst nachjustierbar. */
+/* Startwerte für die beiden A4-Bögen, aus den Maßangaben der
+   Hersteller-Vorlagen. Bewusst nachjustierbar. */
 const RASTER = {
   L6009: { cols: 4, rows: 12, lw: 45.7, lh: 21.2, top: 21.3, side: 9.8, gap: 2.5, rgap: 0,
            qr: 18, fs: { no: 2.5, co: 1.9, nm: 2.1 } },
@@ -110,9 +168,22 @@ const RASTER = {
            qr: 25, fs: { no: 3.2, co: 2.2, nm: 2.6 } }
 };
 
+/* Kassetten der 456er-Serie für den EP53. rand ist der Sicherheitsabstand:
+   Das Gerät druckt 48 mm breit, das Material ist 50 mm — ohne Reserve
+   schneidet der Rand an. */
+const KASSETTE = {
+  'AP50-25':  { b: 50, h: 25,  rand: 1.5, qr: 19 },
+  'AP50-100': { b: 50, h: 100, rand: 3,   qr: 36 }
+};
+
+const DPI = 300;
+const px = mm => Math.round(mm * DPI / 25.4);
+
 const $ = s => document.querySelector(s);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let LISTE = [];        /* zuletzt erzeugte Etiketten */
 
 function sag(t, err) {
   const m = $('#msg');
@@ -124,62 +195,225 @@ function assetUrl(code) {
   return window.INVENTAR_CONFIG.APP_URL.replace(/\/+$/, '') + '/#/a/' + code;
 }
 
+function modus() { return $('#l-modus').value; }
+
+function kassettenMasse() {
+  const w = $('#k-groesse').value;
+  if (w !== 'frei') return KASSETTE[w];
+  const b = Number($('#k-breite').value) || 50;
+  const h = Number($('#k-hoehe').value) || 25;
+  /* Der QR-Code bekommt, was die kürzere Kante hergibt, höchstens 36 mm. */
+  const rand = b >= 40 ? 1.5 : 1;
+  return { b, h, rand, qr: Math.min(36, Math.max(12, Math.min(h - 2 * rand, b * 0.4))) };
+}
+
+/* --- Textsatz auf Canvas ---------------------------------------------------
+   Canvas kann nicht umbrechen und nicht kürzen. Beides steht hier, weil eine
+   Gesellschaft „Forstwirt Handel & Service GmbH" heißen kann und trotzdem auf
+   26 Millimeter passen muss. */
+
+function fontStr(gewicht, mm, familie) { return `${gewicht} ${px(mm)}px ${familie}`; }
+
+function umbrechen(ctx, text, maxB, maxZ) {
+  const woerter = String(text).trim().split(/\s+/).filter(Boolean);
+  const zeilen = [];
+  let zeile = '';
+  let i = 0;
+  for (; i < woerter.length; i++) {
+    const probe = zeile ? zeile + ' ' + woerter[i] : woerter[i];
+    if (!zeile || ctx.measureText(probe).width <= maxB) { zeile = probe; continue; }
+    zeilen.push(zeile);
+    if (zeilen.length === maxZ) return { zeilen, rest: true };
+    zeile = woerter[i];
+  }
+  if (zeile) zeilen.push(zeile);
+  return { zeilen, rest: false };
+}
+
+/* Verkleinert die Schrift, bis der Text in maxZ Zeilen passt. Reicht auch die
+   kleinste Größe nicht, wird gekürzt — lieber ein Auslassungszeichen als ein
+   Etikett, auf dem der halbe Name fehlt und niemand es merkt. */
+function satz(ctx, text, maxB, maxZ, familie, gewicht, von, bis) {
+  const t = String(text || '').trim();
+  if (!t) return { mm: bis, zeilen: [] };
+  for (let g = von; g >= bis - 0.001; g -= 0.1) {
+    ctx.font = fontStr(gewicht, g, familie);
+    const u = umbrechen(ctx, t, maxB, maxZ);
+    if (!u.rest && u.zeilen.every(z => ctx.measureText(z).width <= maxB)) {
+      return { mm: g, zeilen: u.zeilen };
+    }
+  }
+  ctx.font = fontStr(gewicht, bis, familie);
+  const u = umbrechen(ctx, t, maxB, maxZ);
+  if (u.rest && u.zeilen.length) {
+    let l = u.zeilen[u.zeilen.length - 1];
+    while (l.length > 1 && ctx.measureText(l + '…').width > maxB) l = l.slice(0, -1);
+    u.zeilen[u.zeilen.length - 1] = l + '…';
+  }
+  return { mm: bis, zeilen: u.zeilen };
+}
+
+function qrCanvas(text, groesseMm) {
+  return new Promise((ok, nein) => {
+    const c = document.createElement('canvas');
+    /* Rand 0: Acht Modul-Breiten Ruhezone wären auf 19 mm Verschwendung.
+       Dafür Fehlerkorrektur M — der Code verträgt einen Kratzer. */
+    QRCode.toCanvas(c, text, {
+      width: px(groesseMm), margin: 0, errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#FFFFFF' }
+    }, e => e ? nein(e) : ok(c));
+  });
+}
+
+/* --- Ein Kassettenetikett zeichnen ---------------------------------------- */
+
+async function zeichneEtikett(cv, a, m) {
+  cv.width = px(m.b);
+  cv.height = px(m.h);
+  cv.style.width = m.b + 'mm';
+  cv.style.height = m.h + 'mm';
+
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#000000';
+  ctx.textBaseline = 'top';
+
+  const qr = await qrCanvas(assetUrl(a.public_code), m.qr);
+  const firma = (a.companies && a.companies.name) || '';
+  const hoch = m.h > m.b;          /* Hochformat: QR oben, Text darunter */
+
+  const rand = px(m.rand);
+  const qrPx = px(m.qr);
+  let tx, ty, tb, th;
+
+  if (hoch) {
+    ctx.drawImage(qr, Math.round((cv.width - qrPx) / 2), rand, qrPx, qrPx);
+    tx = rand; ty = rand + qrPx + px(m.b * 0.06);
+    tb = cv.width - 2 * rand; th = cv.height - ty - rand;
+  } else {
+    ctx.drawImage(qr, rand, Math.round((cv.height - qrPx) / 2), qrPx, qrPx);
+    tx = rand + qrPx + px(2);
+    tb = cv.width - tx - rand;
+    ty = rand; th = cv.height - 2 * rand;
+  }
+
+  /* Maßstab: Auf dem langen Etikett darf alles größer werden. */
+  const k = hoch ? 1.9 : 1;
+  const bloecke = [
+    satz(ctx, firma, tb, 2, '"Archivo", sans-serif', '600', 2.5 * k, 1.5 * k),
+    satz(ctx, a.name, tb, 2, '"Source Serif 4", serif', '400', 3.0 * k, 1.7 * k),
+    satz(ctx, a.asset_no, tb, 1, '"IBM Plex Mono", monospace', '500', 3.6 * k, 2.2 * k)
+  ];
+  const schrift = [
+    ['"Archivo", sans-serif', '600'],
+    ['"Source Serif 4", serif', '400'],
+    ['"IBM Plex Mono", monospace', '500']
+  ];
+
+  const zeilenAbstand = 1.25;
+  const lueckeMm = 1.1 * k;
+  let gesamt = 0;
+  bloecke.forEach((b, i) => {
+    if (!b.zeilen.length) return;
+    gesamt += px(b.mm * zeilenAbstand) * b.zeilen.length;
+    if (i < bloecke.length - 1) gesamt += px(lueckeMm);
+  });
+
+  let y = ty + Math.max(0, Math.round((th - gesamt) / 2));
+  bloecke.forEach((b, i) => {
+    if (!b.zeilen.length) return;
+    ctx.font = fontStr(schrift[i][1], b.mm, schrift[i][0]);
+    b.zeilen.forEach(z => {
+      ctx.fillText(z, tx, y);
+      y += px(b.mm * zeilenAbstand);
+    });
+    if (i < bloecke.length - 1) y += px(lueckeMm);
+  });
+}
+
+/* --- Ausgabe --------------------------------------------------------------- */
+
+function dateiName(a) {
+  return String(a.asset_no || a.public_code).replace(/[^A-Za-z0-9._-]/g, '_') + '.png';
+}
+
+function herunterladen(blobOderText, name, typ) {
+  const blob = blobOderText instanceof Blob
+    ? blobOderText : new Blob([blobOderText], { type: typ });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+async function zeichneKassetten(liste) {
+  const m = kassettenMasse();
+  const ziel = $('#kassetten');
+  ziel.innerHTML = '';
+  for (const a of liste) {
+    const wrap = document.createElement('div');
+    wrap.className = 'etikett';
+    const cv = document.createElement('canvas');
+    wrap.appendChild(cv);
+    const fuss = document.createElement('div');
+    fuss.className = 'fuss';
+    fuss.innerHTML = `<span>${esc(a.asset_no)}</span>`;
+    const link = document.createElement('a');
+    link.href = '#'; link.textContent = 'PNG';
+    link.addEventListener('click', ev => {
+      ev.preventDefault();
+      cv.toBlob(b => herunterladen(b, dateiName(a)), 'image/png');
+    });
+    fuss.appendChild(link);
+    wrap.appendChild(fuss);
+    ziel.appendChild(wrap);
+    await zeichneEtikett(cv, a, m);
+  }
+}
+
+/* Mehrere Downloads hintereinander: Der Browser fragt beim zweiten nach, ob er
+   das darf. Deshalb der Hinweis statt einer stillen Schleife. */
+async function allePng() {
+  const cvs = Array.from(document.querySelectorAll('#kassetten canvas'));
+  if (!cvs.length) return;
+  if (cvs.length > 25 &&
+      !confirm(cvs.length + ' Dateien nacheinander herunterladen? Für größere Mengen '
+             + 'ist die CSV der bessere Weg.')) return;
+  for (let i = 0; i < cvs.length; i++) {
+    await new Promise(ok => cvs[i].toBlob(b => { herunterladen(b, dateiName(LISTE[i])); ok(); }, 'image/png'));
+    await new Promise(ok => setTimeout(ok, 250));
+  }
+  sag(cvs.length + ' PNG-Dateien erzeugt.');
+}
+
+/* CSV für den Stapelimport der MakeID-Software. Semikolon und BOM, damit auch
+   Excel die Datei ohne Nachfragen richtig öffnet. */
+function csv() {
+  const feld = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const zeilen = [['Gesellschaft', 'Produkt', 'Inventarnummer', 'QR'].map(feld).join(';')];
+  LISTE.forEach(a => zeilen.push([
+    feld(a.companies ? a.companies.name : ''),
+    feld(a.name),
+    feld(a.asset_no),
+    feld(assetUrl(a.public_code))
+  ].join(';')));
+  const datum = new Date().toISOString().slice(0, 10);
+  herunterladen('﻿' + zeilen.join('\r\n') + '\r\n',
+    `inventar-etiketten-${datum}.csv`, 'text/csv;charset=utf-8');
+  sag(LISTE.length + ' Zeilen als CSV. In der MakeID-Software eine Vorlage in '
+    + kassettenMasse().b + ' × ' + kassettenMasse().h + ' mm anlegen und die vier Spalten verknüpfen.');
+}
+
+/* --- A4-Bogen -------------------------------------------------------------- */
+
 function masseSetzen() {
   const r = RASTER[$('#l-raster').value];
   $('#m-top').value = r.top; $('#m-side').value = r.side;
   $('#m-gap').value = r.gap; $('#m-rgap').value = r.rgap;
 }
 
-async function start() {
-  if (!DB.konfiguriert()) {
-    sag('In config.js fehlen Projekt-Adresse und anon key.', true);
-    $('#b-bauen').disabled = true;
-    return;
-  }
-  const s = await DB.sitzung();
-  if (!s) {
-    sag('Nicht angemeldet. Erst in der Anwendung anmelden, dann hierher zurück.', true);
-    $('#b-bauen').disabled = true;
-    return;
-  }
-  const firmen = await DB.gesellschaften();
-  $('#l-firma').innerHTML = '<option value="">Alle sichtbaren</option>' +
-    firmen.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
-  masseSetzen();
-
-  const code = new URLSearchParams(location.search).get('code');
-  if (code) { await bauen(code); }
-}
-
-async function bauen(einzelCode) {
-  sag('');
-  $('#b-bauen').disabled = true;
-  try {
-    let liste;
-    if (einzelCode) {
-      const a = await DB.assetPerCode(einzelCode);
-      liste = a ? [a] : [];
-    } else {
-      liste = await DB.assets({
-        company: $('#l-firma').value || undefined,
-        category: $('#l-kat').value || undefined,
-        limit: 1000
-      });
-    }
-    if (!liste.length) { sag('Kein Objekt zu diesen Filtern.', true); return; }
-    zeichnen(liste);
-    $('#b-drucken').disabled = false;
-    $('#l-info').textContent = liste.length + ' Etiketten auf ' +
-      Math.ceil((liste.length + Number($('#l-versatz').value || 0)) /
-                (RASTER[$('#l-raster').value].cols * RASTER[$('#l-raster').value].rows)) + ' Bogen.';
-  } catch (e) {
-    sag(e.message, true);
-  } finally {
-    $('#b-bauen').disabled = false;
-  }
-}
-
-function zeichnen(liste) {
+function zeichneBogen(liste) {
   const r = RASTER[$('#l-raster').value];
   const proBogen = r.cols * r.rows;
   const versatz = Math.max(0, Math.min(proBogen - 1, Number($('#l-versatz').value || 0)));
@@ -206,13 +440,13 @@ function zeichnen(liste) {
         z.appendChild(c);
         const t = document.createElement('div');
         t.className = 'txt';
+        /* Gesellschaft, Produkt, Nummer — auf dem kleinen Raster wird der
+           Produktname einzeilig beschnitten, die Nummer nie. */
         t.innerHTML =
-          `<div class="no" style="font-size:${r.fs.no}mm">${esc(a.asset_no)}</div>` +
-          `<div class="co" style="font-size:${r.fs.co}mm">${esc(a.companies ? a.companies.short_code : '')}</div>` +
-          (r.lh > 25 ? `<div class="nm" style="font-size:${r.fs.nm}mm">${esc(a.name)}</div>` : '');
+          `<div class="co" style="font-size:${r.fs.co}mm">${esc(a.companies ? a.companies.name : '')}</div>` +
+          `<div class="nm" style="font-size:${r.fs.nm}mm">${esc(a.name)}</div>` +
+          `<div class="no" style="font-size:${r.fs.no}mm">${esc(a.asset_no)}</div>`;
         z.appendChild(t);
-        /* 8 Module Rand wären Verschwendung auf 21 mm: margin 0, dafür
-           Fehlerkorrektur M — der Code verträgt einen Kratzer. */
         QRCode.toCanvas(c, assetUrl(a.public_code), {
           width: 320, margin: 0, errorCorrectionLevel: 'M',
           color: { dark: '#000000', light: '#FFFFFF' }
@@ -224,10 +458,103 @@ function zeichnen(liste) {
   }
 }
 
+/* --- Ablauf ---------------------------------------------------------------- */
+
+function modusZeigen() {
+  const k = modus() === 'kassette';
+  $('#teil-kassette').hidden = !k;
+  $('#teil-bogen').hidden = k;
+  $('#b-drucken').hidden = k;
+  $('#b-png').hidden = !k;
+  $('#b-csv').hidden = !k;
+  $('#kassetten').innerHTML = '';
+  $('#bogen').innerHTML = '';
+  $('#b-drucken').disabled = true;
+  $('#b-png').disabled = true;
+  $('#b-csv').disabled = true;
+  $('#l-info').textContent = '';
+}
+
+function groesseZeigen() {
+  const frei = $('#k-groesse').value === 'frei';
+  $('#f-breite').hidden = !frei;
+  $('#f-hoehe').hidden = !frei;
+}
+
+async function bauen(einzelCode) {
+  sag('');
+  $('#b-bauen').disabled = true;
+  try {
+    let liste;
+    if (einzelCode) {
+      const a = await DB.assetPerCode(einzelCode);
+      liste = a ? [a] : [];
+    } else {
+      liste = await DB.assets({
+        company: $('#l-firma').value || undefined,
+        category: $('#l-kat').value || undefined,
+        limit: 1000
+      });
+    }
+    if (!liste.length) { sag('Kein Objekt zu diesen Filtern.', true); return; }
+    LISTE = liste;
+
+    if (modus() === 'kassette') {
+      await document.fonts.ready;      /* sonst zeichnet Canvas mit Ersatzschrift */
+      const m = kassettenMasse();
+      await zeichneKassetten(liste);
+      $('#b-png').disabled = false;
+      $('#b-csv').disabled = false;
+      $('#l-info').textContent =
+        `${liste.length} Etiketten à ${m.b} × ${m.h} mm, QR-Code ${m.qr} mm.`;
+    } else {
+      zeichneBogen(liste);
+      const r = RASTER[$('#l-raster').value];
+      $('#b-drucken').disabled = false;
+      $('#l-info').textContent = liste.length + ' Etiketten auf ' +
+        Math.ceil((liste.length + Number($('#l-versatz').value || 0)) /
+                  (r.cols * r.rows)) + ' Bogen.';
+    }
+  } catch (e) {
+    sag(e.message, true);
+  } finally {
+    $('#b-bauen').disabled = false;
+  }
+}
+
+async function start() {
+  if (!DB.konfiguriert()) {
+    sag('In config.js fehlen Projekt-Adresse und anon key.', true);
+    $('#b-bauen').disabled = true;
+    return;
+  }
+  const s = await DB.sitzung();
+  if (!s) {
+    sag('Nicht angemeldet. Erst in der Anwendung anmelden, dann hierher zurück.', true);
+    $('#b-bauen').disabled = true;
+    return;
+  }
+  const firmen = await DB.gesellschaften();
+  $('#l-firma').innerHTML = '<option value="">Alle sichtbaren</option>' +
+    firmen.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  masseSetzen();
+  modusZeigen();
+  groesseZeigen();
+
+  const p = new URLSearchParams(location.search);
+  if (p.get('modus') === 'bogen') { $('#l-modus').value = 'bogen'; modusZeigen(); }
+  const code = p.get('code');
+  if (code) { await bauen(code); }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  $('#l-modus').addEventListener('change', modusZeigen);
+  $('#k-groesse').addEventListener('change', groesseZeigen);
   $('#l-raster').addEventListener('change', masseSetzen);
   $('#b-bauen').addEventListener('click', () => bauen(null));
   $('#b-drucken').addEventListener('click', () => window.print());
+  $('#b-png').addEventListener('click', () => allePng().catch(e => sag(e.message, true)));
+  $('#b-csv').addEventListener('click', csv);
   start().catch(e => sag(e.message, true));
 });
 </script>
