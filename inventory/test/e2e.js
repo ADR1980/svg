@@ -162,6 +162,31 @@ async function anmelden(seite, mail) {
   pruefe(!/Typenschild\.png/.test(anh2) || !/Rechnung 2026-0815\.pdf/.test(anh2),
     'eine Datei ließ sich wieder löschen');
 
+  /* --- 1c. Bearbeiten am Telefon ----------------------------------------- */
+  /* Diese Seite läuft im 390-Pixel-Kontext — dasselbe gilt für den Upload
+     weiter oben. Was hier klappt, klappt auf dem Telefon. */
+  console.log('\nBearbeiten am Telefon');
+  await s.locator('a[href^="#/bearbeiten/"]').first().click();
+  await s.waitForSelector('#f-asset', { timeout: 15000 });
+  pruefe(/Objekt bearbeiten/.test(await s.textContent('#view')), 'Bearbeiten-Maske öffnet sich');
+  pruefe(await s.inputValue('#x-name') === 'ThinkPad T14s', 'die Felder sind vorbelegt');
+
+  /* Gesellschaft und Kategorie stehen fest, sobald eine Nummer vergeben ist —
+     sonst würde die Inventarnummer nicht mehr zum Objekt passen. */
+  pruefe(await s.locator('#x-firma').isDisabled() && await s.locator('#x-kat').isDisabled(),
+    'Gesellschaft und Kategorie lassen sich nachträglich nicht umhängen');
+
+  await s.fill('#x-name', 'ThinkPad T14s (Gen 5)');
+  await s.selectOption('#x-zustand', 'used');
+  await s.click('#f-asset button[type=submit]');
+  await s.waitForSelector('.lead.mono', { timeout: 15000 });
+  await s.waitForTimeout(1200);
+  const nachher = await s.textContent('#view');
+  pruefe(/ThinkPad T14s \(Gen 5\)/.test(nachher), 'geänderter Name steht im Detail');
+  pruefe(/Gebraucht/.test(nachher), 'geänderter Zustand steht im Detail');
+  pruefe(/SFD-IT-2026-0001/.test(nachher), 'die Inventarnummer bleibt dieselbe');
+  await s.screenshot({ path: './shots/07-bearbeitet.png', fullPage: true });
+
   /* --- 2. Fremder Aufkleber --------------------------------------------- */
   console.log('\nFremder Aufkleber');
   const codeFremd = process.env.FREMD_CODE;
@@ -303,6 +328,100 @@ async function anmelden(seite, mail) {
   et.on('pageerror', e => konsole.push('pageerror: ' + e.message));
   await et.goto(BASIS + '/labels.html', { waitUntil: 'networkidle' });
   await et.waitForSelector('#b-bauen:not([disabled])', { timeout: 10000 });
+
+  /* --- 5a. Kassettenetiketten (MakeID EP53) ------------------------------ */
+  pruefe(await et.inputValue('#l-modus') === 'kassette',
+    'Kassette ist die Vorgabe, nicht der A4-Bogen');
+  await et.click('#b-bauen');
+  await et.waitForSelector('#kassetten canvas', { timeout: 15000 });
+  await et.waitForTimeout(2000);
+
+  const kAnzahl = await et.locator('#kassetten canvas').count();
+  pruefe(kAnzahl === 9, '9 Kassettenetiketten, gesehen: ' + kAnzahl);
+
+  /* 50 × 25 mm bei 300 dpi sind 591 × 295 Pixel. Genau das muss im PNG stehen,
+     sonst druckt der EP53 skaliert. */
+  const kMasse = await et.evaluate(() => {
+    const c = document.querySelector('#kassetten canvas');
+    const r = c.getBoundingClientRect();
+    const mm = px => Math.round(px / (96 / 25.4) * 10) / 10;
+    return { pxB: c.width, pxH: c.height, mmB: mm(r.width), mmH: mm(r.height) };
+  });
+  pruefe(kMasse.pxB === 591 && kMasse.pxH === 295,
+    '300 dpi: ' + kMasse.pxB + ' × ' + kMasse.pxH + ' Pixel (Soll 591 × 295)');
+  pruefe(kMasse.mmB === 50 && kMasse.mmH === 25,
+    'Anzeige in Originalgröße: ' + kMasse.mmB + ' × ' + kMasse.mmH + ' mm');
+
+  /* Ein weißes Rechteck wäre auch 591 × 295 groß. Also nachsehen, ob wirklich
+     etwas darauf steht — und ob der QR-Code links sitzt. */
+  const kInhalt = await et.evaluate(() => {
+    const c = document.querySelector('#kassetten canvas');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let dunkel = 0, linksDunkel = 0, rechtsDunkel = 0;
+    for (let y = 0; y < c.height; y++) {
+      for (let x = 0; x < c.width; x++) {
+        if (d[(y * c.width + x) * 4] < 100) {
+          dunkel++;
+          if (x < c.width * 0.45) linksDunkel++; else rechtsDunkel++;
+        }
+      }
+    }
+    return { dunkel, linksDunkel, rechtsDunkel };
+  });
+  pruefe(kInhalt.linksDunkel > 8000, 'QR-Code links gezeichnet, dunkle Pixel: ' + kInhalt.linksDunkel);
+  pruefe(kInhalt.rechtsDunkel > 500, 'Text rechts gesetzt, dunkle Pixel: ' + kInhalt.rechtsDunkel);
+
+  await et.screenshot({ path: './shots/12-kassette.png', fullPage: false });
+
+  /* Der wichtigste Test am Etikett: Lässt sich der QR-Code aus dem fertigen
+     300-dpi-Bild wieder auslesen? Der Rand ist knapp — die Ruhezone kommt nur
+     aus den 1,5 mm Etikettenrand, nicht aus dem Code selbst. */
+  await et.addScriptTag({ path: './vendor/html5-qrcode.min.js' });
+  const gelesen = await et.evaluate(async () => {
+    const cv = document.querySelector('#kassetten canvas');
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/png'));
+    const halter = document.createElement('div');
+    halter.id = 'decoder'; halter.style.display = 'none';
+    document.body.appendChild(halter);
+    try {
+      const h = new Html5Qrcode('decoder', { verbose: false });
+      return await h.scanFile(new File([blob], 'e.png', { type: 'image/png' }), false);
+    } catch (e) { return 'FEHLER: ' + e; }
+  });
+  /* Die Adresse kommt aus APP_URL und lautet im Test localhost, im Betrieb
+     svg.global — geprüft wird deshalb der Teil, der immer gleich ist. */
+  pruefe(/\/inventory\/#\/a\/[0-9a-f]{16}$/.test(gelesen),
+    'QR-Code des Etiketts decodiert zu: ' + String(gelesen).slice(0, 60));
+
+  /* CSV für den Stapelimport: vier Spalten, eine Zeile je Objekt. */
+  const [ladung] = await Promise.all([
+    et.waitForEvent('download', { timeout: 15000 }),
+    et.click('#b-csv')
+  ]);
+  const csvPfad = await ladung.path();
+  const csvText = fs.readFileSync(csvPfad, 'utf8');
+  const csvZeilen = csvText.trim().split(/\r?\n/);
+  pruefe(/Gesellschaft/.test(csvZeilen[0]) && /Produkt/.test(csvZeilen[0])
+      && /Inventarnummer/.test(csvZeilen[0]) && /QR/.test(csvZeilen[0]),
+    'CSV-Kopfzeile nennt alle vier Felder');
+  pruefe(csvZeilen.length === 10, 'CSV hat Kopf + 9 Zeilen, gesehen: ' + csvZeilen.length);
+  pruefe(/Snowflake Digital GmbH/.test(csvText) && /SFD-IT-2026-\d{4}/.test(csvText)
+      && /#\/a\/[0-9a-f]{16}/.test(csvText),
+    'CSV enthält Gesellschaft, Inventarnummer und QR-Adresse');
+
+  /* Die lange Kassette: 50 × 100 mm sind 591 × 1181 Pixel. */
+  await et.selectOption('#k-groesse', 'AP50-100');
+  await et.click('#b-bauen');
+  await et.waitForTimeout(2500);
+  const kLang = await et.evaluate(() => {
+    const c = document.querySelector('#kassetten canvas');
+    return { b: c.width, h: c.height };
+  });
+  pruefe(kLang.b === 591 && kLang.h === 1181,
+    'AP50-100 misst ' + kLang.b + ' × ' + kLang.h + ' Pixel (Soll 591 × 1181)');
+
+  /* --- 5b. A4-Bogen ------------------------------------------------------ */
+  await et.selectOption('#l-modus', 'bogen');
   await et.click('#b-bauen');
   await et.waitForSelector('.sheet .cell canvas', { timeout: 15000 });
   await et.waitForTimeout(1500);
