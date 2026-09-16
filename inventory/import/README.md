@@ -1,0 +1,74 @@
+# Inventar ATC technology GmbH aus dem Bewertungsgutachten
+
+`atc-technology-2025-08-05.csv` — 103 Positionen, abgetippt aus dem Scan
+*„Bewertung Engelbreit & Sohn GmbH — Zuordnung nur Massebestandteil"*,
+NetBid Auction & Valuation, Stand 05.08.2025, 12 Seiten.
+
+Das PDF hat keine Textebene; die Positionen sind aus den Seitenbildern
+übernommen. Die Gegenprobe ist die Summe am Fuß von Seite 12: **60.540,00 €**.
+Die Summe der 103 CSV-Zeilen trifft diesen Wert auf den Cent. Ein Tippfehler in
+einer Wertspalte hätte das zerrissen, ein übersehener oder doppelter Posten
+ebenso.
+
+Alle Positionen stehen unter Eigentum *Masse*, Rechtsart *freie Masse*.
+Standort ist durchgehend **90552 Röthenbach an der Pegnitz, Mühllach 11**; die
+Spalte `Standort` enthält nur den Raum innerhalb dieser Anschrift.
+
+## Spalten
+
+| Spalte | Herkunft |
+|---|---|
+| `Pos` | Nummernspalte des Gutachtens. Läuft von 4 bis 170 **mit Lücken** — die fehlenden Nummern sind im Gutachten nicht enthalten (sie gehören nicht zur Masse). |
+| `Standort` | Raum, ohne die durchgehend gleiche Anschrift |
+| `Bezeichnung` | wortgleich übernommen, inkl. Hersteller, Typ, Baujahr, Seriennummer |
+| `Alte Inv.-Nr.` | Spalte *Inv.Nr.* des Gutachtens, bei 11 Positionen gefüllt |
+| `Anlagengruppe` | MTA (15) Maschinen · BGA (16) Betriebs- und Geschäftsausstattung · KFZ (39) Fahrzeuge |
+| `Fortführungswert EUR` | Spalte *Fortf.Wert (€)*, ganzzahlig |
+| `Bemerkung Gutachten` | Spalte *Allg. Bemerkungen*, wortgleich |
+| `Kategorie Vorschlag` | **nicht aus dem Gutachten** — mein Vorschlag für die Kategorie der Anwendung |
+
+## Verteilung
+
+| | Anzahl | | Anzahl |
+|---|---:|---|---:|
+| Halle Fertigung | 28 | Lager EP-ARMS | 4 |
+| Halle Montage | 25 | Außenbereich | 3 |
+| Sägerei | 11 | Büro Buchhaltung | 3 |
+| Serverraum | 7 | Werkstattbüro | 2 |
+| Lager | 5 | Konstruktionsbüro | 2 |
+| Außenbereich/Zelt | 5 | Kompressorraum | 1 |
+| Fuhrpark | 5 | Büro EP-ARMS | 1 |
+| | | Besprechungszimmer | 1 |
+
+Anlagengruppen: 74 × BGA, 24 × MTA, 5 × KFZ.
+Kategorievorschlag: 59 Maschine, 25 Mobiliar, 14 IT, 5 Fahrzeug.
+
+## Offene Punkte vor dem Import
+
+**1. Es gibt keine Kategorie „Fahrzeug".** Das Schema lässt nur `it`,
+`furniture` und `machine` zu (`sql/01_schema.sql:158`). Die fünf KFZ-Positionen
+(Audi A4, Audi A3, VW Caddy, Fiat Ducato, Pkw-Anhänger) sind in der CSV mit
+`FAHRZEUG` markiert und **nicht** zugeordnet. Entweder kommt eine vierte
+Kategorie dazu — das ist eine Migration auf der Check-Bedingung plus ein
+Eintrag in `js/catalog.js`, und die Inventarnummern hießen dann `ATC-KFZ-…` —
+oder die Fahrzeuge laufen als `machine`.
+
+**2. Der Fortführungswert ist kein Anschaffungswert.** Er ist der bewertete
+Zeitwert zum 05.08.2025. Beim Import gehört er nicht kommentarlos in
+`purchase_price_cents`. Vorschlag: Wert dorthin, `purchase_date` auf den
+05.08.2025, und in `notes` den Satz, woher die Zahl stammt.
+
+**3. Positionen 111 und 147 stehen mit 0 €** (defekter Hochhubwagen, IT-Posten
+zur Entsorgung). Erfassen und auf `retired` setzen, oder weglassen.
+
+**4. Sammelpositionen.** Etliche Zeilen bündeln mehrere Geräte — Position 69
+listet 777 Zeichen lang zwanzig Handmaschinen als einen Posten. Bewertungstechnisch
+richtig, für ein Inventar mit Einzelaufklebern nicht. Einzeln erfassen lässt
+sich das nur mit Werten, die das Gutachten nicht hergibt.
+
+## Import
+
+Es gibt noch keine Importfunktion in der Anwendung. Der Ladevorgang wäre ein
+einmaliges Skript gegen die Datenbank. Es ist nicht einfach zurückzunehmen: Der
+Nummernkreis in `asset_counters` zählt hoch und lässt sich nicht
+zurückdrehen — gelöschte Objekte hinterlassen Lücken in den Inventarnummern.
