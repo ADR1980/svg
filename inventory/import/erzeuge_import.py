@@ -16,9 +16,11 @@ FIRMA   = '00b09d31-0231-4075-a44e-79a497419e72'   # ATC technology GmbH
 ANLEGER = '2877314a-1231-4767-ab24-0a6c4b466d47'   # andreas@del.re
 STICHTAG = '2025-08-05'
 ANSCHRIFT = 'Mühllach 11, 90552 Röthenbach an der Pegnitz'
-QUELLE = ('Übernommen aus dem Bewertungsgutachten der NetBid Auction & Valuation '
-          'vom 05.08.2025 ("Bewertung Engelbreit & Sohn GmbH", Zuordnung nur '
-          'Massebestandteil), Position %s, Anlagengruppe %s.')
+QUELLE_KOPF = ('Übernommen aus dem Bewertungsgutachten der NetBid Auction & Valuation '
+               'vom 05.08.2025 ("Bewertung Engelbreit & Sohn GmbH", Zuordnung nur '
+               'Massebestandteil),')
+QUELLE_FUSS = ('Der Anschaffungswert ist der Fortführungswert des Gutachtens, '
+               'kein gezahlter Kaufpreis.')
 
 def q(s):
     """Postgres-Literal. None wird zu NULL, Hochkommas werden verdoppelt."""
@@ -159,8 +161,16 @@ aus(',\n'.join('           (%s)' % q(r) for r in raeume))
 aus('\n       ) as r(name);\n\n')
 
 aus('-- 103 Objekte in der Reihenfolge des Gutachtens, damit die\n'
-    '-- Inventarnummern der Positionsfolge entsprechen.\n')
+    '-- Inventarnummern der Positionsfolge entsprechen.\n'
+    '--\n'
+    '-- Der Wiederholtext der Bemerkung — Herkunft, Position, Anlagengruppe und\n'
+    '-- der Hinweis zum Fortführungswert — steht einmal unten im SELECT statt\n'
+    '-- hundertdreimal in den Daten. Das spart rund 30 kB und macht die Zeilen\n'
+    '-- lesbar: eine Zeile, ein Posten des Gutachtens.\n'
+    'with roh (pos, standort, kat, name, wortlaut, hersteller, modell, seriennr,\n'
+    '          status, zustand, wert, attr, gruppe, bemerkung, altnr) as (values\n')
 
+zeilen_sql = []
 summe = 0
 for z in zeilen:
     text = z['Bezeichnung']
@@ -177,29 +187,38 @@ for z in zeilen:
     summe += wert
     status = 'retired' if wert == 0 else 'in_stock'
 
-    bemerkung = [text, '',
-                 QUELLE % (z['Pos'], z['Anlagengruppe']),
-                 'Der Anschaffungswert ist der Fortführungswert des Gutachtens, '
-                 'kein gezahlter Kaufpreis.']
-    if z['Bemerkung Gutachten']:
-        bemerkung.insert(2, 'Bemerkung des Gutachters: ' + z['Bemerkung Gutachten'])
-    if z['Alte Inv.-Nr.']:
-        bemerkung.append('Alte Inventarnummer: ' + z['Alte Inv.-Nr.'] + '.')
-
     attr = merkmale(text, kat, z['Anlagengruppe'], anzahl)
+    # Die erste Zeile einer VALUES-Liste legt die Spaltentypen fest. Steht dort
+    # ein NULL ohne Typ, hält Postgres die Spalte für "text" und bricht bei der
+    # ersten echten jsonb-Zeile ab. Deshalb die Umwandlung in jeder Zeile.
+    zeilen_sql.append('  (%s, %s, %s, %s, %s,\n   %s, %s, %s, %s, %s, %d, %s::jsonb, %s, %s, %s)'
+        % (z['Pos'], q(z['Standort']), q(kat), q(name), q(text),
+           q(fabr), q(typ), q(seriennummer(text)), q(status), q(zustand(text)),
+           wert * 100, q(json.dumps(attr, ensure_ascii=False)),
+           q(z['Anlagengruppe']), q(z['Bemerkung Gutachten']), q(z['Alte Inv.-Nr.'])))
 
-    aus("insert into assets (company_id, category, name, manufacturer, model,\n"
-        "       serial_number, status, condition, location_id, purchase_date,\n"
-        "       purchase_price_cents, attributes, notes, created_by)\n"
-        "values (%s, %s, %s, %s, %s,\n"
-        "       %s, %s, %s,\n"
-        "       (select id from locations where company_id = %s and name = %s and kind = 'room'),\n"
-        "       %s, %d, %s, %s, %s);\n"
-        % (q(FIRMA), q(kat), q(name), q(fabr), q(typ),
-           q(seriennummer(text)), q(status), q(zustand(text)),
-           q(FIRMA), q(z['Standort']),
-           q(STICHTAG), wert * 100, q(json.dumps(attr, ensure_ascii=False)) + '::jsonb',
-           q('\n'.join(bemerkung)), q(ANLEGER)))
+aus(',\n'.join(zeilen_sql))
+aus('\n)\n'
+    'insert into assets (company_id, category, name, manufacturer, model,\n'
+    '       serial_number, status, condition, location_id, purchase_date,\n'
+    '       purchase_price_cents, attributes, notes, created_by)\n'
+    'select %s, r.kat, r.name, r.hersteller, r.modell, r.seriennr,\n'
+    '       r.status, r.zustand, l.id, date %s, r.wert, r.attr,\n'
+    '       -- name ist gekürzt und steht auf dem Etikett, wortlaut ist der\n'
+    '       -- Text des Gutachters und eröffnet die Bemerkung.\n'
+    "       r.wortlaut || E'\\n\\n'\n"
+    "         || case when coalesce(r.bemerkung, '') = '' then ''\n"
+    "                 else 'Bemerkung des Gutachters: ' || r.bemerkung || E'\\n' end\n"
+    '         || %s\n'
+    "         || ' Position ' || r.pos || ', Anlagengruppe ' || r.gruppe || E'.\\n'\n"
+    '         || %s\n'
+    "         || case when coalesce(r.altnr, '') = '' then ''\n"
+    "                 else E'\\n' || 'Alte Inventarnummer: ' || r.altnr || '.' end,\n"
+    '       %s\n'
+    '  from roh r\n'
+    "  left join locations l on l.company_id = %s and l.kind = 'room' and l.name = r.standort\n"
+    ' order by r.pos;\n'
+    % (q(FIRMA), q(STICHTAG), q(QUELLE_KOPF), q(QUELLE_FUSS), q(ANLEGER), q(FIRMA)))
 
 aus('\n-- Gegenprobe: 103 Objekte, Summe 60.540,00 EUR wie auf Seite 12 des Gutachtens.\n')
 aus("do $blk$\ndeclare v_n int; v_s bigint;\nbegin\n"
