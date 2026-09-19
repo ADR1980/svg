@@ -155,7 +155,7 @@ create table if not exists assets (
     -- Wert auf dem QR-Aufkleber bzw. NFC-Tag. Opak, damit Bestände nicht
     -- durchzählbar sind und der Aufkleber die Gesellschaft nicht verrät.
     public_code          text not null unique default encode(gen_random_bytes(8), 'hex'),
-    category             text not null check (category in ('it', 'furniture', 'machine')),
+    category             text not null check (category in ('it', 'furniture', 'machine', 'vehicle')),
     name                 text not null,
     manufacturer         text,
     model                text,
@@ -274,11 +274,12 @@ declare
     v_no    int;
     v_code  text;
     -- Kurzzeichen statt der internen Kategorie: auf einem 45,7-mm-Etikett
-    -- zählt jedes Zeichen. IT-Technik, Mobiliar, Maschine.
+    -- zählt jedes Zeichen. IT-Technik, Mobiliar, Maschine, Fahrzeug.
     v_cat   text := case p_category
                         when 'it'        then 'IT'
                         when 'furniture' then 'MOB'
                         when 'machine'   then 'MAS'
+                        when 'vehicle'   then 'KFZ'
                         else upper(left(p_category, 3))
                     end;
 begin

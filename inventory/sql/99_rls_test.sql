@@ -267,6 +267,32 @@ end;
 $$;
 
 -- =============================================================================
+-- Fall 6b — jede Kategorie hat ihr eigenes Kurzzeichen und ihren eigenen Zähler
+-- =============================================================================
+-- Fahrzeuge kamen später dazu. Ohne den Eintrag in next_asset_no() fiele die
+-- Funktion auf ihren Notnagel upper(left(...,3)) zurück und der Firmenwagen
+-- hieße TSTA-VEH-2026-0001 statt TSTA-KFZ-2026-0001 — falsch, und nachträglich
+-- nicht mehr zu ändern, weil die Nummer auf dem Aufkleber steht.
+
+do $$
+declare k text; m text;
+begin
+    k := next_asset_no('99999999-9999-4999-8999-999999999902', 'vehicle');
+    if k !~ '^TSTA-KFZ-[0-9]{4}-0001$' then
+        raise exception 'FEHLGESCHLAGEN 6c: Fahrzeugnummer lautet %', k;
+    end if;
+
+    -- Eigener Zähler je Kategorie: die erste Maschine ist trotzdem die 0001.
+    m := next_asset_no('99999999-9999-4999-8999-999999999902', 'machine');
+    if m !~ '^TSTA-MAS-[0-9]{4}-0001$' then
+        raise exception 'FEHLGESCHLAGEN 6d: Maschinennummer lautet %', m;
+    end if;
+
+    raise notice 'Fall 6b bestanden: eigenes Kurzzeichen je Kategorie (% und %).', k, m;
+end;
+$$;
+
+-- =============================================================================
 -- Fall 7 — ohne Anmeldung kommt niemand an die Funktionen
 -- =============================================================================
 -- Der Fall existiert wegen eines echten Fehlgriffs: Ein "revoke ... from anon"

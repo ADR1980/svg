@@ -6,9 +6,11 @@ Wer die Browserkonsole öffnet und mit dem öffentlichen Schlüssel eigene Abfra
 bekommt dieselben Zeilen wie über die Oberfläche. Der Nachweis dafür ist
 `sql/99_rls_test.sql`.
 
-Erfasst wird IT-Technik, Mobiliar und Maschinen — mit Standort, Zuweisung an
+Erfasst wird IT-Technik, Mobiliar, Maschinen und Fahrzeuge — mit Standort, Zuweisung an
 Mitarbeitende, Anschaffungswert, Garantie sowie Prüf- und Wartungsterminen bis hin zu
-DGUV V3. Jedes Objekt trägt einen Aufkleber mit QR-Code; wo Android im Spiel ist,
+DGUV V3. Jede Kategorie hat ihr Kurzzeichen in der Inventarnummer (IT, MOB, MAS, KFZ)
+und ihre eigenen Felder: beim Fahrzeug Kennzeichen, Erstzulassung, Kraftstoff,
+Kilometerstand und HU, die Fahrgestellnummer steht im Feld Seriennummer. Jedes Objekt trägt einen Aufkleber mit QR-Code; wo Android im Spiel ist,
 zusätzlich oder stattdessen einen NFC-Tag.
 
 Technisch: statische Seiten plus Supabase. Kein Server, kein Build-Schritt, keine

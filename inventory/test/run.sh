@@ -31,8 +31,20 @@ for f in supabase_shim ../sql/01_schema ../sql/02_rls ../sql/04_benutzer ../sql/
 done
 
 echo "→ Mandantentrennung in SQL prüfen"
-PGOPTIONS="" $PSQL -q -v ON_ERROR_STOP=1 -d "$DB" -f ../sql/99_rls_test.sql 2>&1 \
-  | grep -E "bestanden|FEHLGESCHLAGEN" | sed 's/^.*NOTICE:  /  /' || true
+# Das Ergebnis muss erst in eine Datei, nicht in eine Pipe: Der Rückgabewert
+# einer Pipe ist der von grep, und ein "|| true" dahinter verschluckt auch den
+# Abbruch von psql. Ein Fall, der mitten im Skript die Transaktion zerreißt,
+# lief so unbemerkt durch — der Rest wurde übersprungen, und der Durchlauf
+# meldete trotzdem Erfolg.
+SOLL=$(grep -c "raise notice 'Fall .* bestanden" ../sql/99_rls_test.sql)
+PGOPTIONS="" $PSQL -q -v ON_ERROR_STOP=1 -d "$DB" -f ../sql/99_rls_test.sql > /tmp/inv-rls.log 2>&1 || true
+grep -E "bestanden|FEHLGESCHLAGEN" /tmp/inv-rls.log | sed 's/^.*NOTICE:  /  /' || true
+IST=$(grep -cE "Fall .* bestanden" /tmp/inv-rls.log || true)
+if [ "$IST" -ne "$SOLL" ]; then
+  echo "  FEHLER: $IST von $SOLL SQL-Fällen bestanden. Erste Meldung:"
+  grep -E "ERROR|FEHLGESCHLAGEN" /tmp/inv-rls.log | head -3 | sed 's/^/    /'
+  exit 1
+fi
 
 echo "→ Rolle für PostgREST"
 $PSQL -q -d "$DB" -c "create role authenticator noinherit login password 'authpw'" >/dev/null 2>&1 || true

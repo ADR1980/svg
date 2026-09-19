@@ -25,7 +25,7 @@ Spalte `Standort` enthält nur den Raum innerhalb dieser Anschrift.
 | `Anlagengruppe` | MTA (15) Maschinen · BGA (16) Betriebs- und Geschäftsausstattung · KFZ (39) Fahrzeuge |
 | `Fortführungswert EUR` | Spalte *Fortf.Wert (€)*, ganzzahlig |
 | `Bemerkung Gutachten` | Spalte *Allg. Bemerkungen*, wortgleich |
-| `Kategorie Vorschlag` | **nicht aus dem Gutachten** — mein Vorschlag für die Kategorie der Anwendung |
+| `Kategorie Vorschlag` | **nicht aus dem Gutachten** — die Kategorie der Anwendung: `it`, `furniture`, `machine`, `vehicle` |
 
 ## Verteilung
 
@@ -41,30 +41,30 @@ Spalte `Standort` enthält nur den Raum innerhalb dieser Anschrift.
 | | | Besprechungszimmer | 1 |
 
 Anlagengruppen: 74 × BGA, 24 × MTA, 5 × KFZ.
-Kategorievorschlag: 59 Maschine, 25 Mobiliar, 14 IT, 5 Fahrzeug.
+Kategorien: 59 Maschine, 25 Mobiliar, 14 IT, 5 Fahrzeug.
 
 ## Offene Punkte vor dem Import
 
-**1. Es gibt keine Kategorie „Fahrzeug".** Das Schema lässt nur `it`,
-`furniture` und `machine` zu (`sql/01_schema.sql:158`). Die fünf KFZ-Positionen
-(Audi A4, Audi A3, VW Caddy, Fiat Ducato, Pkw-Anhänger) sind in der CSV mit
-`FAHRZEUG` markiert und **nicht** zugeordnet. Entweder kommt eine vierte
-Kategorie dazu — das ist eine Migration auf der Check-Bedingung plus ein
-Eintrag in `js/catalog.js`, und die Inventarnummern hießen dann `ATC-KFZ-…` —
-oder die Fahrzeuge laufen als `machine`.
+**1. Kategorie Fahrzeug — erledigt.** Es gab sie nicht; das Schema ließ nur
+`it`, `furniture` und `machine` zu. `sql/05_fahrzeuge.sql` trägt `vehicle`
+nach, samt Kurzzeichen KFZ im Nummernkreis und eigenen Feldern in
+`js/catalog.js`. Die fünf KFZ-Positionen laufen als `vehicle` und bekommen
+Nummern der Form `ATC-KFZ-2026-000x`.
 
-**2. Der Fortführungswert ist kein Anschaffungswert.** Er ist der bewertete
-Zeitwert zum 05.08.2025. Beim Import gehört er nicht kommentarlos in
-`purchase_price_cents`. Vorschlag: Wert dorthin, `purchase_date` auf den
-05.08.2025, und in `notes` den Satz, woher die Zahl stammt.
+**2. Der Fortführungswert ist kein Anschaffungswert — entschieden.** Er ist
+der bewertete Zeitwert zum 05.08.2025. Er steht in `purchase_price_cents`,
+`purchase_date` ist der 05.08.2025, und in der Bemerkung jedes Objekts steht
+der Satz, dass die Zahl der Fortführungswert des Gutachtens ist und kein
+gezahlter Kaufpreis.
 
 **3. Positionen 111 und 147 stehen mit 0 €** (defekter Hochhubwagen, IT-Posten
-zur Entsorgung). Erfassen und auf `retired` setzen, oder weglassen.
+zur Entsorgung). Beide sind erfasst, Status `retired`, Zustand `defect`.
 
-**4. Sammelpositionen.** Etliche Zeilen bündeln mehrere Geräte — Position 69
-listet 777 Zeichen lang zwanzig Handmaschinen als einen Posten. Bewertungstechnisch
-richtig, für ein Inventar mit Einzelaufklebern nicht. Einzeln erfassen lässt
-sich das nur mit Werten, die das Gutachten nicht hergibt.
+**4. Sammelpositionen — bleibt offen.** Etliche Zeilen bündeln mehrere Geräte;
+Position 69 listet auf 777 Zeichen zwanzig Handmaschinen als einen Posten.
+Bewertungstechnisch richtig, für ein Inventar mit Einzelaufklebern nicht.
+Einzeln erfassen lässt sich das nur mit Werten, die das Gutachten nicht
+hergibt — das geht nur bei einer Begehung vor Ort.
 
 ## Import
 
