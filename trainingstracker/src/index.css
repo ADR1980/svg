@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Tinte auf Papier. Ein Akzent, ein Signal, sonst Grauwerte.
+   ========================================================================== */
+:root {
+  --paper: #fbfaf8;
+  --paper-sunk: #f3f1ec;
+  --ink: #14161a;
+  --ink-body: #2c3138;
+  --ink-muted: #6e7278;
+  --rule: #dfdbd3;
+  --accent: #1b3a5c;
+  --signal: #a8442b;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-schema='hell']) {
+    --paper: #14161a;
+    --paper-sunk: #1c1f25;
+    --ink: #f2f0ec;
+    --ink-body: #d3d5d8;
+    --ink-muted: #8b9199;
+    --rule: #2e323a;
+    --accent: #7fa8ce;
+    --signal: #d98166;
+    color-scheme: dark;
+  }
+}
+
+:root[data-schema='dunkel'] {
+  --paper: #14161a;
+  --paper-sunk: #1c1f25;
+  --ink: #f2f0ec;
+  --ink-body: #d3d5d8;
+  --ink-muted: #8b9199;
+  --rule: #2e323a;
+  --accent: #7fa8ce;
+  --signal: #d98166;
+  color-scheme: dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink-body);
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: contain;
+}
+
+@layer components {
+  .etikett {
+    @apply font-mono text-xs uppercase tracking-[0.14em] text-muted;
+  }
+
+  .ziffern {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tippziel nach Vorgabe: mindestens 44 × 44 px. */
+  .ziel {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .knopf {
+    @apply ziel font-mono text-xs uppercase tracking-[0.12em] border border-rule
+           px-4 py-2 text-ink bg-transparent transition-colors;
+  }
+
+  .knopf:active {
+    @apply border-accent text-accent;
+  }
+
+  .knopf-stark {
+    @apply ziel font-mono text-xs uppercase tracking-[0.12em] border border-accent
+           px-4 py-2 text-paper;
+    background: var(--accent);
+  }
+
+  .feld {
+    @apply ziel w-full border-b border-ink bg-transparent font-sans text-lg
+           text-ink ziffern outline-none px-0 py-1;
+  }
+
+  .linie {
+    @apply border-0 border-t border-rule;
+  }
+}
+
+/* Nummernfelder ohne Spinner — die Pfeile sind auf dem Handy nur Störung. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Die einzige Animation im ganzen Haus. */
+@keyframes auftauchen {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.auftauchen {
+  animation: auftauchen 180ms ease-out;
+}
