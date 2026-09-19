@@ -334,6 +334,13 @@ async function zeichneObjekt(a) {
       <h1>${esc(a.name)}</h1>
       <p class="lead mono">${esc(a.asset_no)}</p>
 
+      <div class="btn-row">
+        ${schreiben ? `<a class="btn primary plain" href="#/bearbeiten/${esc(a.id)}">Bearbeiten</a>` : ''}
+        ${schreiben ? '<button class="btn quiet" id="b-ausgabe">Ausgabe / Rücknahme</button>' : ''}
+        <a class="btn plain" href="labels.html?code=${esc(a.public_code)}" target="_blank" rel="noopener">Etikett drucken</a>
+        <button class="btn" id="b-nfc" hidden>Auf NFC-Tag schreiben</button>
+      </div>
+
       <dl class="facts">
         ${zeile('Status', K.STATUS[a.status] || a.status)}
         ${a.condition ? zeile('Zustand', K.ZUSTAND[a.condition]) : ''}
@@ -358,13 +365,6 @@ async function zeichneObjekt(a) {
           <p class="mono" style="margin:0">${esc(a.public_code)}</p>
           <p class="muted" style="font-size:14px;margin:6px 0 0">${esc(assetUrl(a.public_code))}</p>
         </div>
-      </div>
-
-      <div class="btn-row">
-        ${schreiben ? `<a class="btn primary plain" href="#/bearbeiten/${esc(a.id)}">Bearbeiten</a>` : ''}
-        <a class="btn plain" href="labels.html?code=${esc(a.public_code)}" target="_blank" rel="noopener">Etikett drucken</a>
-        <button class="btn" id="b-nfc" hidden>Auf NFC-Tag schreiben</button>
-        ${schreiben ? '<button class="btn quiet" id="b-ausgabe">Ausgabe / Rücknahme</button>' : ''}
       </div>
 
       <h2>Prüfung und Wartung</h2>
@@ -733,7 +733,7 @@ async function zeigeFormular(id) {
       <div class="field"><label for="x-notiz">Bemerkung</label>
         <textarea id="x-notiz">${esc(a ? a.notes : '')}</textarea></div>
 
-      <div class="btn-row">
+      <div class="btn-row kleben">
         <button class="btn primary" type="submit">${bearbeiten ? 'Speichern' : 'Anlegen'}</button>
         ${bearbeiten ? `<a class="btn quiet plain" href="#/objekt/${esc(a.id)}">Abbrechen</a>`
                      : '<a class="btn quiet plain" href="#/inventar">Abbrechen</a>'}
@@ -771,7 +771,9 @@ async function zeigeFormular(id) {
   $('#f-asset').addEventListener('submit', async ev => {
     ev.preventDefault();
     const btn = $('#f-asset button[type=submit]');
+    const knopfText = btn.textContent;
     btn.disabled = true;
+    btn.textContent = bearbeiten ? 'Wird gespeichert …' : 'Wird angelegt …';
     const kat = $('#x-kat').value;
     const attr = {};
     (K.FELDER[kat] || []).forEach(f => {
@@ -812,7 +814,11 @@ async function zeigeFormular(id) {
         meldung('Angelegt als ' + ergebnis.asset_no + '.');
       }
       location.hash = '#/objekt/' + ergebnis.id;
-    } catch (e) { meldung(e.message, 'err'); btn.disabled = false; }
+    } catch (e) {
+      meldung(e.message, 'err');
+      btn.disabled = false;
+      btn.textContent = knopfText;
+    }
   });
 }
 

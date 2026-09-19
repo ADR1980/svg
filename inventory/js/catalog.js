@@ -9,7 +9,8 @@
 const KATEGORIEN = {
   it:        { label: 'IT & Technik',   kurz: 'IT'  },
   furniture: { label: 'Mobiliar',       kurz: 'MOB' },
-  machine:   { label: 'Maschine',       kurz: 'MAS' }
+  machine:   { label: 'Maschine',       kurz: 'MAS' },
+  vehicle:   { label: 'Fahrzeug',       kurz: 'KFZ' }
 };
 
 const STATUS = {
@@ -86,6 +87,17 @@ const FELDER = {
     { key: 'operating_hours',  label: 'Betriebsstunden', typ: 'number', einheit: 'h' },
     { key: 'inspection_until', label: 'Prüfplakette bis', typ: 'date' },
     { key: 'operator_group',   label: 'Bedienerkreis',  typ: 'text' }
+  ],
+  /* Beim Fahrzeug steht die Fahrgestellnummer im Feld Seriennummer — sie ist
+     die Seriennummer des Fahrzeugs, und so findet die Suche sie auch. */
+  vehicle: [
+    { key: 'plate',            label: 'Kennzeichen',     typ: 'text' },
+    { key: 'first_reg',        label: 'Erstzulassung',   typ: 'date' },
+    { key: 'fuel',             label: 'Kraftstoff',      typ: 'text' },
+    { key: 'power_kw',         label: 'Leistung',        typ: 'number', einheit: 'kW' },
+    { key: 'mileage_km',       label: 'Kilometerstand',  typ: 'number', einheit: 'km' },
+    { key: 'inspection_until', label: 'HU bis',          typ: 'date' },
+    { key: 'trailer_hitch',    label: 'Anhängerkupplung', typ: 'bool' }
   ]
 };
 

@@ -1,0 +1,104 @@
+Pos;Standort;Bezeichnung;Alte Inv.-Nr.;Anlagengruppe;Fortführungswert EUR;Bemerkung Gutachten;Kategorie Vorschlag
+4;Halle Fertigung;"2 Metall-Schubladenschränke, Fabr. Lista, 4 Auszüge, Inhalt: Werkzeuge, u.a. Wechselschneidplatten, Fräser, Spannhülsen";;MTA (15);1000;"ggf. FE Luna Vermögensverwaltungsgesellschaft mbH, keine gesicherte Zuordnung möglich";furniture
+6;Halle Fertigung;"1 Auffangwanne, ca. 2.000 x 800 mm, m. Gitterrostauflage";;MTA (15);80;;machine
+7;Halle Fertigung;"1 mobiles Fasstransportgestell";;MTA (15);20;;machine
+8;Halle Fertigung;"4 mobile Werkbänke, aus Aluprofilen, 2 Ebenen, 3 x m. Schubladenunterbau, Fabr. Garant";;MTA (15);400;;furniture
+9;Halle Fertigung;"1 Hartgestein-Messtisch, 1.600 x 1.000 x 150 mm, Gewicht 768 kg, Untergestell, Hartgesteinplatte, m. Schraubhülsen versehen";;MTA (15);400;;machine
+10;Halle Fertigung;"1 Druckluftkessel, Fabr. OKS, Bj 2016, SN 8833, Fassungsvermögen 250 l, stehend";;MTA (15);200;;machine
+11;Halle Fertigung;"1 Elektrokabel-Aufroller, Fabr. Elektron";;MTA (15);30;;machine
+12;Halle Fertigung;"1 Blechschrank, Fabr. CP, 2-türig, 1.500 x 600 mm";;BGA (16);30;;furniture
+13;Halle Fertigung;"1 tragbare Umreifungsbandhaspel, 2 manuelle Spann-/Verschlusszangen";;BGA (16);80;;machine
+14;Halle Fertigung;"2 Montageregale, L 1.000 mm, Schraub-/Stecksystem, 1 x m. Schrägböden, 4/5 Ebenen";;BGA (16);50;;furniture
+15;Halle Fertigung;"2 mobile Spänekippmulden, Fabr. Bauer, Typ SKK800, Bj 2014/2016, Fassungsvermögen 800 l, Tragfähigkeit 300 kg";;BGA (16);400;;machine
+16;Halle Fertigung;"3 mobile Spänekippmulden, Fassungsvermögen 800 l";;BGA (16);600;;machine
+17;Halle Fertigung;"1 Deichselhubwagen, Fabr. Ameise, Tragfähigkeit 2.000 kg";;BGA (16);80;;machine
+18;Halle Fertigung;"2 Etagenwagen, Fabr. Fetra, 2 Ebenen";;BGA (16);80;;machine
+19;Halle Fertigung;"1 Akku-Bohrschrauber, Fabr. Bosch, Typ GSR 18V-28, Ladegerät, Ersatzakku, 2 Kabeltrommeln, 1 x Kunststoff, 2 LED-Strahler";;BGA (16);40;;machine
+20;Halle Fertigung;"1 Tischbohrmaschine, Fabr. HG, Typ 8, kleiner Schraubstock";;BGA (16);80;;machine
+21;Halle Fertigung;"1 Metallwerkbank, L 2.000 mm, m. Zwischenboden, Holz, Schublade, Gitterrückwand, 1 Posten Handwerkzeuge, geringer Umfang";;BGA (16);80;;furniture
+22;Halle Fertigung;"1 Druckluftkessel, Fabr. OKS, Bj 2015, SN 8556, Fassungsvermögen 250 l";;BGA (16);200;;machine
+23;Halle Fertigung;"1 mobiler Industriesauger, Fabr. Ruwac, Typ SPS250-W24, 3,21 kW, SN SPS250/20171045";;BGA (16);700;;machine
+25;Halle Fertigung;"1 Werkzeugschrumpfgerät, Fabr. Kelch, Typ i-tec L, Bj 2013";40006;MTA (15);950;;machine
+26;Halle Fertigung;"1 Werkzeug-Voreinstellgerät, Fabr. Promat, Typ Kenova Set Line V224, Bj 2013";22012;MTA (15);700;;machine
+27;Halle Fertigung;"1 Werkbank, Fabr. Garant, 2 Unterschränke, 6 Auszüge bzw. 4 Auszüge/Tür, Auflageplatte m. Metallabdeckung, Schraubstock, Steilkegel-Einspannvorrichtung, Fabr. Knuth, Schubladeninhalt: Handwerkzeuge, Spannmittel, geringer Umfang";;BGA (16);400;;furniture
+28;Halle Fertigung;"1 tragbares Batterieladegerät, Fabr. Ultimate Speed, Typ ULG12B3";;BGA (16);50;;machine
+29;Halle Fertigung;"2 Blechschränke, 2.000 x 1.000 mm, 2-türig, Inhalt: Maschinenwerkzeuge, Fräser, in Lagersichtkästen, geringer Umfang, 1 Posten Werkzeugaufnahmen, SK40, ca. 50 Stck., 1 Posten Bohrer u. Fräser";;BGA (16);340;"ggf. FE Luna Vermögensverwaltungsgesellschaft mbH, keine gesicherte Zuordnung möglich";furniture
+30;Halle Fertigung;"1 Flaschenzug, Fabr. Chain Block, Typ HS, Tragfähigkeit 1 t, 1 Posten Luft- und Wasserschläuche, Überbrückungskabel, 1 Posten Rundschlingen u. Spanngurte, lagernd in Blechkiste";;BGA (16);80;;machine
+31;Halle Fertigung;"1 tragbarer Hochdruckreiniger, Fabr. Kränzle, Typ Power Jet, 115 bar, m. Sprühlanze";;BGA (16);140;;machine
+32;Halle Fertigung;"1 Pneumatik-Fasspumpe";;BGA (16);30;;machine
+34;Halle Fertigung;"1 Alu-Anstellleiter, Fabr. Krause, 12-stufig";;BGA (16);30;;machine
+35;Lager;"1 Pneumatik-Kniehebelpresse, Fabr. Gechter, Typ 8KN HKPL, Bj 2015";;MTA (15);680;;machine
+36;Lager;"1 Druckluft-Kartuschenpresse, 2 Aufnahmen";;BGA (16);80;;machine
+37;Lager;"2 Hochdruckspannstöcke, Fabr. Garant, Typ 36 0510 12";;BGA (16);1400;;machine
+38;Lager;"6 Leichtbauregale, verzinkt/blau, L 1.000 mm, 5 Ebenen, Blechschrank, 2-türig, Tresor, antik, 2-türig";;BGA (16);100;;furniture
+39;Lager;"1 Posten Altbauteile, u.a. Pneumatik, 1 Posten Schaltschränke, Elektro-/Datenkabel";;BGA (16);500;;machine
+41;Werkstattbüro;"1 PC, Fabr. Lenovo, Typ Thinkstation D20, Xeon, PC, Fabr. HP, Typ Z620 Workstation, Xeon, PC, Noname, außer Betrieb, 4 27""-Monitore, Fabr. BenQ/Asus, 2 Tastaturen, 2 PC-Lautsprecher";;BGA (16);200;;it
+42;Werkstattbüro;"1 Laserdrucker, Fabr. HP, Typ LaserJet CP1525N Color";;BGA (16);20;;it
+47;Halle Montage;"1 Etagenwagen, Fabr. Fetra, 2 Ebenen";;BGA (16);30;;machine
+52;Halle Montage;"1 Bohrhammer, Fabr. Hilti, Typ EE17, Zubehör, im Koffer";;BGA (16);140;;machine
+53;Halle Montage;"1 Metall-Schubladenschrank, Fabr. Hahn & Kolb, L 2.000 mm, 8 Auszüge";;BGA (16);80;"Bewertung ohne Inhalt, da Umlaufvermögen";furniture
+54;Halle Montage;"1 Blechschrank, 2-türig, 1.600 x 600 mm, Inhalt: Lagersichtkästen, Schaltschrank, Fabr. Siemens, umgebaut zum Lagerschrank, Inhalt: div. Kunststoff-Sortimentskästen, u.a. Böllhoff, ohne Inhalt oder unvollständig, div. Werkzeuge";;BGA (16);50;"Bewertung ohne Verbrauchsmaterial, da Umlaufvermögen";furniture
+55;Halle Montage;"1 Werkstattwagen, Inhalt: Handwerkzeuge, geringer Umfang";;BGA (16);120;;furniture
+60;Halle Montage;"1 Magnetbohrmaschine, Fabr. Duss, Typ D32 II, Magnetständer WS";;MTA (15);150;;machine
+61;Halle Montage;"1 Metallschubladenschrank, Fabr. Kardex, Inhalt: Maschinenwerkzeuge, geringer Umfang, Blechkiste, Inhalt: Gewindeschneideisen";;BGA (16);100;;furniture
+62;Halle Montage;"1 Schaltschrank, Fabr. Siemens, umgebaut zum Lagerschrank, Inhalt: 1 Posten Werkzeugaufnahmen, SK40, ca. 25 Stck., 1 Posten Werkzeuge, Fräser, Reibahle, Entmagnetisierplatte, Metallschrank, Fabr. Lampertz, Inhalt: Teilapparat, Spannmittel, Maschinenzubehör";;BGA (16);300;;furniture
+66;Halle Montage;"1 Entgratmaschine, Fabr. Günter Holl, Typ KS200, Bj 1968";;MTA (15);50;;machine
+67;Halle Montage;"1 Flachstahl-Handbiegevorrichtung";;BGA (16);50;;machine
+68;Halle Montage;"1 Bodenkehrmaschine, Fabr. Kärcher, Typ S650";;BGA (16);40;;machine
+69;Halle Montage;"1 Posten Handmaschinen, best. aus: Handkreissäge, Fabr. Flex, Typ CSM4060, Zubehör, im Koffer, Bohrhammer, Fabr. Impex, Typ DS70, m. Zubehör, im Koffer, Winkelschleifer, Fabr. Bosch, Typ GWS1100, Winkelschleifer, Fabr. Flex, Typ L1109FE, Winkelschleifer, Fabr. Kingcraft, Typ KAG125/950, Zweihand-Bohrmaschine, Fabr. Einhell, Typ BFMR1100, Winkelschleifer, Fabr. Hikoki, Bohrmaschine, Fabr. Fein, Winkelschleifer, Fabr. Kingcraft, Akku-Bohrschrauber, Fabr. Hilti, Typ SF2-A, Zubehör, im Koffer, Säbelsäge, Fabr. Dewalt, Typ DW304PK, Zubehör, im Koffer, Akku-Bohrschrauber, Fabr. Bosch, Akku-Handleuchte, Ersatzakku, Ladegerät, Koffer, Schlagbohrmaschine, Fabr. Metabo, Typ SBE900 Impuls, m. Koffer, 1 Posten Autogenschweißspitzen, im Blechkoffer, 4 Maschinenkoffer, ohne Inhalt";;BGA (16);500;;machine
+70;Halle Montage;"1 Blechschrank, 2-türig, Inhalt: Bohrer, Maschinenwerkzeuge";;BGA (16);140;"ggf. FE Luna Vermögensverwaltungsgesellschaft mbH, keine gesicherte Zuordnung möglich";furniture
+71;Halle Montage;"1 Gewindeschneidkluppe, Fabr. Rems, Typ EVA, 5 Einsätze, m. Blechkiste";;BGA (16);100;;machine
+72;Halle Montage;"1 Akku-Spritzgerät, Fabr. Graco, Typ X-Force HD, m. Zubehör, Ersatzakku, Ladegerät, im Koffer";40027;MTA (15);500;;machine
+73;Halle Montage;"1 Gewindeschneidmaschine, Fabr. HG, Typ 23N";;BGA (16);30;;machine
+74;Halle Montage;"1 Bürstenentgratmaschine, Fabr. Berg & Schmid, Typ BUE200, Bj 2017";;MTA (15);420;;machine
+75;Halle Montage;"1 Tischbohrmaschine, Fabr. Rascher/Wörner, Typ TIBO13, SN 14210, Schraubstock";;MTA (15);80;;machine
+76;Halle Montage;"1 Tischbohrmaschine, höhenverstellbarer Bohrtisch";;MTA (15);200;;machine
+77;Halle Montage;"2 Arbeitstische, Metall/Holz, m. Zwischenboden";;BGA (16);50;;furniture
+79;Halle Montage;"1 Metall-Schubladenschrank, 7 Auszüge, Inhalt: Messmittel, Fräser, Wendeschneidplatten, Schneideisen, Spannmittel, Maschinenzubehör, u.a. Backenfutter";;BGA (16);750;;furniture
+81;Halle Montage;"3 Etagenwagen, Fabr. Fetra, 2 Ebenen";;BGA (16);100;;machine
+82;Halle Montage;"2 Etagenwagen, älter, 1 x m. Spanplattenauflage";;BGA (16);40;;machine
+87;Halle Montage;"1 tragbarer Schweißinverter, Fabr. Kjellberg, Typ GIF180";;MTA (15);550;;machine
+89;Halle Montage;"1 mobile Schweißrauchabsaugung, Fabr. S.Tec, Typ M802, Bj 2013, Volumenstrom 1.600 m³/h, Motorleistung 1,1 kW, SN 6907210171529, Betriebsstd. 153, flexibler Absaugschlauch";;MTA (15);500;;machine
+90;Sägerei;"1 Alu-Bockleiter, Fabr. Krause, 10-stufig";;BGA (16);80;;machine
+91;Sägerei;"1 Metallregal, Fabr. Schäfer, 2.200 x 1.000 x 800 mm, 6 Ebenen";;BGA (16);60;;furniture
+92;Sägerei;"2 Staubsauger, Fabr. Kärcher, Typ WD5.600MP, stark verschmutzt";;BGA (16);60;;machine
+93;Sägerei;"1 Industriesauger, Fabr. Nilfisk Alto, Typ Attix 751-21";;BGA (16);120;;machine
+95;Sägerei;"1 Kragarmregal, best. aus: 3 Ständer, wandmontiert, verschweißt, 3 Ebenen";;BGA (16);120;;furniture
+97;Sägerei;"1 Staubsauger, Fabr. Nilfisk, Typ Body II 18";;BGA (16);30;;machine
+98;Sägerei;"1 tragbarer Stromverteiler, Fabr. Rev, 2 x Kraftstrom, 4 x Lichtstrom";;BGA (16);30;;machine
+99;Sägerei;"2 Hochdruck-Spannstöcke, Fabr. Homge, Typ HPAC-1600S CNC Multipower";22011;BGA (16);2000;;machine
+101;Sägerei;"1 kleiner Metallschrank, 1.600 x 600 mm, 2-türig, Inhalt: Lagersichtkästen, Metallspind, 2-türig, Metall-Werkbank, Unterschrank, 4 Auszüge, Holz, defekt";;BGA (16);70;;furniture
+102;Sägerei;"1 Dreiwalzen-Rohr- und Profilbiegemaschine, Fabr. Klaus Zopf, Typ CM2000 BPR, mobiler Untertisch";;MTA (15);350;;machine
+107;Sägerei;"2 Stehhilfen";;BGA (16);20;;furniture
+108;Kompressorraum;"1 Schraubenkompressor, Fabr. Kaeser, Typ Sigma-Profil SM11, Bj 1993, SN 0119052, Leistung 7,5 kW, Volumenstrom 0,92 m³/min, Betriebsstd. 24.808, Druckluft-Kältetrockner, Fabr. Kaeser, Typ TA11, Druckluftbehälter, Fabr. Siap, Fassungsvermögen 400 l, Öl-Wasser-Trenner, Fabr. Kaeser, Typ Aquamat 2, Druckluftverrohrung, div. Filter";;MTA (15);1000;;machine
+110;Außenbereich/Zelt;"1 Treibgas-Gabelstapler, Fabr. Linde, Typ H30T, Bj 2005, SN H2X393S00313, Tragfähigkeit 3.000 kg, hydr. Seitenschieber, Duplexmast, Betriebsstd. 5.956, Zubehör: 1 Paar Zinkenverlängerungen";38004;MTA (15);6000;;machine
+111;Außenbereich/Zelt;"1 Elektro-Deichselhochhubwagen, Fabr. Pramac Lifter, Typ GX10/16, Bj 2014, SN HL10080665, defekt, außer Betrieb gelagert, Tragfähigkeit 1.000 kg";;MTA (15);0;;machine
+114;Außenbereich/Zelt;"1 mobil Auffangwanne, Fabr. Bauer, Fassungsvermögen 200 l";;BGA (16);140;;machine
+115;Außenbereich/Zelt;"1 Plattentransportwagen, verstellbare Bügelgriffe";;BGA (16);50;;machine
+117;Außenbereich/Zelt;"1 Posten Metallregale, Fabr. Schäfer, Böden teilw. verbogen, L 4.000 mm";;BGA (16);80;;furniture
+120;Außenbereich;"1 Kragarmregal, Fabr. Schulte, Typ KR-ES, Bj 2021, demontiert, best. aus: 3 Ständer, einseitig, 5 Ebenen, Kragarmlänge 500 mm, Ständerhöhe 2.300 mm";40033;BGA (16);420;;furniture
+121;Außenbereich;"1 Posten Altmaschinenteile, lagernd auf Lafette (Schrott)";;BGA (16);600;;machine
+122;Außenbereich;"1 Gasflaschenschrank, Fabr. Asecos, verzinkt, 1-türig, H 1.400 mm, B 700 mm, T 500 mm";;BGA (16);200;;furniture
+127;Lager EP-ARMS;"1 Lagerbühne, SN 215041, Durchgangshöhe 2.000 mm, Belastung max. zul. 500 kg/m², 7.000 x 9.000 mm, Anbaumodul, 3.000 x 4.500 mm, Säulen-/Trageelemente verschraubt, Spanplattenauflage, im unteren Bereich m. Beleuchtung, seitl. m. Treppenaufgang, Rückbaukosten";40032;BGA (16);7500;"immobilienangepasst";furniture
+129;Lager EP-ARMS;"1 Gabelhubwagen, grün, Tragfähigkeit 2.000 mm";;BGA (16);80;;machine
+130;Lager EP-ARMS;"1 Druckluftbehälter, vermutl. OKS, Fassungsvermögen 250 l";;BGA (16);200;;machine
+131;Lager EP-ARMS;"1 manuelle hydraulische Werkstattpresse, Fabr. BGS, Kapazität 20 t, Bj. 2024, Hub 150 mm, B 530 mm, Arbeitsbereich 0 - 1.030 mm";;MTA (15);200;;machine
+137;Büro EP-ARMS;"1 Notebook, Fabr. Lenovo, Typ V320, Intel Core i5";;BGA (16);150;;it
+142;Serverraum;"1 Server, Fabr. Synology, Typ RS818 Plus, 4 Festplatteneinschübe";;BGA (16);80;;it
+143;Serverraum;"1 Firewall, Fabr. Sophos, Typ SG-125, lt. Aussage End Of Life";;BGA (16);50;;it
+144;Serverraum;"1 Server, Fabr. HP, Typ Proviant DL 380P, Gen 8, 4 Festplatten";;BGA (16);150;;it
+145;Serverraum;"1 Server, Fabr. HP, Typ Proviant DL 360E, Gen 8, 4 Festplatten, Prozessor Intel Xeon, vermutl. außer Betrieb";;BGA (16);50;;it
+146;Serverraum;"1 USV, Fabr. APC, Typ Smart UPS 1500";;BGA (16);80;;it
+147;Serverraum;"1 Posten IT-Hardware, best. aus: 5 Rechner/Server, Switch, 2 Monitore, UPS, End Of Life";;BGA (16);0;"Entsorgung";it
+148;Serverraum;"1 W-LAN-Modem, Fabr. AVM, Typ FRITZ!Box";;BGA (16);40;;it
+150;Besprechungszimmer;"1 Flipchart, mobil";;BGA (16);20;;furniture
+151;Konstruktionsbüro;"1 3D-Messarm, Fabr. HEXAGON, Typ Absolute Arm RA-7312-4, Bj 2018, SN 7312-5548-FA, Hartgesteinmessplatte, Fabr. Hommel, Typ Dura, Metall-Untergestell, Transportkoffer";;MTA (15);7500;"ehem. Inv.-Nr. 21022";machine
+153;Konstruktionsbüro;"6 27""-Monitore, Fabr. Dell/BenQ/Samsung";;BGA (16);180;;it
+157;Büro Buchhaltung;"2 PC, älter, u.a. Fabr. XTPC, Intel Core i3, 2 27""-Monitore, Fabr. BenQ/Acer, 2 Tastaturen, 2 Mäuse";;BGA (16);60;;it
+158;Büro Buchhaltung;"1 Multifunktionsdrucker, Fabr. HP, Typ LaserJet Pro 200 Color MFP";;BGA (16);50;;it
+159;Büro Buchhaltung;"1 Aktenvernichter, Fabr. Schäfer Shop, Typ 420S";;BGA (16);50;;it
+166;Fuhrpark;"1 Pkw, Fabr. Audi, Typ A4 2,0 TDI Avant, amtl. Kennz. LAU-ES 114, EZ 06/12, FIN WAUZZZ8K0DA060638, Diesel, Euro 5, 88 kW, 1.968 cm³, abgel. km-Stand 91.496, Außenfarbe dunkelblau, TÜV 06/25, allgemeine Gebrauchsspuren, schlechte Lackqualität, 8-fach bereift, Räder auf Alu-Leichtmetallfelgen, Innenausstattung Stoff, anthrazit, 6-Gang Schaltgetriebe, Navigationssystem (defekt), Klimaautomatik (defekt)";32002;KFZ (39);7000;;vehicle
+167;Fuhrpark;"1 Pkw/Transporter, Fabr. Volkswagen, Typ Caddy 2,0 Ecofuel, amtl. Kennz. LAU-ES 60, EZ 04/13, FIN WV2ZZZ2KZDX113677, Benzin/Erdgas, Euro 5, 80 kW, 1.984 cm³, überm. km-Stand 129.679, Außenfarbe weiß, 5-Gang Schaltgetriebe, Klimaanlage, 2 Schiebetüren, Heckklappe, hinten m. Doppelsitz/Einzelsitz, entnehmbar, Mängel: schlechte Lackqualität, Rost, allgemeine Gebrauchsspuren, Anhängerkupplung, starr, PDC hinten";32005;KFZ (39);4500;;vehicle
+168;Fuhrpark;"1 Pkw, Fabr. Audi, Typ A3 Sportback 2,0 TDI, amtl. Kennz. LAU-ES 777, EZ 10/08, FIN WAUZZZ8P09AU43597, Diesel, Euro 4, 103 kW, 1.968 cm³, überm. km-Stand 219.632, 4-Türer, Außenfarbe blau, Innenausstattung Stoff, anthrazit, m. Klimaanlage, 6-Gang Schaltgetriebe, PDC vorne/hinten, allgemeine Gebrauchsspuren, schlechte Lackqualität, Lackkratzer, Steinschlagschäden, Scheinwerfer blind";32003;KFZ (39);1900;;vehicle
+169;Fuhrpark;"1 Pkw-Anhänger, Fabr. TPV Prikolice, Typ C42, amtl. Kennz. LAU-ES 181, EZ 04/12, FIN ZY2EUAAAAA0068982, zul. GG 750 kg, Ladebordwände starr, m. Plane/Spriegel, 1-achsig";;KFZ (39);450;;vehicle
+170;Fuhrpark;"1 Transporter, Fabr. Fiat, Typ Ducato 3,0 JTD 160 Multijet Kasten, amtl. Kennz. LAU-ES 747, EZ 06/11, FIN ZFA25000001976988, Diesel, 116 kW, 2.999 cm³, überm. km-Stand 375.614, geschlossener Kasten, Hochdach, Radstand ca. 4.200 mm, Außenfarbe weiß, 6-Gang Schaltgetriebe, Anhängerkupplung, starr, Mängel: schlechter Allgemeinzustand, Lack stark verwittert, Hecktür verbogen, Beulen, Anfahrschaden rechts, Rostbefall";38005;KFZ (39);3500;;vehicle

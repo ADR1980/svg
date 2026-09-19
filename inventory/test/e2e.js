@@ -166,9 +166,23 @@ async function anmelden(seite, mail) {
   /* Diese Seite läuft im 390-Pixel-Kontext — dasselbe gilt für den Upload
      weiter oben. Was hier klappt, klappt auf dem Telefon. */
   console.log('\nBearbeiten am Telefon');
+
+  /* Der Knopf war früher hinter Datentabelle, Bemerkung und QR-Block versteckt
+     — rund tausend Pixel Scrollweg, und der QR-Block sah aus wie das Seitenende.
+     Deshalb wird hier gemessen, nicht nur auf Vorhandensein geprüft. */
+  const kasten = await s.locator('a[href^="#/bearbeiten/"]').first().boundingBox();
+  pruefe(kasten && kasten.y + kasten.height < 844,
+    'Bearbeiten steht im ersten Bildschirm, ohne Scrollen');
+
   await s.locator('a[href^="#/bearbeiten/"]').first().click();
   await s.waitForSelector('#f-asset', { timeout: 15000 });
   pruefe(/Objekt bearbeiten/.test(await s.textContent('#view')), 'Bearbeiten-Maske öffnet sich');
+
+  /* Dasselbe für das Gegenstück: sechzehn Felder lang ist das Formular, die
+     Speichern-Leiste klebt deshalb am unteren Rand. */
+  const speichern = await s.locator('#f-asset button[type=submit]').boundingBox();
+  pruefe(speichern && speichern.y + speichern.height <= 844,
+    'Speichern klebt am unteren Rand und ist ohne Scrollen erreichbar');
   pruefe(await s.inputValue('#x-name') === 'ThinkPad T14s', 'die Felder sind vorbelegt');
 
   /* Gesellschaft und Kategorie stehen fest, sobald eine Nummer vergeben ist —
