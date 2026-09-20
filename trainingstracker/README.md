@@ -21,6 +21,26 @@ Nach jedem bestätigten Satz startet der Pausentimer mit der hinterlegten Zeit,
 bleibt beim Scrollen am unteren Rand stehen und meldet sich am Ende mit Ton und
 Vibration.
 
+## Ziel, Erreichtes, und was daraus folgt
+
+Über jeder Übung steht, was heute zu schaffen ist: die Last in großer Zahl,
+darunter Sätze, Wiederholungsbereich und Ziel-RIR, darunter ein Satz, warum
+die Zahl so lautet — „Letztes Mal 5 × 7 bei 80 kg, obere Grenze erreicht, also
+2,5 kg mehr." Darunter die Zeilen unter der Überschrift „Erreicht", in die das
+eingetragen wird, was tatsächlich gelaufen ist.
+
+Aus diesen Ist-Werten rechnet `src/lib/ziel.ts` die Vorgabe fürs nächste Mal.
+Wer in allen Arbeitssätzen die obere Grenze des Bereichs bei erreichtem
+Ziel-RIR schafft, bekommt mehr Last: 2,5 kg im Oberkörper, 5 kg im
+Unterkörper. Sonst bleibt das Gewicht stehen, bis der Bereich voll ist. In der
+Entlastungswoche halbiert sich die Satzzahl, die Last bleibt.
+
+Neben jeder Übung steht eine Zeichnung: helle Linie die Ausgangslage, dunkle
+Linie die Endlage, Akzent für Last und Richtung. Sie sind aus Gelenkpunkten
+gebaut (`src/components/Schema.tsx`), ein Muster je Bewegung — 25 Zeichnungen
+decken die 31 Übungen ab. Dips und Hollow Hold zeigen nur eine Lage: bei ihnen
+liegen Anfang und Ende so dicht beieinander, dass zwei Linien nichts erklären.
+
 ## Der Plan steht nur an einer Stelle
 
 Vite, React 18, TypeScript, Tailwind, `vite-plugin-pwa`, `@supabase/supabase-js`,
@@ -35,7 +55,7 @@ Client können dadurch nicht auseinanderlaufen. Änderungen am Plan gehören nac
 ```
 npm install
 npm run dev       # Entwicklung
-npm test          # 59 Tests: Volumen, Zyklus, Progression, Abgleich, Datum
+npm test          # 66 Tests: Volumen, Zyklus, Progression, Abgleich, Datum
 npm run seed      # sql/03_seed.sql neu erzeugen
 npm run build     # baut nach ../training, direkt von GitHub Pages ausgeliefert
 ```

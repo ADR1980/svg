@@ -6,7 +6,7 @@
    ========================================================================== */
 
 import { useEffect, useState } from 'react'
-import type { Block, Satz, Uebung } from '../lib/types'
+import type { Satz, Uebung } from '../lib/types'
 import type { Vorbelegung } from '../lib/vorbelegung'
 import { Zahlenfeld } from './Zahlenfeld'
 
@@ -19,7 +19,6 @@ export interface SatzWerte {
 }
 
 interface Args {
-  block: Block
   uebung: Uebung | undefined
   index: number
   satz: Satz | null
@@ -32,7 +31,6 @@ interface Args {
 }
 
 export function SatzZeile({
-  block,
   uebung,
   index,
   satz,
@@ -65,11 +63,6 @@ export function SatzZeile({
         </span>
         {satz?.rir != null && (
           <span className="font-mono text-xs text-muted">RIR {satz.rir}</span>
-        )}
-        {!satz && vorbelegung.vorschlag != null && (
-          <span className="font-mono text-xs" style={{ color: 'var(--accent)' }}>
-            +{(vorbelegung.vorschlag - (vorbelegung.gewicht ?? 0)).toFixed(1)} kg
-          </span>
         )}
       </button>
     )
@@ -131,18 +124,6 @@ export function SatzZeile({
         />
         <div className="flex-1" />
       </div>
-
-      {vorbelegung.vorschlag != null && !satz && (
-        <button
-          type="button"
-          className="ziel mt-3 font-mono text-xs uppercase tracking-[0.12em]"
-          style={{ color: 'var(--accent)' }}
-          onClick={() => setWerte((w) => ({ ...w, weight_kg: vorbelegung.vorschlag }))}
-        >
-          Vorschlag: {vorbelegung.vorschlag.toString().replace('.', ',')} kg ·{' '}
-          {block.rep_min}–{block.rep_max} Wdh
-        </button>
-      )}
 
       <div className="mt-4 flex items-center gap-3">
         <button type="button" className="knopf-stark flex-1" onClick={() => sichern(werte)}>

@@ -7,7 +7,9 @@ import { UEBUNG_NACH_ID } from '../data/plan'
 import { mmss } from '../lib/datum'
 import type { Block, Satz, Training } from '../lib/types'
 import { vorbelegung } from '../lib/vorbelegung'
+import { zahl, zielFuerBlock, zielVorgabe } from '../lib/ziel'
 import { sollSaetze } from '../lib/zyklus'
+import { Schema, hatSchema } from './Schema'
 import { SatzZeile, type SatzWerte } from './SatzZeile'
 
 interface Args {
@@ -44,42 +46,52 @@ export function Blockgruppe(args: Args) {
           )}
         </div>
         <div className="mt-1 flex flex-wrap gap-x-4 font-mono text-xs text-muted ziffern">
-          {gruppe.map((b) => (
-            <span key={b.id}>
-              {sollSaetze(b, deload)} × {bereich(b)}
-              {b.target_rir ? ` · RIR ${b.target_rir}` : ''}
-              {b.rest_seconds ? ` · Pause ${mmss(b.rest_seconds)}` : ''}
-            </span>
-          ))}
+          {gruppe[0].rest_seconds ? <span>Pause {mmss(gruppe[0].rest_seconds)}</span> : null}
+          {superset && <span className="uppercase tracking-[0.12em]">Im Wechsel</span>}
         </div>
-        {superset && (
-          <p className="mt-1 font-mono text-xs uppercase tracking-[0.12em] text-muted">
-            Im Wechsel
-          </p>
-        )}
       </header>
 
       {gruppe.map((b) => {
         const u = b.exercise_id ? UEBUNG_NACH_ID[b.exercise_id] : undefined
+        const ziel = zielFuerBlock(
+          b,
+          u,
+          args.alleSaetze,
+          args.trainings,
+          args.aktuellesTraining,
+          deload
+        )
         return (
-          <div key={'hinweis-' + b.id} className="mt-2">
-            {u?.cue && (
-              <p className="text-sm leading-snug text-muted">
-                {superset ? `${u.name}: ` : ''}
-                {u.cue}
+          <div key={'ziel-' + b.id} className="mt-3 flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              {superset && <p className="etikett mb-1">{u?.name}</p>}
+              <p className="font-sans text-lg text-ink ziffern">
+                {ziel.gewicht != null ? `${zahl(ziel.gewicht)} kg` : 'Last frei'}
+                <span className="ml-2 font-mono text-xs uppercase tracking-[0.12em] text-muted">
+                  Ziel
+                </span>
               </p>
-            )}
-            {b.note && <p className="mt-1 text-sm italic text-body">{b.note}</p>}
-            {u?.unilateral && (
-              <p className="mt-1 font-mono text-xs text-muted">
-                Eine Zeile ist ein Satz je Seite.
-              </p>
+              <p className="mt-[2px] font-mono text-xs text-muted ziffern">{zielVorgabe(ziel)}</p>
+              <p className="mt-1 text-sm leading-snug text-muted">{ziel.begruendung}</p>
+              {u?.cue && <p className="mt-2 text-sm leading-snug text-body">{u.cue}</p>}
+              {b.note && <p className="mt-1 text-sm italic text-body">{b.note}</p>}
+              {u?.unilateral && (
+                <p className="mt-1 font-mono text-xs text-muted">
+                  Eine Zeile ist ein Satz je Seite.
+                </p>
+              )}
+            </div>
+            {hatSchema(b.exercise_id) && (
+              <div className="shrink-0">
+                <Schema uebungId={b.exercise_id!} breite={104} />
+              </div>
             )}
           </div>
         )
       })}
 
-      <div className="mt-3">
+      <div className="mt-4">
+        <p className="etikett border-b border-rule pb-1">Erreicht</p>
         {Array.from({ length: runden }, (_, r) => r + 1).map((runde) => (
           <div key={runde} className={superset ? 'mb-4' : ''}>
             {superset && (
@@ -108,7 +120,6 @@ export function Blockgruppe(args: Args) {
                     <p className="mt-2 font-mono text-xs text-muted">{u?.name}</p>
                   )}
                   <SatzZeile
-                    block={b}
                     uebung={u}
                     index={runde}
                     satz={satz}
@@ -136,7 +147,6 @@ export function Blockgruppe(args: Args) {
               return (
                 <SatzZeile
                   key={schluessel}
-                  block={b}
                   uebung={u}
                   index={s.set_index}
                   satz={s}
@@ -178,12 +188,4 @@ export function Blockgruppe(args: Args) {
       </div>
     </section>
   )
-}
-
-function bereich(b: Block): string {
-  const einheit = b.exercise_id && UEBUNG_NACH_ID[b.exercise_id]?.load_type
-  const zusatz = einheit === 'time' ? ' s' : einheit === 'distance' ? ' m' : ''
-  if (b.rep_min == null) return 'variabel'
-  if (b.rep_max == null || b.rep_max === b.rep_min) return `${b.rep_min}${zusatz}`
-  return `${b.rep_min}–${b.rep_max}${zusatz}`
 }
