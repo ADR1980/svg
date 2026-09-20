@@ -70,6 +70,34 @@ der Eimer an B nicht heraus, an A nur über eine signierte Adresse. Die Sicht
 den Bizeps und 1,5 für die seitliche Schulter — dieselben Zahlen, die der
 TypeScript-Test unabhängig behauptet.
 
+## Die Schleuse vor der Seite
+
+Vor der App steht ein Passwortfeld. Es hält zufällige Besucher ab, und das ist
+auch alles, was es kann: Die Seite liegt statisch auf GitHub Pages, es gibt
+keinen Server, der die Prüfung vornehmen könnte, also entscheidet der Browser
+des Besuchers — auf fremdem Gerät.
+
+Im Quelltext steht deshalb nicht das Passwort, sondern ein PBKDF2-Hash mit
+310 000 Runden und eigenem Salz (`src/lib/schleuse.ts`). Wer die Datei liest,
+muss raten, und jeder Rateversuch kostet ihn dieselbe Rechenzeit wie hier eine
+Eingabe — auf dem Testgerät 146 ms. Ein kurzes Passwort fällt trotzdem
+irgendwann; ein im Klartext eingechecktes wäre schon gefallen.
+
+Einmal geöffnet, merkt sich der Browser das in `localStorage`, sonst stünde vor
+jedem Satz eine Passworteingabe. Ein neues Gerät fragt wieder. Ohne Netz bleibt
+die Schleuse offen, weil die Prüfung ohnehin örtlich läuft.
+
+Was an der Schleuse nicht hängt, sind die Trainingsdaten. Die hängen an der
+Anmeldung gegen Supabase und an den Policies aus `sql/02_rls.sql`: Wer die
+Schleuse überwindet, sieht eine leere App.
+
+Neues Passwort setzen heißt Hash und Salz in `src/lib/schleuse.ts` ersetzen:
+
+```
+node -e 'const c=require("node:crypto");const s=c.randomBytes(16);
+  console.log(s.toString("hex"), c.pbkdf2Sync("NEUES PASSWORT",s,310000,32,"sha256").toString("hex"))'
+```
+
 ## Wie das Volumen gerechnet wird
 
 Jeder abgeschlossene Arbeitssatz zählt 1,0 für jeden Primär- und 0,5 für jeden
