@@ -21,6 +21,16 @@ Nach jedem bestätigten Satz startet der Pausentimer mit der hinterlegten Zeit,
 bleibt beim Scrollen am unteren Rand stehen und meldet sich am Ende mit Ton und
 Vibration.
 
+## Nachschlagen statt raten
+
+Der Schirm „Plan" zeigt alle fünf Einheiten mit ihren Blöcken, Vorgaben,
+Ausführungshinweisen und Zeichnungen — Push A, Pull, Beine A, Push B, Beine B,
+umschaltbar über eine Zeile Reiter. Dazu steht, auf welchen Tagen des Zyklus
+die Einheit liegt; Pull steht auf zwei.
+
+Eingetragen wird dort nichts. Sätze entstehen ausschließlich auf „Heute", und
+ein zweiter Ort dafür wäre ein zweiter Ort, an dem sie verloren gehen.
+
 ## Ziel, Erreichtes, und was daraus folgt
 
 Über jeder Übung steht, was heute zu schaffen ist: die Last in großer Zahl,
