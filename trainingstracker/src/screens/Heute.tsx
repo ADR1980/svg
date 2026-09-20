@@ -6,6 +6,7 @@
 
 import { useMemo, useState } from 'react'
 import { Blockgruppe } from '../components/Blockgruppe'
+import { Zyklusband } from '../components/Zyklusband'
 import { MuscleUpUeben } from '../components/MuscleUpUeben'
 import type { SatzWerte } from '../components/SatzZeile'
 import { MU_BLOECKE, UEBUNG_NACH_ID, bloeckeVon, vorlageVon } from '../data/plan'
@@ -43,7 +44,8 @@ function Pausentag({ tag, woche }: { tag: number; woche: number }) {
         Tag {tag} · Woche {woche}
       </p>
       <h1 className="font-sans text-2xl text-ink">Pause</h1>
-      <p className="mt-4 max-w-[62ch]">
+      <Zyklusband tag={tag} />
+      <p className="mt-6 max-w-[62ch]">
         Nichts zu tun. Die Pause gehört zum Plan wie die Kniebeuge — zwei von acht Tagen, sonst
         trägt die Schulter die Frequenz nicht.
       </p>
@@ -133,6 +135,7 @@ function Einheit({
           {tonnage != null && <span>{tonnage.toLocaleString('de-DE')} kg</span>}
           {deload && <span style={{ color: 'var(--signal)' }}>Entlastung</span>}
         </div>
+        <Zyklusband tag={tag} />
       </header>
 
       <div className="mt-4 flex flex-wrap gap-3">
