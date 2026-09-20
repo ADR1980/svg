@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fuehreZusammen, outboxSchluessel } from './abgleich'
+import { aufNutzerUmschreiben, fuehreZusammen, outboxSchluessel } from './abgleich'
 import { LEERER_BESTAND, type Bestand } from './lager'
 import type { Auftrag, Satz, Training } from './types'
 
@@ -96,5 +96,41 @@ describe('Zusammenführen', () => {
     expect(outboxSchluessel(auftrag({ table: 'cycle_state', payload: { user_id: 'u1' } }))).toBe(
       'cycle_state:u1'
     )
+  })
+})
+
+describe('Umschreiben auf den angemeldeten Nutzer', () => {
+  it('setzt Bestand und wartende Aufträge auf die neue Kennung', () => {
+    const geraet = 'geraet-1'
+    const bestand: Bestand = {
+      ...LEERER_BESTAND,
+      user_id: geraet,
+      trainings: [{ ...training('w1'), user_id: geraet }],
+      saetze: [{ ...satzMit('s1', 5), user_id: geraet }],
+      zyklus: { user_id: geraet, started_on: '2026-09-21', current_day: 2, last_advanced_on: null }
+    }
+    const outbox = [
+      auftrag({ payload: { id: 's1', user_id: geraet } }),
+      auftrag({ id: 'a2', table: 'cycle_state', payload: { user_id: geraet, current_day: 2 } }),
+      auftrag({ id: 'a3', op: 'delete', payload: { id: 's9' } })
+    ]
+    const neu = aufNutzerUmschreiben(bestand, outbox, 'nutzer-1')
+
+    expect(neu.bestand.user_id).toBe('nutzer-1')
+    expect(neu.bestand.trainings[0].user_id).toBe('nutzer-1')
+    expect(neu.bestand.saetze[0].user_id).toBe('nutzer-1')
+    expect(neu.bestand.zyklus?.user_id).toBe('nutzer-1')
+    expect(neu.outbox[0].payload.user_id).toBe('nutzer-1')
+    expect(neu.outbox[1].payload.user_id).toBe('nutzer-1')
+    // Eine Löschung trägt keine Kennung und bleibt unangetastet.
+    expect(neu.outbox[2].payload).toEqual({ id: 's9' })
+  })
+
+  it('lässt alles stehen, wenn die Kennung schon stimmt', () => {
+    const bestand: Bestand = { ...LEERER_BESTAND, user_id: 'u1' }
+    const outbox = [auftrag({})]
+    const neu = aufNutzerUmschreiben(bestand, outbox, 'u1')
+    expect(neu.bestand).toBe(bestand)
+    expect(neu.outbox).toBe(outbox)
   })
 })

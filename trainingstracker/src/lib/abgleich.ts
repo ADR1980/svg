@@ -94,6 +94,44 @@ export async function holeBestand(userId: string): Promise<Partial<Bestand>> {
 }
 
 /**
+ * Schreibt Bestand und Outbox auf eine neue Nutzerkennung um.
+ *
+ * Wer vor der ersten Anmeldung trainiert, protokolliert unter der Kennung des
+ * Geräts. Ohne diesen Schritt trügen die wartenden Zeilen eine fremde
+ * user_id, und RLS würde sie für immer abweisen.
+ */
+export function aufNutzerUmschreiben(
+  bestand: Bestand,
+  outbox: Auftrag[],
+  nutzer: string
+): { bestand: Bestand; outbox: Auftrag[] } {
+  if (bestand.user_id === nutzer) return { bestand, outbox }
+
+  const umschreiben = <T extends { user_id: string }>(zeilen: T[]): T[] =>
+    zeilen.map((z) => ({ ...z, user_id: nutzer }))
+
+  const neuerBestand: Bestand = {
+    ...bestand,
+    user_id: nutzer,
+    trainings: umschreiben(bestand.trainings),
+    saetze: umschreiben(bestand.saetze),
+    koerperwerte: umschreiben(bestand.koerperwerte),
+    muEintraege: umschreiben(bestand.muEintraege),
+    muMarken: umschreiben(bestand.muMarken),
+    fotos: umschreiben(bestand.fotos),
+    pausen: umschreiben(bestand.pausen),
+    zyklus: bestand.zyklus ? { ...bestand.zyklus, user_id: nutzer } : null
+  }
+
+  const neueOutbox = outbox.map((auftrag) =>
+    auftrag.op === 'upsert' && 'user_id' in auftrag.payload
+      ? { ...auftrag, payload: { ...auftrag.payload, user_id: nutzer } }
+      : auftrag
+  )
+  return { bestand: neuerBestand, outbox: neueOutbox }
+}
+
+/**
  * Führt Server- und örtlichen Bestand zusammen. Alles, was noch in der Outbox
  * steht, bleibt örtlich stehen — es ist noch nicht drüben angekommen.
  */

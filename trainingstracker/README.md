@@ -35,7 +35,7 @@ Client können dadurch nicht auseinanderlaufen. Änderungen am Plan gehören nac
 ```
 npm install
 npm run dev       # Entwicklung
-npm test          # 57 Tests: Volumen, Zyklus, Progression, Abgleich, Datum
+npm test          # 59 Tests: Volumen, Zyklus, Progression, Abgleich, Datum
 npm run seed      # sql/03_seed.sql neu erzeugen
 npm run build     # baut nach ../training, direkt von GitHub Pages ausgeliefert
 ```
@@ -44,19 +44,31 @@ Der Build landet bewusst im Repository: svg.global wird ohne CI direkt aus dem
 Hauptzweig ausgeliefert. Wer `src/` ändert, gibt `npm run build` mit ins
 Commit, sonst bleibt die veröffentlichte Fassung stehen.
 
-## Supabase einrichten
+## Das Projekt hinter der App
 
-Die Dateien in `sql/` laufen in dieser Reihenfolge in den SQL-Editor:
-`01_schema.sql`, `02_rls.sql`, `03_seed.sql`, `04_views.sql`, `05_storage.sql`.
-Danach `.env.example` nach `.env` kopieren und URL sowie publishable key
-eintragen. Ohne diese Werte startet die App trotzdem, protokolliert aber nur
-auf dem Gerät — brauchbar zum Ausprobieren, nicht zum Trainieren.
+Die App hängt am Supabase-Projekt `trainingstracker` (Referenz
+`uvfjffvimxepezgqmdmy`, Region eu-central-1). URL und publishable key stehen in
+`.env` und gehören dort auch hin: der Schlüssel benennt nur das Projekt und
+trägt keine Rechte. Welche Zeile jemand sieht, entscheiden die Policies aus
+`sql/02_rls.sql` und das JWT der Anmeldung. Wer gegen ein eigenes Projekt
+entwickelt, legt `.env.local` daneben.
 
-Jede Protokolltabelle trägt `user_id` und eine Policy `auth.uid() = user_id`.
-Übungen, Vorlagen, Blöcke und Muscle-Up-Progression sind für angemeldete
-Nutzer lesbar und sonst unveränderlich: einen Planeditor gibt es nicht. Fotos liegen im privaten Eimer `progress-photos` unter einem Pfad, der
-mit der Nutzerkennung beginnt; die App holt für jede Anzeige eine signierte
-Adresse mit zwei Minuten Laufzeit. Eine geratene URL bringt nichts.
+Die fünf Dateien in `sql/` sind am 20. September 2026 in dieser Reihenfolge
+eingespielt worden: Schema, RLS, Seed, Sichten, Storage. Ein zweiter Durchlauf
+schadet nicht, der Seed ist idempotent.
+
+Der erste Zugang entsteht in der App selbst: „Konto", dann „Neuer Zugang".
+Steht in Supabase die Bestätigung per E-Mail auf an — die Voreinstellung —,
+kommt zuerst eine Mail, und die App sagt das auch.
+
+Nachgeprüft ist der Weg von außen, mit zwei Prüfnutzern, die danach wieder
+gelöscht wurden: ohne Anmeldung liefert jede Tabelle 401. Angemeldet schreibt
+A seine Einheit und 17 Sätze, sieht sie wieder, und B sieht null davon. Ein
+Satz mit fremder `user_id` scheitert mit 403 an der Policy. Das Foto von A gibt
+der Eimer an B nicht heraus, an A nur über eine signierte Adresse. Die Sicht
+`weekly_volume` rechnet für die eine Pull-Einheit 14,0 für den Rücken, 8,5 für
+den Bizeps und 1,5 für die seitliche Schulter — dieselben Zahlen, die der
+TypeScript-Test unabhängig behauptet.
 
 ## Wie das Volumen gerechnet wird
 

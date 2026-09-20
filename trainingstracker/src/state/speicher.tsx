@@ -16,7 +16,7 @@ import {
   useState,
   type ReactNode
 } from 'react'
-import { fuehreZusammen, holeBestand, schiebeOutbox } from '../lib/abgleich'
+import { aufNutzerUmschreiben, fuehreZusammen, holeBestand, schiebeOutbox } from '../lib/abgleich'
 import { heute, naechsterMontag } from '../lib/datum'
 import { FOTO_EIMER, fern, fernVorhanden, imNetz } from '../lib/fern'
 import {
@@ -147,13 +147,19 @@ export function SpeicherProvider({ children }: { children: ReactNode }) {
       setAngemeldet(Boolean(sitzung))
       setEmail(sitzung?.user.email ?? null)
       if (sitzung) {
-        const nutzer = sitzung.user.id
-        // Der örtliche Bestand gehört ab jetzt dem angemeldeten Nutzer.
-        schreibeBestand({ ...bestandRef.current, user_id: nutzer })
+        // Was vor der Anmeldung unter der Gerätekennung entstand, gehört ab
+        // jetzt dem angemeldeten Nutzer — Bestand und Warteschlange mit.
+        const { bestand, outbox } = aufNutzerUmschreiben(
+          bestandRef.current,
+          outboxRef.current,
+          sitzung.user.id
+        )
+        schreibeBestand(bestand)
+        schreibeOutbox(outbox)
       }
     })
     return () => data.subscription.unsubscribe()
-  }, [schreibeBestand])
+  }, [schreibeBestand, schreibeOutbox])
 
   useEffect(() => {
     const an = () => setOnline(true)
