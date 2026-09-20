@@ -6,6 +6,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { Anmeldung } from './components/Anmeldung'
 import { Pausentimer } from './components/Pausentimer'
 import { Heute } from './screens/Heute'
+import { Plan } from './screens/Plan'
 import { Koerper } from './screens/Koerper'
 import { Verlauf } from './screens/Verlauf'
 import { useSpeicher } from './state/speicher'
@@ -15,10 +16,11 @@ import { useSpeicher } from './state/speicher'
 const Auswertung = lazy(() => import('./screens/Auswertung').then((m) => ({ default: m.Auswertung })))
 const MuscleUp = lazy(() => import('./screens/MuscleUp').then((m) => ({ default: m.MuscleUp })))
 
-type Schirm = 'heute' | 'muscleup' | 'verlauf' | 'auswertung' | 'koerper'
+type Schirm = 'heute' | 'plan' | 'muscleup' | 'verlauf' | 'auswertung' | 'koerper'
 
 const SCHIRME: { id: Schirm; name: string }[] = [
   { id: 'heute', name: 'Heute' },
+  { id: 'plan', name: 'Plan' },
   { id: 'muscleup', name: 'Muscle-Up' },
   { id: 'verlauf', name: 'Verlauf' },
   { id: 'auswertung', name: 'Auswertung' },
@@ -110,6 +112,7 @@ export function App() {
       <main className="mt-8">
         <Suspense fallback={<p className="etikett">Einen Moment</p>}>
           {schirm === 'heute' && <Heute />}
+          {schirm === 'plan' && <Plan />}
           {schirm === 'muscleup' && <MuscleUp />}
           {schirm === 'verlauf' && <Verlauf />}
           {schirm === 'auswertung' && <Auswertung />}
