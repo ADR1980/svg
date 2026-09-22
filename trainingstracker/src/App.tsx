@@ -1,13 +1,15 @@
 /* ==========================================================================
-   Gerüst: Kopf, fünf Schirme, Pausentimer am unteren Rand.
+   Gerüst: Kopf, sechs Schirme, Pausentimer am unteren Rand. Davor der Empfang,
+   solange niemand angemeldet ist.
    ========================================================================== */
 
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { Anmeldung } from './components/Anmeldung'
 import { Pausentimer } from './components/Pausentimer'
+import { Empfang } from './screens/Empfang'
 import { Heute } from './screens/Heute'
-import { Plan } from './screens/Plan'
 import { Koerper } from './screens/Koerper'
+import { Plan } from './screens/Plan'
 import { Verlauf } from './screens/Verlauf'
 import { useSpeicher } from './state/speicher'
 
@@ -34,6 +36,7 @@ export function App() {
   const [schirm, setSchirm] = useState<Schirm>('heute')
   const [konto, setKonto] = useState(false)
   const [schema, setSchema] = useState<Schema>(() => ladeSchema())
+  const [ohneKonto, setOhneKonto] = useState(ladeOhneKonto)
 
   useEffect(() => {
     const wurzel = document.documentElement
@@ -46,11 +49,25 @@ export function App() {
     }
   }, [schema])
 
+  // Angemeldet heißt: Die Entscheidung ist gefallen, der Hinweis kann weg.
+  if (angemeldet && ohneKonto) merkeOhneKonto(false)
+
   if (!bereit) {
     return (
       <div className="mx-auto max-w-[680px] px-4 py-16">
         <p className="etikett">Einen Moment</p>
       </div>
+    )
+  }
+
+  if (fernbetrieb && !angemeldet && !ohneKonto) {
+    return (
+      <Empfang
+        ohneKonto={() => {
+          merkeOhneKonto(true)
+          setOhneKonto(true)
+        }}
+      />
     )
   }
 
@@ -127,6 +144,23 @@ export function App() {
       <Pausentimer />
     </div>
   )
+}
+
+function ladeOhneKonto(): boolean {
+  try {
+    return localStorage.getItem('trainingstracker-ohne-konto') === 'ja'
+  } catch {
+    return false
+  }
+}
+
+function merkeOhneKonto(ja: boolean): void {
+  try {
+    if (ja) localStorage.setItem('trainingstracker-ohne-konto', 'ja')
+    else localStorage.removeItem('trainingstracker-ohne-konto')
+  } catch {
+    /* Privates Fenster: dann fragt sie beim nächsten Start wieder. */
+  }
 }
 
 function ladeSchema(): Schema {
