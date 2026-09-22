@@ -5,8 +5,18 @@ import { useState } from 'react'
 import { useSpeicher } from '../state/speicher'
 
 export function Anmeldung({ schliessen }: { schliessen: () => void }) {
-  const { angemeldet, emailAdresse, anmelden, abmelden, abgleichen, offen, letzterAbgleich, fernbetrieb, meldung } =
-    useSpeicher()
+  const {
+    angemeldet,
+    emailAdresse,
+    anmelden,
+    passwortAendern,
+    abmelden,
+    abgleichen,
+    offen,
+    letzterAbgleich,
+    fernbetrieb,
+    meldung
+  } = useSpeicher()
   const [email, setEmail] = useState('')
   const [passwort, setPasswort] = useState('')
   const [neu, setNeu] = useState(false)
@@ -38,6 +48,7 @@ export function Anmeldung({ schliessen }: { schliessen: () => void }) {
               Abmelden
             </button>
           </div>
+          <Passwortwechsel aendern={passwortAendern} />
         </div>
       ) : (
         <form
@@ -103,5 +114,65 @@ export function Anmeldung({ schliessen }: { schliessen: () => void }) {
         </p>
       )}
     </div>
+  )
+}
+
+/** Passwort ändern, ohne den Umweg über Supabase. */
+function Passwortwechsel({ aendern }: { aendern: (neu: string) => Promise<string | null> }) {
+  const [offen, setOffen] = useState(false)
+  const [neu, setNeu] = useState('')
+  const [antwort, setAntwort] = useState<string | null>(null)
+  const [fertig, setFertig] = useState(false)
+
+  if (!offen) {
+    return (
+      <button type="button" className="knopf mt-3" onClick={() => setOffen(true)}>
+        Passwort ändern
+      </button>
+    )
+  }
+
+  return (
+    <form
+      className="auftauchen mt-4 max-w-[32ch]"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        const fehler = await aendern(neu)
+        setAntwort(fehler)
+        if (!fehler) {
+          setFertig(true)
+          setNeu('')
+          setOffen(false)
+        }
+      }}
+    >
+      <label className="etikett mb-1 block" htmlFor="neuespasswort">
+        Neues Passwort
+      </label>
+      <input
+        id="neuespasswort"
+        type="password"
+        autoComplete="new-password"
+        className="feld font-serif text-base"
+        value={neu}
+        onChange={(e) => setNeu(e.target.value)}
+        minLength={8}
+        required
+      />
+      <div className="mt-3 flex gap-3">
+        <button type="submit" className="knopf-stark">
+          Übernehmen
+        </button>
+        <button type="button" className="knopf" onClick={() => setOffen(false)}>
+          Abbrechen
+        </button>
+      </div>
+      {antwort && (
+        <p className="mt-3 font-mono text-xs" style={{ color: 'var(--signal)' }}>
+          {antwort}
+        </p>
+      )}
+      {fertig && <p className="mt-3 font-mono text-xs text-muted">Passwort gewechselt.</p>}
+    </form>
   )
 }

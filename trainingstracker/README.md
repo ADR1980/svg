@@ -87,6 +87,94 @@ Die fünf Dateien in `sql/` sind am 20. September 2026 in dieser Reihenfolge
 eingespielt worden: Schema, RLS, Seed, Sichten, Storage. Ein zweiter Durchlauf
 schadet nicht, der Seed ist idempotent.
 
+Ohne Anmeldung landet jeder Satz nur in IndexedDB — auf genau einem Gerät, und
+weg, sobald der Browserspeicher aufräumt. Deshalb steht die Anmeldung seit dem
+22. September vor dem Tracker statt als rote Zeile am Rand. Wer ohne Konto
+weitermachen will, kann das mit einem Antippen; meldet er sich später an,
+schreibt `aufNutzerUmschreiben` Bestand und Warteschlange auf die neue Kennung
+um, und das Aufgelaufene geht nach oben. Das Passwort lässt sich unter „Konto"
+wechseln.
+
+Nachgeprüft ist der Weg von außen, mit Prüfnutzern, die danach wieder gelöscht
+wurden: ohne Anmeldung liefert jede Tabelle 401. Angemeldet schreibt A seine
+Einheit und 17 Sätze, sieht sie wieder, und B sieht null davon. Ein Satz mit
+fremder `user_id` scheitert mit 403 an der Policy. Das Foto von A gibt der
+Eimer an B nicht heraus, an A nur über eine signierte Adresse. Die Sicht
+`weekly_volume` rechnet für die eine Pull-Einheit 14,0 für den Rücken, 8,5 für
+den Bizeps und 1,5 für die seitliche Schulter — dieselben Zahlen, die der
+TypeScript-Test unabhängig behauptet.
+
+Der Abgleich selbst ist gegen das laufende Projekt geprüft, nicht nur gegen
+Attrappen: `schiebeOutbox` schiebt Zykluszustand, Einheit, drei Sätze und einen
+Körperwert hoch und lässt nichts in der Warteschlange; ein zweiter Client holt
+mit `holeBestand` genau diese Zeilen zurück.
+
+## Nachschlagen statt raten
+
+Der Schirm „Plan" zeigt alle fünf Einheiten mit ihren Blöcken, Vorgaben,
+Ausführungshinweisen und Zeichnungen — Push A, Pull, Beine A, Push B, Beine B,
+umschaltbar über eine Zeile Reiter. Dazu steht, auf welchen Tagen des Zyklus
+die Einheit liegt; Pull steht auf zwei.
+
+Eingetragen wird dort nichts. Sätze entstehen ausschließlich auf „Heute", und
+ein zweiter Ort dafür wäre ein zweiter Ort, an dem sie verloren gehen.
+
+## Ziel, Erreichtes, und was daraus folgt
+
+Über jeder Übung steht, was heute zu schaffen ist: die Last in großer Zahl,
+darunter Sätze, Wiederholungsbereich und Ziel-RIR, darunter ein Satz, warum
+die Zahl so lautet — „Letztes Mal 5 × 7 bei 80 kg, obere Grenze erreicht, also
+2,5 kg mehr." Darunter die Zeilen unter der Überschrift „Erreicht", in die das
+eingetragen wird, was tatsächlich gelaufen ist.
+
+Aus diesen Ist-Werten rechnet `src/lib/ziel.ts` die Vorgabe fürs nächste Mal.
+Wer in allen Arbeitssätzen die obere Grenze des Bereichs bei erreichtem
+Ziel-RIR schafft, bekommt mehr Last: 2,5 kg im Oberkörper, 5 kg im
+Unterkörper. Sonst bleibt das Gewicht stehen, bis der Bereich voll ist. In der
+Entlastungswoche halbiert sich die Satzzahl, die Last bleibt.
+
+Neben jeder Übung steht eine Zeichnung: helle Linie die Ausgangslage, dunkle
+Linie die Endlage, Akzent für Last und Richtung. Sie sind aus Gelenkpunkten
+gebaut (`src/components/Schema.tsx`), ein Muster je Bewegung — 25 Zeichnungen
+decken die 31 Übungen ab. Dips und Hollow Hold zeigen nur eine Lage: bei ihnen
+liegen Anfang und Ende so dicht beieinander, dass zwei Linien nichts erklären.
+
+## Der Plan steht nur an einer Stelle
+
+Vite, React 18, TypeScript, Tailwind, `vite-plugin-pwa`, `@supabase/supabase-js`,
+Recharts, `date-fns`. Kein weiteres UI-Framework — die Oberfläche ist klein
+genug, dass Tailwind mit den Tokens aus `src/index.css` reicht.
+
+Der Trainingsplan steht genau einmal im Projekt, in `src/data/plan.ts`. Aus
+dieser Datei erzeugt `npm run seed` die Datei `sql/03_seed.sql`; Datenbank und
+Client können dadurch nicht auseinanderlaufen. Änderungen am Plan gehören nach
+`plan.ts` und danach in eine neue Migration.
+
+```
+npm install
+npm run dev       # Entwicklung
+npm test          # 66 Tests: Volumen, Zyklus, Progression, Abgleich, Datum
+npm run seed      # sql/03_seed.sql neu erzeugen
+npm run build     # baut nach ../training, direkt von GitHub Pages ausgeliefert
+```
+
+Der Build landet bewusst im Repository: svg.global wird ohne CI direkt aus dem
+Hauptzweig ausgeliefert. Wer `src/` ändert, gibt `npm run build` mit ins
+Commit, sonst bleibt die veröffentlichte Fassung stehen.
+
+## Das Projekt hinter der App
+
+Die App hängt am Supabase-Projekt `trainingstracker` (Referenz
+`uvfjffvimxepezgqmdmy`, Region eu-central-1). URL und publishable key stehen in
+`.env` und gehören dort auch hin: der Schlüssel benennt nur das Projekt und
+trägt keine Rechte. Welche Zeile jemand sieht, entscheiden die Policies aus
+`sql/02_rls.sql` und das JWT der Anmeldung. Wer gegen ein eigenes Projekt
+entwickelt, legt `.env.local` daneben.
+
+Die fünf Dateien in `sql/` sind am 20. September 2026 in dieser Reihenfolge
+eingespielt worden: Schema, RLS, Seed, Sichten, Storage. Ein zweiter Durchlauf
+schadet nicht, der Seed ist idempotent.
+
 Der erste Zugang entsteht in der App selbst: „Konto", dann „Neuer Zugang".
 Steht in Supabase die Bestätigung per E-Mail auf an — die Voreinstellung —,
 kommt zuerst eine Mail, und die App sagt das auch.

@@ -54,6 +54,7 @@ interface Speicher {
   fernbetrieb: boolean
 
   anmelden: (email: string, passwort: string, neu: boolean) => Promise<string | null>
+  passwortAendern: (neu: string) => Promise<string | null>
   abmelden: () => Promise<void>
   abgleichen: () => Promise<void>
 
@@ -500,6 +501,12 @@ export function SpeicherProvider({ children }: { children: ReactNode }) {
     []
   )
 
+  const passwortAendern = useCallback(async (neu: string) => {
+    if (!fern) return 'Ohne Supabase-Zugang gibt es kein Passwort zu ändern.'
+    const { error } = await fern.auth.updateUser({ password: neu })
+    return error ? error.message : null
+  }, [])
+
   const abmelden = useCallback(async () => {
     if (fern) await fern.auth.signOut()
     const geraet = await geraeteNutzer()
@@ -522,6 +529,7 @@ export function SpeicherProvider({ children }: { children: ReactNode }) {
       meldung,
       fernbetrieb: fernVorhanden,
       anmelden,
+      passwortAendern,
       abmelden,
       abgleichen,
       zyklusStarten,
@@ -549,6 +557,7 @@ export function SpeicherProvider({ children }: { children: ReactNode }) {
       letzterAbgleich,
       meldung,
       anmelden,
+      passwortAendern,
       abmelden,
       abgleichen,
       zyklusStarten,
